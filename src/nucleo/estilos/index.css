@@ -1,0 +1,8 @@
+/* El único archivo de estilos que importa main.tsx. El orden importa: los
+   tokens tienen que existir antes de que nadie los use. */
+
+@import './tokens.css';
+@import './base.css';
+@import './componentes.css';
+@import './tablas.css';
+@import './disposicion.css';

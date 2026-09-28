@@ -1,0 +1,154 @@
+/* ===========================================================================
+   DISPOSICIÓN — el marco de la aplicación
+   =========================================================================== */
+
+.marco { min-height: 100%; display: grid; grid-template-rows: auto 1fr; }
+
+.cabecera {
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borde);
+  padding: 0 var(--e5);
+  display: flex;
+  align-items: center;
+  gap: var(--e5);
+  height: 54px;
+}
+
+.cabecera .logo { font-weight: 600; letter-spacing: -0.01em; }
+
+.cabecera nav { display: flex; gap: 2px; flex: 1; }
+
+.cabecera nav a {
+  padding: 7px 12px;
+  border-radius: var(--radio);
+  color: var(--tinta-2);
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.cabecera nav a:hover { background: var(--hundido); color: var(--tinta); }
+.cabecera nav a.activo { background: var(--acento-suave); color: var(--acento); font-weight: 500; }
+
+/* EL BLOQUE DE «QUIÉN SOY» ES UN ENLACE A MI CUENTA.
+   Siendo un <a>, hereda el color de acento y el subrayado de base.css, así que
+   hay que quitarle los dos: aquí no tiene que parecer un enlace, tiene que
+   parecer lo que ya parecía. Se nota al pasar el ratón, que es suficiente. */
+.cabecera .quien {
+  text-align: right;
+  font-size: 13px;
+  line-height: 1.3;
+  color: inherit;
+  text-decoration: none;
+  display: block;
+  border-radius: var(--radio);
+  padding: 4px 6px;
+  margin: -4px -6px;
+  transition: background 120ms;
+}
+
+.cabecera .quien:hover { background: var(--hundido); }
+.cabecera .quien:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.cabecera .quien .nombre {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--e2);
+}
+
+/* El rol, en pequeño al lado del nombre. Quien administra varias cuentas
+   necesita ver con cuál entró sin ir a otra pantalla. */
+.cabecera .quien .rol {
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: .02em;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--acento-suave);
+  color: var(--acento);
+  white-space: nowrap;
+}
+.cabecera .quien .empresa { color: var(--tinta-3); font-size: 12px; }
+
+.contenido { padding: var(--e6) var(--e5); }
+.contenido > * { max-width: 1100px; margin-inline: auto; }
+
+.titulo-pagina { margin-bottom: var(--e5); }
+
+@media (max-width: 720px) {
+  .cabecera { height: auto; flex-wrap: wrap; padding: var(--e2) var(--e4); gap: var(--e2); }
+  .cabecera nav { order: 3; width: 100%; overflow-x: auto; }
+  .cabecera .quien { flex: 1; }
+  .contenido { padding: var(--e5) var(--e4); }
+}
+
+
+/* =============================================================================
+   LA BARRA DE SUPLANTACIÓN
+
+   La pieza más pequeña de esa función y la más importante: el resto hace que
+   ver la cuenta de otro sea seguro, y esto es lo único que lo hace EVIDENTE.
+
+   POR QUÉ NO USA `.aviso` COMO LOS DEMÁS AVISOS: los avisos viven dentro del
+   contenido, con su margen y su ancho máximo. Esto tiene que ocupar el borde
+   entero de la ventana y empujar la página hacia abajo, para que no haya forma
+   de confundirlo con un mensaje que se va a ir solo.
+
+   Los colores son los del token de aviso, pero AL REVÉS que en el resto de la
+   aplicación: fondo fuerte y texto claro, no fondo suave con texto oscuro. Es
+   lo único de toda la interfaz pintado así, y por eso no se parece a nada más.
+   ============================================================================= */
+
+.barra-suplantacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3);
+  flex-wrap: wrap;
+
+  padding: var(--e2) var(--e4);
+  background: var(--aviso);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.4;
+
+  /* Encima de la cabecera si esta llegara a ser fija algún día, pero SIN
+     `position: fixed`: tiene que empujar, no tapar. */
+  position: relative;
+  z-index: 20;
+}
+
+.barra-suplantacion .texto { min-width: 0; }
+.barra-suplantacion .detalle { opacity: 0.85; }
+
+.barra-suplantacion .fallo {
+  margin-top: 2px;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: var(--radio);
+  padding: 2px 6px;
+  display: inline-block;
+}
+
+/* El botón de volver. Blanco sobre el naranja: es la salida, y tiene que ser lo
+   más claro de la barra. */
+.barra-suplantacion button {
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: inherit;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: var(--radio);
+  cursor: pointer;
+  transition: background 120ms;
+}
+
+.barra-suplantacion button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.26); }
+.barra-suplantacion button:disabled { opacity: 0.6; cursor: default; }
+.barra-suplantacion button:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+
+@media (max-width: 640px) {
+  .barra-suplantacion { padding: var(--e2) var(--e3); }
+}

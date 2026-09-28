@@ -1,0 +1,41 @@
+/* ===========================================================================
+   BASE — el reinicio y la tipografía
+   =========================================================================== */
+
+* { box-sizing: border-box; }
+
+html, body, #raiz { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--fuente);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+h1 { font-size: 24px; }
+h2 { font-size: 18px; }
+h3 { font-size: 15px; }
+
+p { margin: 0 0 var(--e3); }
+
+a { color: var(--acento); }
+
+/* Todo lo que se puede enfocar con el teclado tiene que verse. Quitar el
+   contorno porque «queda feo» deja la aplicación inutilizable sin ratón. */
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+code, .mono { font-family: var(--mono); font-size: .9em; }

@@ -1,0 +1,499 @@
+/* ===========================================================================
+   TABLAS, DIÁLOGOS Y CASILLAS
+
+   Todo lo que hace falta para las pantallas de administración. Sigue saliendo
+   de los tokens: aquí no hay ni un color escrito a mano.
+   =========================================================================== */
+
+/* --- Encabezado de página con acción a la derecha ------------------------- */
+
+.encabezado-pagina {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4);
+  margin-bottom: var(--e5);
+}
+
+.encabezado-pagina .titulo-pagina { margin-bottom: 0; }
+
+
+/* --- Tabla ---------------------------------------------------------------- */
+
+/* El bloque normal lleva relleno; una tabla tiene que llegar a los bordes. */
+.bloque.sin-relleno { padding: 0; overflow: hidden; }
+.bloque.sin-relleno .relleno { padding: var(--e5); }
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabla th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--tinta-3);
+  padding: var(--e3) var(--e4);
+  background: var(--hundido);
+  border-bottom: 1px solid var(--borde);
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: var(--e3) var(--e4);
+  border-bottom: 1px solid var(--borde-sutil);
+  vertical-align: middle;
+}
+
+.tabla tbody tr:last-child td { border-bottom: none; }
+.tabla tbody tr:hover { background: var(--papel); }
+
+.tabla .centro { text-align: center; }
+.tabla .principal { font-weight: 500; }
+.tabla .secundario { font-size: 12.5px; color: var(--tinta-3); margin-top: 2px; }
+
+/* Una fila apagada se sigue leyendo; no desaparece. Que se vea es el motivo
+   por el que están en la lista. */
+.tabla tr.apagada .principal { color: var(--tinta-2); }
+
+.tabla .acciones {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tabla .acciones .boton + .boton { margin-left: var(--e1); }
+
+@media (max-width: 860px) {
+  /* Antes que un scroll horizontal dentro de la tarjeta, que la tarjeta lo
+     tenga: así la cabecera de la tabla sigue cuadrando con sus columnas. */
+  .bloque.sin-relleno { overflow-x: auto; }
+  .tabla { min-width: 720px; }
+}
+
+
+/* --- Estado --------------------------------------------------------------- */
+
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.estado::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.estado.bueno { color: var(--bien); }
+.estado.malo  { color: var(--peligro); }
+.estado.aviso { color: var(--aviso); }
+
+/* La fila de quien está mirando, marcada. Evita el susto de creer que te has
+   desactivado a ti mismo. */
+.etiqueta.marca-yo {
+  font-family: var(--fuente);
+  margin-left: var(--e2);
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+
+/* Los permisos que concede un rol, dentro de su casilla. */
+.permisos-del-rol { margin-top: var(--e2); }
+
+
+/* --- Diálogo -------------------------------------------------------------- */
+
+.dialogo {
+  width: min(560px, calc(100vw - var(--e5) * 2));
+  max-height: calc(100vh - var(--e6) * 2);
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-grande);
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: 0 10px 40px rgb(22 32 42 / 18%);
+  overflow: hidden;
+}
+
+/* EL `display` VA EN `[open]`, Y NO ES UN DETALLE DE ESTILO.
+
+   El navegador esconde un <dialog> cerrado con su propia regla
+   `dialog:not([open]) { display: none }`. Pero las reglas de esta hoja le
+   ganan siempre a las del navegador, aunque sean menos específicas: la
+   cascada mira primero de dónde viene la regla, y solo después cuánto pesa.
+
+   Poner `display: flex` suelto en `.dialogo`, como estaba antes, tumbaba esa
+   regla y dejaba el diálogo pintado debajo de la página aunque estuviera
+   cerrado. Atado a `[open]`, el cerrado vuelve a desaparecer solo. */
+.dialogo[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 32% y no más, porque AHORA SE PUEDEN APILAR: una confirmación abierta sobre
+   otro diálogo pinta dos fondos, y dos al 42% dejaban la pantalla casi negra.
+   Al 32%, uno solo sigue separando bien y dos suman un 54% razonable. */
+.dialogo::backdrop { background: rgb(22 32 42 / 32%); }
+
+/* Con el diálogo abierto, la página de detrás no se mueve con la rueda. */
+body:has(dialog[open]) { overflow: hidden; }
+
+.dialogo-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3);
+  padding: var(--e4) var(--e5);
+  border-bottom: 1px solid var(--borde-sutil);
+}
+
+.dialogo-cabecera h2 { font-size: 17px; margin: 0; }
+
+.dialogo-cabecera .cerrar {
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radio);
+  background: none;
+  color: var(--tinta-3);
+  cursor: pointer;
+}
+.dialogo-cabecera .cerrar:hover { background: var(--hundido); color: var(--tinta); }
+
+.dialogo-cuerpo {
+  padding: var(--e5);
+  overflow-y: auto;
+}
+
+.dialogo-pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--e2);
+  padding: var(--e3) var(--e5);
+  border-top: 1px solid var(--borde-sutil);
+  background: var(--papel);
+}
+
+
+/* --- Piezas de formulario ------------------------------------------------- */
+
+.subtitulo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--tinta-3);
+  margin: var(--e5) 0 var(--e3);
+}
+
+.dialogo-cuerpo > form > .subtitulo:first-child,
+.dialogo-cuerpo > .subtitulo:first-child { margin-top: 0; }
+
+.parrafo { font-size: 14px; margin: 0 0 var(--e4); }
+.nota { font-size: 12.5px; color: var(--tinta-3); margin: var(--e3) 0 0; }
+
+/* Los botones que van DEBAJO de un dato, en una lista de definición.
+   Con un margen pequeño arriba para que se lean como parte de ese dato y no
+   como una fila nueva. */
+.acciones-linea { margin-top: var(--e2); }
+.acciones-linea .boton { padding-left: 0; }
+
+.casillas { display: grid; gap: var(--e2); }
+
+.casilla {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e3);
+  padding: var(--e3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  cursor: pointer;
+}
+.casilla:hover { background: var(--papel); }
+.casilla input { margin-top: 2px; accent-color: var(--acento); }
+.casilla strong { display: block; font-weight: 500; font-size: 14px; }
+.casilla em { display: block; font-style: normal; font-size: 12.5px; color: var(--tinta-3); }
+
+
+/* --- La contraseña que se ve una sola vez --------------------------------- */
+
+.clave-una-vez {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  padding: var(--e4);
+  border: 1px dashed var(--borde);
+  border-radius: var(--radio);
+  background: var(--papel);
+}
+
+.clave-una-vez code {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 17px;
+  letter-spacing: .04em;
+  word-break: break-all;
+
+  /* Para que se pueda seleccionar de un doble clic si el portapapeles falla. */
+  user-select: all;
+}
+
+
+/* ===========================================================================
+   EL SEGUNDO FACTOR
+   =========================================================================== */
+
+/* La tarjeta de acceso normal es estrecha; la del QR necesita más aire. */
+.tarjeta-acceso.ancha { max-width: 460px; }
+
+.pasos {
+  margin: 0 0 var(--e4);
+  padding-left: 20px;
+  font-size: 14px;
+  color: var(--tinta-2);
+}
+.pasos li { margin-bottom: var(--e1); }
+
+.qr {
+  display: grid;
+  place-items: center;
+  padding: var(--e4);
+  background: #ffffff;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  margin-bottom: var(--e3);
+}
+
+/* El QR se lee con una cámara: el blanco tiene que seguir siendo blanco
+   aunque algún día haya modo oscuro. */
+.qr img { display: block; }
+
+.centrado { text-align: center; }
+
+.clave-manual {
+  display: inline-block;
+  margin-top: var(--e1);
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: .08em;
+  color: var(--tinta);
+  user-select: all;
+}
+
+.codigos-rescate {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e2);
+  margin: 0 0 var(--e4);
+  padding: var(--e4);
+  list-style: none;
+  background: var(--papel);
+  border: 1px dashed var(--borde);
+  border-radius: var(--radio);
+}
+
+.codigos-rescate li {
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: .04em;
+  text-align: center;
+  user-select: all;
+}
+
+.botonera { display: flex; gap: var(--e2); margin-bottom: var(--e4); }
+.botonera .boton { flex: 1; }
+
+/* La casilla de «ya los guardé» no es una casilla de formulario cualquiera:
+   es lo único que separa a alguien de perder su cuenta. */
+.casilla.confirmar {
+  margin-bottom: var(--e4);
+  border-color: var(--aviso-borde);
+  background: var(--aviso-suave);
+}
+.casilla.confirmar span { font-size: 14px; }
+
+@media (max-width: 420px) {
+  .codigos-rescate { grid-template-columns: 1fr; }
+}
+
+
+/* ===========================================================================
+   AUDITORÍA
+   =========================================================================== */
+
+/* --- Pestañas dentro de una página ---------------------------------------- */
+
+.pestanas { display: flex; gap: 2px; }
+
+.pestanas a {
+  padding: 7px 14px;
+  border-radius: var(--radio);
+  color: var(--tinta-2);
+  text-decoration: none;
+  font-size: 14px;
+}
+.pestanas a:hover { background: var(--hundido); color: var(--tinta); }
+.pestanas a.activa { background: var(--acento-suave); color: var(--acento); font-weight: 500; }
+
+.bajada-pagina {
+  font-size: 14px;
+  color: var(--tinta-2);
+  margin: calc(var(--e5) * -1 + var(--e2)) 0 var(--e4);
+  max-width: 70ch;
+}
+
+
+/* --- Barra de filtros ------------------------------------------------------ */
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e3);
+  margin-bottom: var(--e4);
+  padding: var(--e3) var(--e4);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-grande);
+}
+
+.filtros label { display: grid; gap: var(--e1); }
+
+.filtros label > span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tinta-2);
+}
+
+.filtros select,
+.filtros input {
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 9px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--tinta);
+}
+
+.filtros select:focus,
+.filtros input:focus {
+  outline: 2px solid var(--acento);
+  outline-offset: -1px;
+}
+
+
+/* --- Un botón que parece un enlace ----------------------------------------
+   Para acciones secundarias dentro de una frase o una celda, donde un botón
+   de verdad pesaría demasiado. Sigue siendo un <button>: un <a> sin destino
+   no se puede pulsar con el teclado. */
+
+.enlace {
+  font: inherit;
+  font-size: 13px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--acento);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.enlace:hover { color: var(--acento-fuerte); }
+
+
+/* --- La operación de la bitácora ------------------------------------------- */
+
+.operacion {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-right: var(--e1);
+}
+
+.operacion.I { background: var(--bien-suave);    color: var(--bien); }
+.operacion.U { background: var(--acento-suave);  color: var(--acento); }
+.operacion.D { background: var(--peligro-suave); color: var(--peligro); }
+
+
+/* --- El JSON de detalle, que puede ser largo ------------------------------- */
+
+.tabla td.detalle {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+
+/* --- Paginación ------------------------------------------------------------ */
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e4);
+  flex-wrap: wrap;
+  margin-top: var(--e3);
+}
+
+.paginacion .cuenta { font-size: 13px; color: var(--tinta-3); }
+.paginacion .botones { display: flex; align-items: center; gap: var(--e3); }
+.paginacion .donde { font-size: 13px; color: var(--tinta-2); white-space: nowrap; }
+
+
+/* --- La tabla del antes y el después --------------------------------------- */
+
+.tabla.diferencias { font-size: 13px; margin-top: var(--e3); }
+.tabla.diferencias th { padding: var(--e2) var(--e3); }
+.tabla.diferencias td {
+  padding: var(--e2) var(--e3);
+  vertical-align: top;
+  word-break: break-word;
+  max-width: 220px;
+}
+
+/* La fila que cambió, marcada. Con la fila entera a la vista, es lo único que
+   evita tener que buscar la diferencia a ojo. */
+.tabla.diferencias tr.cambiada { background: var(--aviso-suave); }
+.tabla.diferencias tr.cambiada td:first-child { font-weight: 600; }
+
+@media (max-width: 720px) {
+  .filtros label { flex: 1 1 140px; }
+  .paginacion { justify-content: center; }
+}
+
+
+/* Una tabla dentro de un diálogo: menos aire, porque el diálogo ya tiene el
+   suyo y aquí lo que sobra es alto, no ancho. */
+.tabla.compacta th,
+.tabla.compacta td { padding-top: var(--e2); padding-bottom: var(--e2); }
+.tabla.compacta th:first-child,
+.tabla.compacta td:first-child { padding-left: 0; }
+.tabla.compacta th:last-child,
+.tabla.compacta td:last-child { padding-right: 0; }
+
+
+/* El cuerpo de una confirmación.
+   Párrafos cortos y separados, que es lo que el `confirm()` del navegador no
+   podía hacer: allí todo salía del mismo tamaño y del mismo color, y no había
+   forma de destacar la única línea que hay que leer. */
+.confirmacion p { margin: 0 0 var(--e3); }
+.confirmacion p:last-child { margin-bottom: 0; }
+.confirmacion strong { color: var(--tinta); }

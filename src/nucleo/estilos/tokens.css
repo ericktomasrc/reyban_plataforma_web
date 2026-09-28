@@ -1,0 +1,62 @@
+/* ===========================================================================
+   LOS TOKENS
+
+   Todo el color, el espaciado y la tipografía salen de aquí. Ningún componente
+   escribe un color a mano.
+
+   El día que haya que cambiar la marca, o añadir el modo oscuro, se toca este
+   archivo y nada más — no cincuenta componentes con `#0f6f6c` repartido.
+   =========================================================================== */
+
+:root {
+  /* --- Superficies --- */
+  --papel:       #f3f5f7;
+  --superficie:  #ffffff;
+  --hundido:     #eaeef1;
+  --borde:       #d3dbe1;
+  --borde-sutil: #e6ebef;
+
+  /* --- Texto ---
+     Tres niveles, no diez. El cuarto siempre acaba siendo ilegible. */
+  --tinta:   #16202a;
+  --tinta-2: #4a5a67;
+  --tinta-3: #7d8d99;
+
+  /* --- Acento --- */
+  --acento:        #0f6f6c;
+  --acento-fuerte: #0a5451;
+  --acento-suave:  #e6f1f0;
+
+  /* --- Semánticos ---
+     Separados del acento a propósito: el color que dice «esto va mal» no
+     puede ser el mismo que dice «esto es de la marca». */
+  --peligro:       #a6301f;
+  --peligro-suave: #fbecea;
+  --peligro-borde: #eccac4;
+
+  --aviso:         #8a5a09;
+  --aviso-suave:   #fdf3e2;
+  --aviso-borde:   #eddcbb;
+
+  --bien:          #1b6b4a;
+  --bien-suave:    #e8f3ed;
+
+  /* --- Forma --- */
+  --radio:       4px;
+  --radio-grande: 6px;
+  --sombra: 0 1px 2px rgb(22 32 42 / 6%), 0 4px 12px rgb(22 32 42 / 5%);
+
+  /* --- Tipografía --- */
+  --fuente: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* --- Espaciado ---
+     Una escala, y todo se pega a ella. Los márgenes a ojo son la diferencia
+     entre una pantalla que se ve cuidada y una que no, y nadie sabe por qué. */
+  --e1: 4px;
+  --e2: 8px;
+  --e3: 12px;
+  --e4: 16px;
+  --e5: 24px;
+  --e6: 32px;
+}

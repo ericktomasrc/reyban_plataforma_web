@@ -1,0 +1,174 @@
+/* ===========================================================================
+   COMPONENTES — las clases que usan las piezas de src/componentes/
+   =========================================================================== */
+
+/* --- Campo ---------------------------------------------------------------- */
+
+.campo { display: grid; gap: var(--e1); margin-bottom: var(--e4); }
+
+.campo > label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tinta-2);
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  font: inherit;
+  padding: 9px 11px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--tinta);
+  width: 100%;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  outline: 2px solid var(--acento);
+  outline-offset: -1px;
+  border-color: var(--acento);
+}
+
+.campo input[aria-invalid="true"] { border-color: var(--peligro); }
+
+.campo .pista { font-size: 12.5px; color: var(--tinta-3); }
+.campo .pista.mal { color: var(--peligro); }
+
+
+/* --- Botón ---------------------------------------------------------------- */
+
+.boton {
+  font: inherit;
+  font-weight: 500;
+  padding: 9px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  background: var(--acento);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.boton:hover:not(:disabled) { background: var(--acento-fuerte); }
+.boton:disabled { opacity: .55; cursor: default; }
+.boton.ancho { width: 100%; }
+
+.boton.secundario {
+  background: var(--superficie);
+  color: var(--tinta);
+  border-color: var(--borde);
+}
+.boton.secundario:hover:not(:disabled) { background: var(--hundido); }
+
+.boton.plano {
+  background: none;
+  color: var(--tinta-2);
+  padding: 6px 10px;
+}
+.boton.plano:hover:not(:disabled) { background: var(--hundido); color: var(--tinta); }
+
+.boton.peligro { background: var(--peligro); }
+.boton.peligro:hover:not(:disabled) { filter: brightness(.9); }
+
+
+/* --- Aviso ---------------------------------------------------------------- */
+
+.aviso {
+  padding: 11px 14px;
+  border-radius: var(--radio);
+  border: 1px solid;
+  font-size: 14px;
+  margin-bottom: var(--e4);
+}
+
+.aviso.error { background: var(--peligro-suave); border-color: var(--peligro-borde); color: var(--peligro); }
+.aviso.ojo   { background: var(--aviso-suave);   border-color: var(--aviso-borde);   color: var(--aviso); }
+.aviso.bien  { background: var(--bien-suave);    border-color: #c6e0d2;              color: var(--bien); }
+
+
+/* --- Bloque --------------------------------------------------------------- */
+
+.bloque {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-grande);
+  padding: var(--e5);
+  margin-bottom: var(--e4);
+}
+
+.bloque > h2 { margin-bottom: var(--e3); }
+
+
+/* --- Lista de datos ------------------------------------------------------- */
+
+.datos { display: grid; gap: var(--e2); margin: 0; }
+.datos .fila { display: grid; grid-template-columns: 180px 1fr; gap: var(--e3); font-size: 14px; }
+.datos .fila dt { color: var(--tinta-3); }
+.datos .fila dd { margin: 0; }
+
+@media (max-width: 520px) {
+  .datos .fila { grid-template-columns: 1fr; gap: 0; }
+}
+
+
+/* --- Etiquetas ------------------------------------------------------------ */
+
+.etiquetas { display: flex; flex-wrap: wrap; gap: var(--e1); }
+
+.etiqueta {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: var(--hundido);
+  color: var(--tinta-2);
+}
+
+.etiqueta.acento { background: var(--acento-suave); color: var(--acento); }
+
+
+/* --- Estados -------------------------------------------------------------- */
+
+.vacio { color: var(--tinta-3); font-size: 14px; font-style: italic; margin: 0; }
+
+.cargando {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--tinta-3);
+}
+
+
+/* --- Pantalla de acceso --------------------------------------------------- */
+
+.pantalla-centrada {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--e5) var(--e4);
+}
+
+.tarjeta-acceso {
+  width: 100%;
+  max-width: 380px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-grande);
+  box-shadow: var(--sombra);
+  padding: var(--e6) var(--e5);
+}
+
+.tarjeta-acceso .marca {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--acento);
+  margin-bottom: var(--e1);
+}
+
+.tarjeta-acceso h1 { margin-bottom: var(--e1); }
+.tarjeta-acceso .bajada { color: var(--tinta-2); font-size: 14px; margin-bottom: var(--e5); }
