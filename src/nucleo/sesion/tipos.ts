@@ -9,6 +9,9 @@ export interface Usuario {
   id: string
   nombre: string
   correo: string
+
+  /** Lo que se enseña en vez del correo: lo de antes de la @, único (016). */
+  alias: string
   esSuperAdmin: boolean
   dosfaActivo: boolean
   claveCambioForzado: boolean
@@ -16,8 +19,36 @@ export interface Usuario {
 
 export interface Empresa {
   id: string
-  ruc: string
-  razonSocial: string
+
+  /** El nombre para mostrar: el de la cabecera. */
+  nombre: string
+
+  /** Los oficiales, del servicio. Nulos solo si nunca se conectó. */
+  ruc: string | null
+  razonSocial: string | null
+
+  /** El correo del dueño de la empresa (017). Nulo en las del super administrador. */
+  correoTitular: string | null
+}
+
+/**
+ * La cuenta del usuario (migración 016). Nula para el super administrador.
+ *
+ * Quien se registra solo tiene cuenta ANTES que empresa: la agrega después.
+ */
+export interface Cuenta {
+  id: string
+  tipo: 'negocio' | 'profesional'
+  estado: 'pendiente' | 'activa' | 'suspendida'
+
+  /** Del registro. Nulo en las cuentas que nacieron con una empresa. */
+  titularNombre: string | null
+
+  /**
+   * Su lugar en la cuenta (018). Nulo = usuario de una sola empresa (la
+   * cajera): no ve la cartera.
+   */
+  nivel: 'dueno' | 'colaborador_admin' | 'colaborador' | null
 }
 
 export interface EntradaMenu {
@@ -51,8 +82,14 @@ export interface Suplantacion {
 export interface Yo {
   usuario: Usuario
 
-  /** Nulo para el super administrador: vive fuera de las empresas. */
+  /**
+   * Nulo para el super administrador —vive fuera de las empresas— y para quien
+   * se acaba de registrar y todavía no agregó la suya.
+   */
   empresa: Empresa | null
+
+  /** Nula para el super administrador. */
+  cuenta: Cuenta | null
 
   permisos: string[]
 

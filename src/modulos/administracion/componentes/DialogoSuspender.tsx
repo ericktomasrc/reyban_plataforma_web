@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { empresasServicio } from '../servicios/empresasServicio'
 import type { EmpresaEnLista } from '../tipos'
 
@@ -23,29 +23,28 @@ export function DialogoSuspender({ empresa, onCerrar, onHecho }: {
   onHecho: () => void
 }) {
   const [motivo, setMotivo] = useState('')
-  const [error, setError] = useState<string>()
+  const mensaje = useMensaje()
   const [enviando, setEnviando] = useState(false)
 
   async function confirmar() {
     if (!motivo.trim()) {
-      setError('Escribe el motivo: es lo que se verá en la bitácora.')
+      mensaje.error('Escribe el motivo: es lo que se verá en la bitácora.')
       return
     }
 
     setEnviando(true)
-    setError(undefined)
     try {
       await empresasServicio.suspender(empresa.id, motivo.trim())
       onHecho()
     } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : 'No se pudo suspender la empresa.')
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo suspender la empresa.')
       setEnviando(false)
     }
   }
 
   return (
     <Dialogo
-      titulo={`Suspender ${empresa.razonSocial}`}
+      titulo={`Suspender ${empresa.nombre}`}
       abierto
       onCerrar={onCerrar}
       acciones={
@@ -62,7 +61,6 @@ export function DialogoSuspender({ empresa, onCerrar, onHecho }: {
         </>
       }
     >
-      {error && <Aviso>{error}</Aviso>}
 
       <div className="aviso ojo">
         Sus {empresa.usuarios} usuario{empresa.usuarios === 1 ? '' : 's'} no
@@ -73,6 +71,7 @@ export function DialogoSuspender({ empresa, onCerrar, onHecho }: {
 
       <Campo
         etiqueta="Motivo"
+        obligatorio
         value={motivo}
         onChange={e => setMotivo(e.target.value)}
         placeholder="Falta de pago de la mensualidad de agosto"

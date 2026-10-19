@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { usuariosServicio } from '../servicios/usuariosServicio'
 import type { RolDisponible, UsuarioEnLista } from '../tipos'
 
@@ -26,20 +26,19 @@ interface Props {
  */
 export function DialogoRoles({ usuario, roles, onCerrar, onGuardado }: Props) {
   const [elegidos, setElegidos] = useState<string[]>(usuario.roles.map(r => r.rolId))
-  const [error, setError] = useState<string>()
+  const mensaje = useMensaje()
   const [guardando, setGuardando] = useState(false)
 
   const alternar = (id: string) =>
     setElegidos(v => v.includes(id) ? v.filter(r => r !== id) : [...v, id])
 
   async function guardar() {
-    setError(undefined)
     setGuardando(true)
     try {
       await usuariosServicio.cambiarRoles(usuario.id, elegidos)
       onGuardado()
     } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : 'No se pudieron guardar los roles.')
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudieron guardar los roles.')
       setGuardando(false)
     }
   }
@@ -58,7 +57,6 @@ export function DialogoRoles({ usuario, roles, onCerrar, onGuardado }: Props) {
         </>
       }
     >
-      {error && <Aviso>{error}</Aviso>}
 
       {elegidos.length === 0 && (
         <div className="aviso ojo">

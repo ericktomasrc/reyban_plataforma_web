@@ -3,12 +3,16 @@ import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
 import { useCargar } from '../../../nucleo/hooks/useCargar'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { DialogoAltaEmpresa } from '../componentes/DialogoAltaEmpresa'
 import { DialogoModulos } from '../componentes/DialogoModulos'
 import { DialogoPlazo } from '../componentes/DialogoPlazo'
 import { DialogoSuspender } from '../componentes/DialogoSuspender'
+import { DialogoFacturacion } from '../componentes/DialogoFacturacion'
 import { DialogoVerComo } from '../componentes/DialogoVerComo'
 import { empresasServicio } from '../servicios/empresasServicio'
+import { diasHasta } from '../../cartera/servicios/carteraServicio'
+import { fecha } from '../../../nucleo/formato/fechas'
 import { Si } from '../../../nucleo/autorizacion/Protegido'
 import { Permisos } from '../../../nucleo/autorizacion/permisos'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
@@ -36,8 +40,9 @@ export function ListaEmpresas() {
   const [editandoPlazo, setEditandoPlazo] = useState<EmpresaEnLista>()
   const [suspendiendo, setSuspendiendo] = useState<EmpresaEnLista>()
   const [viendoComo, setViendoComo]     = useState<EmpresaEnLista>()
-  const [errorAccion, setErrorAccion] = useState<string>()
-  const [aviso, setAviso] = useState<string>()
+  const [facturacion, setFacturacion]   = useState<EmpresaEnLista>()
+
+  const mensaje = useMensaje()
 
   const modulos = catalogo.datos ?? []
 
@@ -46,12 +51,11 @@ export function ListaEmpresas() {
     modulos.find(m => m.codigo === codigo)?.nombre ?? codigo
 
   async function reactivar(empresa: EmpresaEnLista) {
-    setErrorAccion(undefined)
     try {
       await empresasServicio.reactivar(empresa.id)
       await empresas.recargar()
     } catch {
-      setErrorAccion(`No se pudo reactivar ${empresa.razonSocial}.`)
+      mensaje.error(`No se pudo reactivar ${empresa.nombre}.`)
     }
   }
 
@@ -65,8 +69,8 @@ export function ListaEmpresas() {
       </div>
 
       {empresas.error && <Aviso>{empresas.error}</Aviso>}
-      {errorAccion && <Aviso>{errorAccion}</Aviso>}
-      {aviso && <Aviso tono="bien">{aviso}</Aviso>}
+
+      {empresas.datos && <CertificadosPorVencer empresas={empresas.datos} />}
 
       <div className="bloque sin-relleno">
         {empresas.datos && empresas.datos.length > 0 ? (
@@ -89,13 +93,23 @@ export function ListaEmpresas() {
                 return (
                   <tr key={e.id} className={suspendida ? 'apagada' : undefined}>
                     <td>
-                      <div className="principal">{e.razonSocial}</div>
+                      <div className="principal">{e.nombre}</div>
+                      {e.razonSocial && e.razonSocial !== e.nombre && (
+                        <div className="secundario">{e.razonSocial}</div>
+                      )}
                       {suspendida && e.motivoSuspension && (
                         <div className="secundario">{e.motivoSuspension}</div>
                       )}
                     </td>
 
-                    <td className="mono">{e.ruc}</td>
+                    <td>
+                      {e.ruc
+                        ? <span className="mono">{e.ruc}</span>
+                        : <span className="vacio">sin conectar</span>}
+                      {e.ambiente && (
+                        <div className="secundario">{e.ambiente === 'produccion' ? 'producción' : 'beta'}</div>
+                      )}
+                    </td>
 
                     <td className="centro">{e.usuarios}</td>
 
@@ -115,6 +129,7 @@ export function ListaEmpresas() {
                       <span className={suspendida ? 'estado malo' : 'estado bueno'}>
                         {suspendida ? 'Suspendida' : 'Operativa'}
                       </span>
+                      <MarcasDeFacturacion empresa={e} />
                     </td>
 
                     <td className="acciones">
@@ -140,6 +155,13 @@ export function ListaEmpresas() {
 
                       <Boton estilo="plano" onClick={() => setEditandoPlazo(e)}>
                         Enlaces
+                      </Boton>
+
+                      {/* SIEMPRE, no solo con el módulo activo: desde la
+                          parte C la empresa nace conectada, y esta ventana es
+                          donde se ve qué le falta para PODER activarlo. */}
+                      <Boton estilo="plano" onClick={() => setFacturacion(e)}>
+                        Facturación
                       </Boton>
 
                       {suspendida ? (
@@ -171,27 +193,42 @@ export function ListaEmpresas() {
         abierto={creando}
         modulos={modulos}
         onCerrar={() => setCreando(false)}
-        onCreada={r => {
+        onCreada={(r, confirmada) => {
           setCreando(false)
-          setErrorAccion(undefined)
 
           // El correo puede no haber salido sin que eso impida crear la
           // empresa: el aviso tiene que distinguir los dos casos, o alguien se
-          // quedará esperando un correo que nunca llegó.
-          if (r.administrador.invitacionEnviada) {
-            setAviso(
-              `${r.empresa.razonSocial} quedó creada. ` +
-              `Le mandamos a ${r.administrador.correo} el enlace para elegir su contraseña.`)
+          // quedará esperando un correo que nunca llegó. Lo mismo con la
+          // confirmación al servicio: si no llegó, se reintenta sola.
+          const creada = `${r.empresa.nombre} quedó creada aquí y en el servicio (beta).`
+
+          if (r.administrador.invitacionEnviada && confirmada) {
+            mensaje.bien(
+              `${creada} Le mandamos a ${r.administrador.correo} el enlace para elegir su contraseña. ` +
+              'Ahora carga en el panel del servicio el certificado, el usuario SOL, las series y la Marca.')
           } else {
-            setAviso(undefined)
-            setErrorAccion(
-              `${r.empresa.razonSocial} quedó creada, pero el correo a ` +
-              `${r.administrador.correo} no salió. Reenvíalo desde sus usuarios.`)
+            // NI ROJO NI VERDE: la empresa SÍ quedó creada, y pintarlo de rojo
+            // haría pensar que hay que repetir el alta. Ámbar, que es «salió,
+            // pero léelo».
+            mensaje.ojo(
+              creada +
+              (r.administrador.invitacionEnviada ? '' :
+                ` Pero el correo a ${r.administrador.correo} no salió: reenvíalo desde sus usuarios.`) +
+              (confirmada ? '' :
+                ' El servicio no recibió la confirmación del alta: se confirma sola al abrir Facturación y pulsar «Volver a preguntar al servicio».'))
           }
 
           void empresas.recargar()
         }}
       />
+
+      {facturacion && (
+        <DialogoFacturacion
+          empresa={facturacion}
+          onCerrar={() => setFacturacion(undefined)}
+          onCambiado={() => void empresas.recargar()}
+        />
+      )}
 
       {viendoComo && (
         <DialogoVerComo
@@ -240,5 +277,91 @@ export function ListaEmpresas() {
         />
       )}
     </>
+  )
+}
+
+
+/**
+ * Las marcas de facturación de una fila, de lo último que dijo el servicio
+ * (la lista no le pregunta: tiene que abrir aunque esté apagado). Un `null`
+ * es «todavía no se preguntó»: no se pinta nada, ni bueno ni malo.
+ */
+function MarcasDeFacturacion({ empresa }: { empresa: EmpresaEnLista }) {
+  const f = empresa.facturacion
+  if (!f) return null
+
+  const conModulo = empresa.modulos.includes('facturacion')
+  const marcas: { clase: string; texto: string }[] = []
+
+  if (f.claveAnteriorPendiente)
+    marcas.push({ clase: 'estado malo', texto: 'Clave anterior sin revocar' })
+  if (f.altaSinConfirmar)
+    marcas.push({ clase: 'estado aviso', texto: 'Alta sin confirmar' })
+  if (f.listoParaEmitir === false)
+    marcas.push({ clase: conModulo ? 'estado malo' : 'estado aviso', texto: 'Le falta algo para emitir' })
+  if (f.listoParaEmitir === true && !conModulo)
+    marcas.push({ clase: 'estado bueno', texto: 'Lista para activar Facturación' })
+  if (f.correosAlReceptor === false)
+    marcas.push({ clase: 'estado aviso', texto: 'Sin correo al receptor' })
+
+  // EL CERTIFICADO (paso 6.2): a 30 días o menos, en ámbar; a 7 o vencido,
+  // en rojo. Es lo que más rápido deja a un cliente sin poder facturar.
+  const dias = f.certificadoValidoHasta ? diasHasta(f.certificadoValidoHasta) : null
+  if (dias !== null && dias <= 30)
+    marcas.push({
+      clase: dias <= 7 ? 'estado malo' : 'estado aviso',
+      texto: dias < 0 ? 'Certificado vencido'
+           : dias === 0 ? 'Certificado vence hoy'
+           : `Certificado vence en ${dias} día${dias === 1 ? '' : 's'}`
+    })
+
+  return (
+    <>
+      {marcas.map(m => (
+        <div key={m.texto}><span className={m.clase}>{m.texto}</span></div>
+      ))}
+    </>
+  )
+}
+
+
+/**
+ * La franja de arriba: las empresas con el certificado a 30 días o menos, la
+ * más urgente primero. Las suspendidas no cuentan: no pueden emitir igual.
+ *
+ * NO MANDA NADA: los correos los manda la plataforma sola (AvisosCertificado,
+ * paso 6.3) a los 30, 15, 7 y 1 días y el día que vence. Esto es para que el
+ * super administrador lo vea sin abrir cada empresa.
+ */
+function CertificadosPorVencer({ empresas }: { empresas: EmpresaEnLista[] }) {
+  const urgentes = empresas
+    .filter(e => e.suspendidaEn === null && e.facturacion?.certificadoValidoHasta)
+    .map(e => ({ e, dias: diasHasta(e.facturacion!.certificadoValidoHasta!) }))
+    .filter(x => x.dias <= 30)
+    .sort((a, b) => a.dias - b.dias)
+
+  if (urgentes.length === 0) return null
+
+  const vencidas = urgentes.filter(x => x.dias < 0).length
+
+  return (
+    <Aviso tono={urgentes[0].dias <= 7 ? 'error' : 'ojo'}>
+      <strong>
+        {urgentes.length === 1
+          ? 'Una empresa tiene el certificado digital por vencer'
+          : `${urgentes.length} empresas tienen el certificado digital por vencer`}
+        {vencidas > 0 && ` (${vencidas === 1 ? 'una ya venció' : `${vencidas} ya vencieron`})`}.
+      </strong>{' '}
+      {urgentes.slice(0, 5).map((x, i) => (
+        <span key={x.e.id}>
+          {i > 0 && ' · '}
+          {x.e.nombre}: {x.dias < 0 ? `venció el ${fecha(x.e.facturacion!.certificadoValidoHasta!)}`
+                       : x.dias === 0 ? 'vence hoy'
+                       : `${x.dias} día${x.dias === 1 ? '' : 's'}`}
+        </span>
+      ))}
+      {urgentes.length > 5 && <> · y {urgentes.length - 5} más</>}
+      . Sin certificado no pueden emitir. Ya les llega el aviso por correo.
+    </Aviso>
   )
 }

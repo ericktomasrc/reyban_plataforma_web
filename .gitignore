@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Copias que dejan los scripts de entrega
+*.bak
+
+# Variables de entorno: nunca a git
+.env
+.env.*
+!.env.example

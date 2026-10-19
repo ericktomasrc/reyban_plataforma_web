@@ -4,6 +4,7 @@ import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { usuariosServicio } from '../servicios/usuariosServicio'
 import type { UsuarioEditado, UsuarioEnLista } from '../tipos'
 
@@ -28,7 +29,7 @@ interface Props {
 export function DialogoEditarUsuario({ usuario, onCerrar, onGuardado }: Props) {
   const [nombre, setNombre] = useState(usuario.nombre)
   const [correo, setCorreo] = useState(usuario.correo)
-  const [error, setError]   = useState<string>()
+  const mensaje = useMensaje()
   const [guardando, setGuardando] = useState(false)
 
   // Si se cierra y se abre con otra persona, los campos tienen que seguirla.
@@ -36,7 +37,6 @@ export function DialogoEditarUsuario({ usuario, onCerrar, onGuardado }: Props) {
   useEffect(() => {
     setNombre(usuario.nombre)
     setCorreo(usuario.correo)
-    setError(undefined)
   }, [usuario])
 
   /**
@@ -51,14 +51,13 @@ export function DialogoEditarUsuario({ usuario, onCerrar, onGuardado }: Props) {
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError(undefined)
 
     if (!nombre.trim()) {
-      setError('El nombre no puede quedar vacío.')
+      mensaje.error('El nombre no puede quedar vacío.')
       return
     }
     if (!correo.trim()) {
-      setError('El correo no puede quedar vacío: es con lo que entra.')
+      mensaje.error('El correo no puede quedar vacío: es con lo que entra.')
       return
     }
 
@@ -70,7 +69,7 @@ export function DialogoEditarUsuario({ usuario, onCerrar, onGuardado }: Props) {
       // El 409 es un correo que ya tiene otra persona. Puede estar en otra
       // empresa —el correo es único en toda la plataforma— y la API no dice de
       // quién es, a propósito: diría quién es cliente tuyo.
-      setError(err instanceof ErrorApi ? err.message : 'No se pudo guardar.')
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudo guardar.')
     } finally {
       setGuardando(false)
     }
@@ -96,10 +95,10 @@ export function DialogoEditarUsuario({ usuario, onCerrar, onGuardado }: Props) {
       }
     >
       <form id="editar-usuario" onSubmit={enviar}>
-        {error && <Aviso>{error}</Aviso>}
 
         <Campo
           etiqueta="Nombre"
+          obligatorio
           value={nombre}
           onChange={e => setNombre(e.target.value)}
           autoFocus
@@ -107,6 +106,7 @@ export function DialogoEditarUsuario({ usuario, onCerrar, onGuardado }: Props) {
 
         <Campo
           etiqueta="Correo"
+          obligatorio
           type="email"
           value={correo}
           onChange={e => setCorreo(e.target.value)}

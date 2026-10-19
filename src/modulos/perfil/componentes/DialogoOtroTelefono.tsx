@@ -4,6 +4,7 @@ import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { accesoServicio } from '../../acceso/servicios/accesoServicio'
 
 interface Props {
@@ -25,19 +26,18 @@ interface Props {
  */
 export function DialogoOtroTelefono({ onCerrar, onHecho }: Props) {
   const [clave, setClave] = useState('')
-  const [error, setError] = useState<string>()
+  const mensaje = useMensaje()
   const [enviando, setEnviando] = useState(false)
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError(undefined)
 
     setEnviando(true)
     try {
       await accesoServicio.reiniciarMiSegundoFactor(clave)
       onHecho()
     } catch (err) {
-      setError(err instanceof ErrorApi ? err.message : 'No se pudo reiniciar el segundo factor.')
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudo reiniciar el segundo factor.')
     } finally {
       setEnviando(false)
     }
@@ -64,7 +64,6 @@ export function DialogoOtroTelefono({ onCerrar, onHecho }: Props) {
       }
     >
       <form id="otro-telefono" onSubmit={enviar}>
-        {error && <Aviso>{error}</Aviso>}
 
         <Aviso tono="ojo">
           Se borrará tu segundo factor actual y <strong>se cerrará esta

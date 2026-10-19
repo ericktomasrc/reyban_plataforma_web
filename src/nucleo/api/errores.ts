@@ -6,13 +6,17 @@
  * que el front reaccione sin leer el texto del mensaje — que puede cambiar.
  */
 export class ErrorApi extends Error {
-  constructor(
-    public readonly codigoHttp: number,
-    mensaje: string,
-    public readonly codigo?: string,
-  ) {
+  // Propiedades declaradas aparte y no en el constructor («public readonly
+  // codigoHttp» dentro de los paréntesis): con `erasableSyntaxOnly` (tsconfig)
+  // esa forma no compila en `npm run build`, aunque `npm run dev` no se queje.
+  readonly codigoHttp: number
+  readonly codigo?: string
+
+  constructor(codigoHttp: number, mensaje: string, codigo?: string) {
     super(mensaje)
     this.name = 'ErrorApi'
+    this.codigoHttp = codigoHttp
+    this.codigo = codigo
   }
 
   /** No hay sesión, o dejó de valer. */

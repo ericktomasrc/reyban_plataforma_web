@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { accesoServicio } from '../../acceso/servicios/accesoServicio'
 
 interface Props {
@@ -27,26 +27,25 @@ export function DialogoClave({ onCerrar, onCambiada }: Props) {
   const [actual, setActual]   = useState('')
   const [nueva, setNueva]     = useState('')
   const [repetida, setRepetida] = useState('')
-  const [error, setError]     = useState<string>()
+  const mensaje = useMensaje()
   const [guardando, setGuardando] = useState(false)
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError(undefined)
 
     if (nueva.length < 8) {
-      setError('La contraseña nueva necesita al menos 8 caracteres.')
+      mensaje.error('La contraseña nueva necesita al menos 8 caracteres.')
       return
     }
     // Se comprueba aquí y no solo en el back porque es un error de dedo, no un
     // ataque: el back no puede saber qué quiso escribir, y equivocarse en las
     // dos dejaría a alguien fuera de su propia cuenta.
     if (nueva !== repetida) {
-      setError('Las dos contraseñas nuevas no coinciden.')
+      mensaje.error('Las dos contraseñas nuevas no coinciden.')
       return
     }
     if (nueva === actual) {
-      setError('La contraseña nueva es igual a la que ya tienes.')
+      mensaje.error('La contraseña nueva es igual a la que ya tienes.')
       return
     }
 
@@ -55,7 +54,7 @@ export function DialogoClave({ onCerrar, onCambiada }: Props) {
       const r = await accesoServicio.cambiarClave(actual, nueva)
       onCambiada(r.mensaje)
     } catch (err) {
-      setError(err instanceof ErrorApi ? err.message : 'No se pudo cambiar la contraseña.')
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudo cambiar la contraseña.')
     } finally {
       setGuardando(false)
     }
@@ -76,13 +75,13 @@ export function DialogoClave({ onCerrar, onCambiada }: Props) {
       }
     >
       <form id="mi-clave" onSubmit={enviar}>
-        {error && <Aviso>{error}</Aviso>}
 
         {/* El campo oculto con el correo es lo que hace que el gestor de
             contraseñas sepa a qué cuenta asociar lo que guarde. Sin él, algunos
             navegadores guardan la contraseña sin usuario y no la ofrecen nunca. */}
         <Campo
           etiqueta="Contraseña actual"
+          obligatorio
           type="password"
           value={actual}
           onChange={e => setActual(e.target.value)}
@@ -93,6 +92,7 @@ export function DialogoClave({ onCerrar, onCambiada }: Props) {
 
         <Campo
           etiqueta="Contraseña nueva"
+          obligatorio
           type="password"
           value={nueva}
           onChange={e => setNueva(e.target.value)}
@@ -102,6 +102,7 @@ export function DialogoClave({ onCerrar, onCambiada }: Props) {
 
         <Campo
           etiqueta="Repite la nueva"
+          obligatorio
           type="password"
           value={repetida}
           onChange={e => setRepetida(e.target.value)}

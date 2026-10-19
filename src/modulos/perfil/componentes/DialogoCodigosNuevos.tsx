@@ -5,6 +5,7 @@ import { Campo } from '../../../componentes/Campo'
 import { CodigosDeRescate } from '../../../componentes/CodigosDeRescate'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { perfilServicio } from '../servicios/perfilServicio'
 
 interface Props {
@@ -25,7 +26,7 @@ interface Props {
 export function DialogoCodigosNuevos({ onCerrar, onHechos }: Props) {
   const [clave, setClave]   = useState('')
   const [codigo, setCodigo] = useState('')
-  const [error, setError]   = useState<string>()
+  const mensaje = useMensaje()
   const [pidiendo, setPidiendo] = useState(false)
 
   /** Cuando esto tiene valor, ya no hay marcha atrás: los viejos se anularon. */
@@ -33,10 +34,9 @@ export function DialogoCodigosNuevos({ onCerrar, onHechos }: Props) {
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError(undefined)
 
     if (codigo.trim().length !== 6) {
-      setError('El código del teléfono son seis dígitos.')
+      mensaje.error('El código del teléfono son seis dígitos.')
       return
     }
 
@@ -47,7 +47,7 @@ export function DialogoCodigosNuevos({ onCerrar, onHechos }: Props) {
       setClave('')
       setCodigo('')
     } catch (err) {
-      setError(err instanceof ErrorApi ? err.message : 'No se pudieron generar los códigos.')
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudieron generar los códigos.')
     } finally {
       setPidiendo(false)
     }
@@ -92,7 +92,6 @@ export function DialogoCodigosNuevos({ onCerrar, onHechos }: Props) {
       }
     >
       <form id="codigos-nuevos" onSubmit={enviar}>
-        {error && <Aviso>{error}</Aviso>}
 
         <Aviso tono="ojo">
           Tus códigos actuales <strong>dejarán de valer</strong>, incluidos los

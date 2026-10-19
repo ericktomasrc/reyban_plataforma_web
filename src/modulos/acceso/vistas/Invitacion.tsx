@@ -8,17 +8,18 @@ import { CodigoQr } from '../../../componentes/CodigoQr'
 import { CodigosDeRescate } from '../../../componentes/CodigosDeRescate'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { fechaYHora } from '../../../nucleo/formato/fechas'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { invitacionServicio } from '../servicios/invitacionServicio'
 import type { EnlaceValido } from '../servicios/invitacionServicio'
 
 /**
- * El mínimo, y tiene que coincidir con el del back.
+ * El mínimo, y tiene que coincidir con el del back
+ * (`EndpointsInvitacion.LongitudMinimaClave`).
  *
- * DOCE Y NO OCHO, al revés que en el cambio de contraseña normal: aquí la
- * persona está eligiendo desde cero y sin prisa. Es el mejor momento para
- * pedir algo decente; más adelante siempre es peor momento.
+ * OCHO desde el 11 de octubre (antes doce), igual que en el registro: con el
+ * segundo factor obligatorio, la contraseña sola no abre la cuenta.
  */
-const LARGO_MINIMO = 12
+const LARGO_MINIMO = 8
 
 type Paso = 'clave' | 'factor' | 'rescate'
 
@@ -39,6 +40,7 @@ type Paso = 'clave' | 'factor' | 'rescate'
  */
 export function Invitacion() {
   const { token = '' } = useParams()
+  const mensaje = useMensaje()
 
   const [enlace, setEnlace]   = useState<EnlaceValido>()
   const [fallo, setFallo]     = useState<string>()
@@ -51,7 +53,6 @@ export function Invitacion() {
   const [codigo, setCodigo]     = useState('')
   const [rescate, setRescate]   = useState<string[]>([])
 
-  const [error, setError]       = useState<string>()
   const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
@@ -78,7 +79,6 @@ export function Invitacion() {
 
   function alPasoDelFactor(e: React.FormEvent) {
     e.preventDefault()
-    setError(undefined)
     setPaso('factor')
   }
 
@@ -86,7 +86,6 @@ export function Invitacion() {
     e.preventDefault()
     if (!enlace) return
 
-    setError(undefined)
     setEnviando(true)
 
     try {
@@ -94,7 +93,7 @@ export function Invitacion() {
       setRescate(r.codigosRecuperacion)
       setPaso('rescate')
     } catch (err) {
-      setError(err instanceof ErrorApi ? err.message : 'No se pudo guardar.')
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudo guardar.')
     } finally {
       setEnviando(false)
     }
@@ -112,8 +111,9 @@ export function Invitacion() {
         </p>
 
         <Aviso tono="ojo">
-          Pídele a quien te creó la cuenta que te envíe uno nuevo. Lo hace con
-          un clic desde su pantalla de usuarios.
+          Si te registraste tú, pide un enlace nuevo en la pantalla de
+          registro. Si te invitaron, pídeselo a quien te creó la cuenta: lo
+          hace con un clic desde su pantalla de usuarios.
         </Aviso>
 
         <Boton estilo="secundario" ancho onClick={() => { window.location.href = '/' }}>
@@ -150,8 +150,6 @@ export function Invitacion() {
         </p>
 
         <form onSubmit={terminar}>
-          {error && <Aviso>{error}</Aviso>}
-
           <ol className="pasos">
             <li>Abre la aplicación y pulsa «Añadir cuenta» o el signo +.</li>
             <li>Escanea este código:</li>
@@ -193,7 +191,7 @@ export function Invitacion() {
             estilo="plano"
             ancho
             style={{ marginTop: 8 }}
-            onClick={() => { setPaso('clave'); setError(undefined) }}
+            onClick={() => setPaso('clave')}
           >
             Volver a la contraseña
           </Boton>
@@ -217,8 +215,6 @@ export function Invitacion() {
       </p>
 
       <form onSubmit={alPasoDelFactor}>
-        {error && <Aviso>{error}</Aviso>}
-
         {/* El correo, oculto pero presente, para que el gestor de contraseñas
             del navegador sepa a qué cuenta asociar lo que guarde. */}
         <input

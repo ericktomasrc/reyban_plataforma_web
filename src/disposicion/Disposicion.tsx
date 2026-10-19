@@ -1,93 +1,259 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Boton } from '../componentes/Boton'
 import { BarraSuplantacion } from './BarraSuplantacion'
+import { SelectorEmpresa } from './SelectorEmpresa'
+import { NOMBRE_NIVEL } from '../modulos/cartera/servicios/carteraServicio'
 import { Permisos } from '../nucleo/autorizacion/permisos'
 import { useSesion, useYo } from '../nucleo/sesion/SesionContexto'
+import { useConexionSunat } from '../nucleo/sunat/conexionSunat'
+import { REPORTES } from '../modulos/reportes/vistas/Reportes'
+import { REPORTES_CARTERA, REPORTES_PLATAFORMA } from '../modulos/reportes/vistas/ReportesPlataforma'
+import { MenuDesplegable } from './MenuDesplegable'
 
 /**
- * La cabecera y el hueco donde se pinta cada pantalla.
+ * El marco: la cabecera arriba, UN SOLO MENÚ a la izquierda y el contenido.
+ *
+ * Decisión del 12 de octubre (lienzo «Fase 3», pantalla 6): antes había tres
+ * niveles de menú —la cabecera, la fila de la empresa y las pestañas dentro de
+ * Facturación— y un usuario común se perdía. Ahora:
+ *
+ *   ARRIBA      el logo, el selector «Trabajando en» (cartera) y quién soy.
+ *   IZQUIERDA   en secciones: «Mi estudio» (la cartera), la empresa abierta
+ *               con su nombre y RUC (Inicio, Comprobantes, Clientes, Productos,
+ *               Usuarios, Auditoría, Configuración) y «Plataforma» (super
+ *               administrador).
+ *   CONTENIDO   con una línea arriba que dice dónde estás: «EMPRESA › Página».
  *
  * EL MENÚ SALE DE /api/yo, calculado en la base con el cruce de módulo
- * contratado, rol y permiso. El front no decide qué mostrar: lo pinta.
+ * contratado, rol y permiso. El front no decide qué mostrar: lo pinta. Y es
+ * comodidad, no seguridad: si alguien escribe la URL a mano, el back devuelve
+ * 403 igual.
  *
- * Y esto es comodidad, no seguridad. Evita que la gente pulse cosas que le
- * darían error. Si alguien escribe la URL a mano, el back devuelve 403 igual.
+ * En el teléfono el menú se esconde detrás de ☰ y se cierra al elegir.
  */
 export function Disposicion() {
   const { salir, puede } = useSesion()
-  const { usuario, empresa, menu, roles } = useYo()
+  const { usuario, empresa, cuenta, menu, roles } = useYo()
+  const ruta = useLocation()
+  const [menuAbierto, setMenuAbierto] = useState(false)
+  // 030: modo prueba / real. La franja la ven todos; nadie la cambia desde aquí.
+  const conexion = useConexionSunat()
 
-  const activo = ({ isActive }: { isActive: boolean }) =>
-    isActive ? 'activo' : undefined
+  // Al cambiar de pantalla, el menú del teléfono se cierra solo.
+  useEffect(() => { setMenuAbierto(false) }, [ruta.pathname])
+
+  const activo = ({ isActive }: { isActive: boolean }) => isActive ? 'activo' : undefined
+
+  // LA CARTERA (fase 3): la gente de una Cuenta Profesional.
+  const cartera = !usuario.esSuperAdmin && cuenta?.tipo === 'profesional' && !!cuenta.nivel
+
+  // Configuración de la empresa (el asistente): quien la puede configurar,
+  // sea de registro o dada de alta por el super administrador (17 oct).
+  const configura = !usuario.esSuperAdmin && !!empresa
+    && puede('facturacion.credenciales_gestionar')
+
+  const facturacion = menu.some(m => m.codigo === 'facturacion')
+
+  // 032: REPORTES. Sale si puede ver al menos uno; sus submenús, al entrar.
+  const reportes = REPORTES.filter(r => puede(r.permiso))
+  // 036: «Reportes» lo abre y lo cierra MenuDesplegable.
+  const otrosModulos = menu.filter(m => m.codigo !== 'facturacion')
+
+  const pagina = nombreDePagina(ruta.pathname)
+  const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/perfil'].includes(ruta.pathname)
+    && !ruta.pathname.startsWith('/admin')
 
   return (
-    <div className="marco">
+    <div className={'marco' + (menuAbierto ? ' menu-abierto' : '')}>
       {/* ANTES DE LA CABECERA Y FUERA DE ELLA, empujando la página hacia abajo.
           Una barra que flota encima se lee como un aviso que se va a ir solo, y
           esto no se va hasta que se pulsa. */}
       <BarraSuplantacion />
 
+      {/* 030: MODO PRUEBA / REAL. En producción (fija) no hay franja. */}
+      {conexion && !conexion.fija && (
+        conexion.modo === 'real'
+          ? <div className="franja-sunat real" role="status">● QA · SUNAT REAL — solo emiten las empresas marcadas. Lo emitido vale ante SUNAT.</div>
+          : <div className="franja-sunat beta" role="status">⚠ MODO PRUEBA · SUNAT beta — los comprobantes no tienen valor ante SUNAT.</div>
+      )}
+
       <header className="cabecera">
-        <span className="logo">Plataforma</span>
+        <button type="button" className="boton-menu" aria-label="Abrir el menú"
+                aria-expanded={menuAbierto} onClick={() => setMenuAbierto(a => !a)}>☰</button>
 
-        <nav>
-          <NavLink to="/" end className={activo}>Inicio</NavLink>
+        <span className="logo">Reyban · Facturación</span>
 
-          {menu.map(m => (
-            <NavLink key={m.codigo} to={m.ruta} className={activo}>
-              {m.nombre}
-            </NavLink>
-          ))}
+        {cartera && <SelectorEmpresa />}
 
-          {/* Usuarios es de la empresa, no de la plataforma: el super
-              administrador no pertenece a ninguna y allí no tendría nada que
-              gestionar, aunque el permiso le sobre. */}
-          {!usuario.esSuperAdmin && puede(Permisos.Usuarios.Ver) && (
-            <NavLink to="/usuarios" className={activo}>Usuarios</NavLink>
-          )}
-
-          {puede(Permisos.Usuarios.BitacoraVer) && (
-            <NavLink to="/auditoria" className={activo}>Auditoría</NavLink>
-          )}
-
-          {usuario.esSuperAdmin && (
-            <NavLink to="/admin/empresas" className={activo}>Empresas</NavLink>
-          )}
-        </nav>
+        <span className="hueco" />
 
         {/* EL NOMBRE ES EL ENLACE A «MI CUENTA», que es donde la gente lo
             busca: en toda aplicación con cabecera, pulsar tu propio nombre
-            lleva a tus datos. Un enlace «Mi perfil» aparte en el menú habría
-            competido por sitio con los módulos, que son el trabajo de verdad. */}
+            lleva a tus datos. */}
         <Link to="/perfil" className="quien">
           <div className="nombre">
             {usuario.nombre}
 
-            {/* El rol, a la vista. Quien administra varias cuentas necesita
-                saber con cuál está entrando sin ir a mirar a otra pantalla.
-
-                Es informativo: lo que decide qué puede hacer son los permisos.
-                Un super administrador no tiene roles, y no le hacen falta. */}
-            <span className="rol">
-              {usuario.esSuperAdmin
-                ? 'Super administrador'
-                : roles.length > 0
-                  ? roles.join(' · ')
-                  : 'Sin rol'}
-            </span>
+            {/* La cuenta de quien se registró (016) va siempre; al lado, en la
+                cartera su nivel (Dueño, Colaborador…), fuera de ella su rol. */}
+            {!usuario.esSuperAdmin && cuenta?.titularNombre && (
+              <span className="rol cuenta">
+                {cuenta.tipo === 'profesional' ? 'Cuenta Profesional' : 'Cuenta Negocio'}
+              </span>
+            )}
+            {cartera && cuenta?.nivel && <span className="rol">{NOMBRE_NIVEL[cuenta.nivel]}</span>}
+            {!cartera && (usuario.esSuperAdmin || roles.length > 0 || !cuenta?.titularNombre) && (
+              <span className="rol">
+                {usuario.esSuperAdmin ? 'Super administrador' : roles.length > 0 ? roles.join(' · ') : 'Sin rol'}
+              </span>
+            )}
           </div>
 
           <div className="empresa">
-            {empresa ? empresa.razonSocial : 'Administración de la plataforma'}
+            {!cartera && empresa
+              ? <>{empresa.nombre} · </>
+              : usuario.esSuperAdmin ? <>Administración de la plataforma · </> : null}
+            <span className="alias">@{usuario.alias}</span>
           </div>
         </Link>
 
         <Boton estilo="plano" onClick={() => void salir()}>Salir</Boton>
       </header>
 
-      <main className="contenido">
-        <Outlet />
-      </main>
+      <div className="cuerpo">
+        <aside className="lateral" aria-label="Menú">
+          {/* MI ESTUDIO: lo de la cuenta, por encima de las empresas. */}
+          {cartera && (
+            <nav className="seccion-lateral">
+              <span className="titulo-seccion">Mi estudio</span>
+              <NavLink to="/empresas" className={activo}><Icono>▦</Icono>Mis empresas</NavLink>
+              {cuenta?.nivel !== 'colaborador' && (
+                <NavLink to="/colaboradores" className={activo}><Icono>◎</Icono>Colaboradores</NavLink>
+              )}
+              {/* 036: los reportes de toda la cartera. */}
+              <MenuDesplegable icono="▥" titulo="Reportes de la cartera" inicio="/mi-cartera/reportes"
+                               prefijos={['/mi-cartera']} grupos={[{ titulo: 'Mi cartera', items: REPORTES_CARTERA }]} />
+            </nav>
+          )}
+
+          {/* LA EMPRESA ABIERTA, con su nombre y RUC a la vista: así nunca hay
+              duda de en cuál se está emitiendo. */}
+          {empresa && (
+            <nav className="seccion-lateral">
+              <div className="empresa-lateral">
+                <span className="titulo-seccion">{cartera ? 'Empresa abierta' : 'Mi empresa'}</span>
+                <strong>{empresa.nombre}</strong>
+                {empresa.ruc && <span className="mono">RUC {empresa.ruc}</span>}
+              </div>
+
+              <NavLink to="/" end className={activo}><Icono>⌂</Icono>Inicio</NavLink>
+
+              {/* Facturación son tres pantallas: van sueltas en el menú, sin
+                  pestañas dentro. */}
+              {facturacion && (
+                <>
+                  <NavLink to="/facturacion/comprobantes" className={activo}><Icono>▤</Icono>Comprobantes</NavLink>
+                  <NavLink to="/facturacion/clientes" className={activo}><Icono>☺</Icono>Clientes</NavLink>
+                  <NavLink to="/facturacion/productos" className={activo}><Icono>◫</Icono>Productos</NavLink>
+                </>
+              )}
+
+              {/* 036: Reportes se abre y se cierra (la flecha). */}
+              {facturacion && reportes.length > 0 && (
+                <MenuDesplegable icono="▥" titulo="Reportes" inicio="/reportes" prefijos={['/reportes']}
+                  grupos={[...new Set(reportes.map(r => r.grupo))].map(g => ({
+                    titulo: g, items: reportes.filter(r => r.grupo === g),
+                  }))} />
+              )}
+
+              {otrosModulos.map(m => (
+                <NavLink key={m.codigo} to={m.ruta} className={activo}><Icono>•</Icono>{m.nombre}</NavLink>
+              ))}
+
+              {puede(Permisos.Usuarios.Ver) && (
+                <NavLink to="/usuarios" className={activo}><Icono>◍</Icono>Usuarios</NavLink>
+              )}
+              {puede(Permisos.Usuarios.BitacoraVer) && (
+                <NavLink to="/auditoria" className={activo}><Icono>◷</Icono>Auditoría</NavLink>
+              )}
+              {configura && (
+                <NavLink to="/configurar" className={activo}><Icono>⚙</Icono>Configuración</NavLink>
+              )}
+            </nav>
+          )}
+
+          {/* EL SUPER ADMINISTRADOR vive fuera de las empresas. */}
+          {usuario.esSuperAdmin && (
+            <nav className="seccion-lateral">
+              <span className="titulo-seccion">Plataforma</span>
+              <NavLink to="/" end className={activo}><Icono>⌂</Icono>Inicio</NavLink>
+              <NavLink to="/admin/empresas" className={activo}><Icono>▦</Icono>Empresas</NavLink>
+              <NavLink to="/admin/cuentas" className={activo}><Icono>◎</Icono>Cuentas</NavLink>
+              <NavLink to="/admin/traspasos" className={activo}><Icono>⇄</Icono>Solicitudes de traspaso</NavLink>
+              {/* 036: reportes de la plataforma. */}
+              <MenuDesplegable icono="▥" titulo="Reportes" inicio="/admin/reportes/plataforma"
+                               prefijos={['/admin/reportes']} grupos={[{ titulo: 'Plataforma', items: REPORTES_PLATAFORMA }]} />
+              {/* Solo en QA: en producción (PLATAFORMA_SUNAT=real) no hay nada que cambiar. */}
+              {conexion && !conexion.fija && (
+                <NavLink to="/admin/conexion-sunat" className={activo}><Icono>⇆</Icono>Conexión con SUNAT</NavLink>
+              )}
+              {puede(Permisos.Usuarios.BitacoraVer) && (
+                <NavLink to="/auditoria" className={activo}><Icono>◷</Icono>Auditoría</NavLink>
+              )}
+            </nav>
+          )}
+
+          {/* Recién registrado, sin empresa y sin cartera: solo su inicio. */}
+          {!usuario.esSuperAdmin && !empresa && !cartera && (
+            <nav className="seccion-lateral">
+              <NavLink to="/" end className={activo}><Icono>⌂</Icono>Inicio</NavLink>
+            </nav>
+          )}
+        </aside>
+
+        {/* Un clic fuera del menú (teléfono) lo cierra. */}
+        <div className="velo-lateral" onClick={() => setMenuAbierto(false)} aria-hidden="true" />
+
+        <main className="contenido">
+          {pagina && (
+            <div className="migas">
+              {deEmpresa && <><span>{empresa!.nombre}</span><span aria-hidden="true"> › </span></>}
+              <span>{pagina}</span>
+            </div>
+          )}
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
+}
+
+function Icono({ children }: { children: string }) {
+  return <span className="icono-lateral" aria-hidden="true">{children}</span>
+}
+
+/** «Dónde estás», para la línea de arriba del contenido. */
+function nombreDePagina(ruta: string): string | null {
+  if (ruta === '/') return 'Inicio'
+  if (ruta.startsWith('/facturacion/comprobantes/nuevo')) return 'Nuevo comprobante'
+  if (ruta.startsWith('/facturacion/comprobantes/')) return 'Comprobante'
+  if (ruta.startsWith('/facturacion/comprobantes')) return 'Comprobantes'
+  if (ruta.startsWith('/facturacion/clientes')) return 'Clientes'
+  if (ruta.startsWith('/facturacion/productos')) return 'Productos'
+  if (ruta.startsWith('/reportes')) return 'Reportes'
+  if (ruta.startsWith('/mi-cartera')) return 'Reportes de la cartera'
+  if (ruta.startsWith('/admin/reportes')) return 'Reportes de la plataforma'
+  if (ruta.startsWith('/usuarios/roles')) return 'Roles'
+  if (ruta.startsWith('/usuarios')) return 'Usuarios'
+  if (ruta.startsWith('/auditoria')) return 'Auditoría'
+  if (ruta.startsWith('/configurar')) return 'Configuración'
+  if (ruta.startsWith('/empresas')) return 'Mis empresas'
+  if (ruta.startsWith('/colaboradores')) return 'Colaboradores'
+  if (ruta.startsWith('/perfil')) return 'Mi cuenta'
+  if (ruta.startsWith('/admin/empresas')) return 'Empresas'
+  if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'
+  if (ruta.startsWith('/admin/traspasos')) return 'Solicitudes de traspaso'
+  if (ruta.startsWith('/admin/conexion-sunat')) return 'Conexión con SUNAT'
+  return null
 }

@@ -497,3 +497,280 @@ body:has(dialog[open]) { overflow: hidden; }
 .confirmacion p { margin: 0 0 var(--e3); }
 .confirmacion p:last-child { margin-bottom: 0; }
 .confirmacion strong { color: var(--tinta); }
+
+
+/* =============================================================================
+   LA REVISIÓN ANTES DE EMITIR
+
+   Los datos que, una vez emitido el comprobante, ya no se arreglan sin una
+   nota de crédito.
+
+   LA BARRA DE COLOR A LA IZQUIERDA es lo que hace el trabajo. Sin ella esto
+   es una lista de seis datos, y una lista de seis datos se salta de un
+   vistazo. Con ella, los cuatro que importan se leen distintos de los otros
+   dos, y la mirada va sola al primero.
+   ============================================================================= */
+
+.revision { margin: 0 0 var(--e4); }
+
+.revision .fila {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: var(--e3);
+  padding: var(--e2) 0 var(--e2) var(--e3);
+  border-left: 3px solid transparent;
+}
+
+.revision .fila + .fila { border-top: 1px solid var(--borde-sutil); }
+
+.revision dt {
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+
+.revision dd {
+  margin: 0;
+  font-size: 15px;
+  color: var(--tinta);
+}
+
+.revision dd .mono { font-size: 13px; color: var(--tinta-2); }
+.revision dd .grande { font-size: 18px; font-weight: 600; }
+
+/* Sensible pero normal: barra discreta. */
+.revision .sensible { border-left-color: var(--borde); }
+
+/* Sensible Y con algo raro: ámbar, que es lo único que debe llamar. */
+.revision .fila.ojo {
+  border-left-color: var(--aviso);
+  background: var(--aviso-suave);
+}
+
+.revision .alerta {
+  margin-top: var(--e1);
+  font-size: 13px;
+  color: var(--aviso);
+}
+
+/* El desplegable de afectación de una línea que no cuadra con la costumbre
+   del cliente. Señala sin bloquear: el valor sigue siendo elegible. */
+.campo select.desajustada {
+  border-color: var(--aviso-borde);
+  background: var(--aviso-suave);
+}
+
+
+/* =============================================================================
+   EL BUSCADOR DE UNA SOLA CAJA
+
+   `.ancho` hace que el campo de búsqueda se coma el espacio que sobra en la
+   barra de filtros. Es el único que crece: los desplegables tienen el ancho de
+   su contenido y estirarlos no los hace más útiles.
+   ============================================================================= */
+
+.filtros label.ancho { flex: 1 1 260px; }
+
+/* Una casilla suelta entre los filtros —«ver también los desactivados»— no
+   lleva etiqueta encima como los demás: el texto va al lado, que es donde se
+   lee una casilla. */
+.filtros label.casilla-suelta {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  font-size: 13px;
+  color: var(--tinta-2);
+  cursor: pointer;
+  padding-bottom: 9px;   /* alinea con la base de los campos de al lado */
+}
+
+.filtros label.casilla-suelta input { width: auto; margin: 0; }
+.filtros label.casilla-suelta > span { font-size: 13px; font-weight: 400; }
+
+
+/* Importes a la derecha. En una columna de números, alinear por la derecha es
+   lo que deja las unidades bajo las unidades y hace comparables dos filas de
+   un vistazo. */
+.tabla th.derecha,
+.tabla td.derecha { text-align: right; }
+
+
+/* =============================================================================
+   EL FORMULARIO DE UN COMPROBANTE
+
+   Es la pantalla que más se usa de toda la plataforma: quien factura pasa aquí
+   el día. Por eso cada línea es una tarjeta con su número a la izquierda, en
+   vez de una fila de tabla — una tabla con seis campos por fila obliga a
+   desplazarse en horizontal en cuanto la pantalla no es enorme.
+   ============================================================================= */
+
+.linea-comprobante {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-grande);
+  padding: var(--e3) var(--e4);
+  margin-bottom: var(--e3);
+  background: var(--superficie);
+}
+
+.linea-comprobante .cabecera-linea {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  margin-bottom: var(--e3);
+}
+
+/* El número de línea. Es lo que hace que un mensaje como «a la línea 3 le
+   falta la descripción» se pueda seguir sin contar hacia abajo. */
+.linea-comprobante .numero {
+  flex: none;
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--hundido);
+  color: var(--tinta-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Seis campos que se apilan solos cuando dejan de caber. `auto-fit` y no un
+   número fijo de columnas: así la misma regla vale en un portátil y en un
+   monitor grande. */
+.rejilla-linea {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--e3);
+}
+
+.rejilla-linea .campo { margin-bottom: 0; }
+
+.importe-linea {
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  text-align: right;
+}
+
+
+/* --- Los totales ---------------------------------------------------------- */
+
+.datos.totales .fila { grid-template-columns: 1fr auto; }
+.datos.totales dd { text-align: right; }
+
+.datos.totales .fila.grande {
+  border-top: 1px solid var(--borde);
+  padding-top: var(--e2);
+  margin-top: var(--e1);
+  font-size: 17px;
+  font-weight: 600;
+}
+.datos.totales .fila.grande dt { color: var(--tinta); }
+
+
+/* --- Los botones del pie de una pantalla ---------------------------------- */
+
+.acciones-pagina {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--e3);
+  margin-top: var(--e4);
+}
+
+
+/* =============================================================================
+   LOS BUSCADORES CON SUGERENCIAS
+
+   Un desplegable no sirve cuando hay seiscientos clientes: nadie recorre
+   seiscientas opciones. Se escribe y se elige.
+   ============================================================================= */
+
+.buscador { position: relative; }
+
+.buscador .sugerencias {
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  z-index: 30;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: 0 6px 20px rgb(16 32 42 / 12%);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.buscador .sugerencias li + li { border-top: 1px solid var(--borde); }
+
+.buscador .sugerencias button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 11px;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.buscador .sugerencias button:hover,
+.buscador .sugerencias button:focus-visible {
+  background: var(--acento-suave);
+  outline: none;
+}
+
+.buscador .sugerencias .principal { display: block; }
+.buscador .sugerencias .secundario { display: block; font-size: 12.5px; }
+.buscador .sugerencias .vacia { padding: 9px 11px; font-size: 13px; color: var(--tinta-3); }
+
+/* El cliente ya elegido: se enseña lo que se eligió, no una caja vacía. */
+.buscador .elegido {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3);
+  padding: 9px 11px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--hundido);
+}
+
+/* El de producto vive dentro de la cabecera de una línea y tiene que crecer. */
+.buscador.en-linea { flex: 1; }
+.buscador.en-linea input {
+  font: inherit;
+  padding: 7px 10px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  width: 100%;
+}
+
+
+/* =============================================================================
+   EL HISTORIAL DE UN COMPROBANTE
+   ============================================================================= */
+
+.linea-tiempo { list-style: none; margin: 0; padding: 0; }
+
+.linea-tiempo li {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: var(--e3);
+  padding: var(--e2) 0;
+  font-size: 14px;
+}
+
+.linea-tiempo li + li { border-top: 1px solid var(--borde); }
+.linea-tiempo .cuando { color: var(--tinta-3); font-size: 13px; }
+
+@media (max-width: 560px) {
+  .linea-tiempo li { grid-template-columns: 1fr; gap: 2px; }
+}
+
+.lista-observaciones {
+  margin: var(--e3) 0 0;
+  padding-left: var(--e4);
+  font-size: 13px;
+  color: var(--tinta-2);
+}

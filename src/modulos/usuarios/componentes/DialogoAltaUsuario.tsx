@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { usuariosServicio } from '../servicios/usuariosServicio'
 import type { RolDisponible, UsuarioInvitado } from '../tipos'
 
@@ -25,14 +25,13 @@ export function DialogoAltaUsuario({ abierto, roles, onCerrar, onCreado }: Props
   const [correo, setCorreo] = useState('')
   const [nombre, setNombre] = useState('')
   const [elegidos, setElegidos] = useState<string[]>([])
-  const [error, setError] = useState<string>()
+  const mensaje = useMensaje()
   const [enviando, setEnviando] = useState(false)
 
   const limpiar = () => {
     setCorreo('')
     setNombre('')
     setElegidos([])
-    setError(undefined)
   }
 
   const cerrar = () => { limpiar(); onCerrar() }
@@ -42,14 +41,13 @@ export function DialogoAltaUsuario({ abierto, roles, onCerrar, onCreado }: Props
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError(undefined)
 
     if (!correo.trim()) {
-      setError('Falta el correo: es con lo que entra.')
+      mensaje.error('Falta el correo: es con lo que entra.')
       return
     }
     if (elegidos.length === 0) {
-      setError('Elige al menos un rol, o la cuenta no podrá hacer nada.')
+      mensaje.error('Elige al menos un rol, o la cuenta no podrá hacer nada.')
       return
     }
 
@@ -66,7 +64,7 @@ export function DialogoAltaUsuario({ abierto, roles, onCerrar, onCreado }: Props
       // El 409 aquí casi siempre es un correo repetido. Puede estar en otra
       // empresa —el correo es único en toda la plataforma— y la API no dice
       // de quién es, a propósito: diría quién es cliente tuyo.
-      setError(err instanceof ErrorApi ? err.message : 'No se pudo crear el usuario.')
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudo crear el usuario.')
     } finally {
       setEnviando(false)
     }
@@ -92,10 +90,10 @@ export function DialogoAltaUsuario({ abierto, roles, onCerrar, onCreado }: Props
       }
     >
       <form id="alta-usuario" onSubmit={enviar}>
-        {error && <Aviso>{error}</Aviso>}
 
         <Campo
           etiqueta="Correo"
+          obligatorio
           type="email"
           value={correo}
           onChange={e => setCorreo(e.target.value)}

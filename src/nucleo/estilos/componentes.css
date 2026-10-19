@@ -4,12 +4,38 @@
 
 /* --- Campo ---------------------------------------------------------------- */
 
-.campo { display: grid; gap: var(--e1); margin-bottom: var(--e4); }
+.campo { display: grid; gap: var(--e1); margin-bottom: var(--e4); align-content: start; }
 
-.campo > label {
+/* EL `align-content: start` ES LO QUE ALINEA LAS PAREJAS. En una `.pareja` los
+   dos campos se estiran a la altura del más alto; si uno lleva texto de ayuda
+   debajo y el otro no, la rejilla del corto repartía el sobrante entre su
+   etiqueta y su control, y el desplegable salía más bajo y más grueso que la
+   casilla de al lado (Tipo/Serie, Fecha/Moneda). Así cada fila mide lo suyo y
+   el hueco queda abajo, donde no se ve. */
+
+/* `.etiqueta` además de `label` porque hay dos marcados del mismo campo.
+   `<Campo>` pinta un <div class="campo"> con su <label htmlFor>, que es lo
+   correcto para un input. Un desplegable escrito a mano usa
+   <label class="campo"><span class="etiqueta">, donde el <label> ES el
+   contenedor y la asociación con el control es implícita — así no hace falta
+   inventar un id para cada uno. Los dos tienen que verse igual. */
+.campo > label,
+.campo > .etiqueta {
   font-size: 13px;
   font-weight: 500;
   color: var(--tinta-2);
+}
+
+/* EL CHOQUE DE NOMBRES. `.etiqueta` es también la pastilla gris en letra
+   monoespaciada de más abajo (la de los permisos y los módulos), y como esta
+   regla no decía nada de tipo de letra, relleno ni fondo, la etiqueta de un
+   desplegable escrito a mano —Tipo, Moneda, Unidad, Afectación, Importe— salía
+   pintada como pastilla. Aquí se deshace lo que la pastilla añade. */
+.campo > .etiqueta {
+  font-family: inherit;
+  padding: 0;
+  border-radius: 0;
+  background: none;
 }
 
 .campo input,
@@ -36,6 +62,12 @@
 
 .campo .pista { font-size: 12.5px; color: var(--tinta-3); }
 .campo .pista.mal { color: var(--peligro); }
+
+/* El asterisco de «hace falta».
+
+   ROJO Y NO GRIS: en gris se confunde con el resto de la etiqueta y deja de
+   avisar, que es lo único que tiene que hacer. */
+.obligatorio { color: var(--peligro); font-weight: 600; }
 
 
 /* --- Botón ---------------------------------------------------------------- */
@@ -172,3 +204,892 @@
 
 .tarjeta-acceso h1 { margin-bottom: var(--e1); }
 .tarjeta-acceso .bajada { color: var(--tinta-2); font-size: 14px; margin-bottom: var(--e5); }
+
+
+/* =============================================================================
+   DOS CAMPOS EN UNA LÍNEA
+
+   Para las parejas que se leen juntas y por separado no significan nada: tipo
+   de documento y número, precio y si lleva IGV, código y unidad.
+
+   Separarlas en dos filas obliga a mirar arriba y abajo para entender una sola
+   cosa. En pantalla estrecha vuelven a apilarse, que es lo que toca cuando no
+   caben.
+   ============================================================================= */
+
+.pareja {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e3);
+}
+
+/* El margen lo pone la pareja, no cada campo: si no, el hueco entre las dos
+   filas sería el doble que entre el resto. */
+.pareja > .campo { margin-bottom: var(--e4); }
+
+@media (max-width: 560px) {
+  .pareja { grid-template-columns: 1fr; gap: 0; }
+}
+
+
+/* --- Mensaje en ventana --------------------------------------------------- *
+
+   El cuerpo de la ventana que pinta <ProveedorMensajes>. Dos columnas: el
+   círculo de color y el texto.
+
+   POR QUÉ UN CÍRCULO Y NO PINTAR TODA LA VENTANA DE ROJO, que era lo fácil: un
+   diálogo entero en rojo se lee como una alarma aunque solo diga que falta la
+   razón social, y cuando todo alarma nada alarma. El color va en un punto, del
+   tamaño justo para verse de reojo, y el texto se queda legible.                */
+
+.mensaje-modal {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: var(--e3);
+  align-items: start;
+}
+
+.mensaje-modal .marca {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid;
+}
+
+.mensaje-modal.error .marca { background: var(--peligro-suave); border-color: var(--peligro-borde); color: var(--peligro); }
+.mensaje-modal.ojo   .marca { background: var(--aviso-suave);   border-color: var(--aviso-borde);   color: var(--aviso); }
+.mensaje-modal.bien  .marca { background: var(--bien-suave);    border-color: #c6e0d2;              color: var(--bien); }
+
+.mensaje-modal .texto {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  /* Tinta normal y no el color del tono: un párrafo entero en rojo cuesta de
+     leer justo cuando hay que leerlo con atención. */
+  color: var(--tinta);
+}
+
+.mensaje-modal .detalle {
+  margin: var(--e2) 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--tinta-2);
+}
+
+.mensaje-modal .texto strong { font-weight: 600; }
+
+/* La ventana de mensaje no necesita el ancho de un formulario. */
+.mensaje-modal { min-width: min(380px, 70vw); }
+
+
+/* --- Capa de «estoy trabajando» ------------------------------------------- *
+
+   Tapa la pantalla mientras se hace algo que no se puede interrumpir ni pulsar
+   dos veces: hoy, emitir un comprobante. Atrapa los clics porque está encima
+   de todo; no se cierra con nada, se va sola cuando termina.                 */
+
+.capa-ocupado {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: var(--e4);
+  background: rgba(15, 23, 32, .38);
+}
+
+.capa-ocupado-caja {
+  display: grid;
+  justify-items: center;
+  gap: var(--e3);
+  max-width: 360px;
+  padding: var(--e5) var(--e6);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-grande);
+  box-shadow: var(--sombra);
+  text-align: center;
+}
+
+.capa-ocupado-caja .texto { margin: 0; font-size: 15px; font-weight: 500; color: var(--tinta); }
+.capa-ocupado-caja .detalle { margin: 0; font-size: 13px; line-height: 1.45; color: var(--tinta-2); }
+
+.girador {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--hundido);
+  border-top-color: var(--acento);
+  animation: girar .8s linear infinite;
+}
+
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* Quien pidió menos movimiento ve el círculo quieto: el texto ya dice qué pasa. */
+@media (prefers-reduced-motion: reduce) {
+  .girador { animation: none; }
+}
+
+
+/* =============================================================================
+   REGISTRO LIBRE Y CUENTAS (migración 016)
+
+   Con los tokens de siempre: el registro tiene que parecer la misma
+   aplicación que el ingreso, no una página de otra marca.
+   ============================================================================= */
+
+/* --- El login, en dos columnas (mockup de la fase 1) --- */
+.acceso-dividido { min-height: 100vh; display: flex; flex-wrap: wrap; background: var(--papel); }
+
+.acceso-marca {
+  flex: 1 1 380px;
+  display: flex; flex-direction: column; justify-content: space-between; gap: var(--e6);
+  padding: 56px 48px;
+  background: var(--tinta);
+  color: #eef2f5;
+}
+.acceso-logo { display: flex; align-items: center; gap: var(--e3); font-weight: 700; font-size: 17px; }
+.acceso-logo-icono {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: grid; place-items: center;
+  background: #f2b544; color: var(--tinta);
+}
+.acceso-mensaje { max-width: 440px; }
+.acceso-mensaje h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600; font-size: 42px; line-height: 1.1;
+  color: #ffffff; margin: 0 0 var(--e4);
+}
+.acceso-mensaje p { color: #c3ccd4; font-size: 16px; line-height: 1.6; margin: 0; }
+.acceso-pie { font-size: 13px; color: #8e9ba6; margin: 0; }
+
+.acceso-principal {
+  flex: 999 1 480px; min-width: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 48px var(--e4);
+}
+.acceso-columna { width: 100%; max-width: 420px; display: grid; gap: var(--e3); }
+.acceso-columna .tarjeta-acceso { max-width: none; }
+.acceso-columna .tarjeta-acceso h2 { margin: 0 0 var(--e4); font-size: 22px; }
+
+@media (max-width: 760px) {
+  .acceso-marca { padding: var(--e5); gap: var(--e4); }
+  .acceso-mensaje h1 { font-size: 28px; }
+  .acceso-pie { display: none; }
+  .acceso-principal { padding: var(--e5) var(--e4); }
+}
+
+/* --- Las dos puertas del registro --- */
+.separador {
+  display: flex; align-items: center; gap: var(--e3);
+  font-size: 13px; color: var(--tinta-3); margin: var(--e3) 0 0;
+}
+.separador::before,
+.separador::after { content: ""; flex: 1; height: 1px; background: var(--borde); }
+
+.opcion-registro {
+  display: flex; align-items: center; gap: var(--e4);
+  padding: var(--e4) var(--e4);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-grande);
+  color: var(--tinta);
+  text-decoration: none;
+  background: var(--superficie);
+}
+.opcion-registro:hover { border-color: var(--acento); }
+.opcion-icono {
+  width: 44px; height: 44px; flex: none; border-radius: 12px;
+  display: grid; place-items: center;
+}
+.opcion-icono.negocio     { background: var(--acento-suave); color: var(--acento); }
+.opcion-icono.profesional { background: var(--aviso-suave);  color: var(--aviso); }
+.opcion-texto { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.opcion-texto strong { font-size: 15px; }
+.opcion-texto span { font-size: 13px; color: var(--tinta-2); }
+.opcion-flecha { color: var(--tinta-3); flex: none; }
+
+/* --- El formulario de registro: más ancho que el login --- */
+.tarjeta-acceso.registro { max-width: 600px; }
+
+.grupo-registro { border: 0; margin: 0 0 var(--e4); padding: 0; min-width: 0; }
+.grupo-registro > legend { font-weight: 600; font-size: 14px; margin-bottom: var(--e2); padding: 0; }
+.grupo-registro > .nota { margin: 0 0 var(--e3); }
+
+.opciones-cuenta { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e3); }
+
+.opcion-cuenta {
+  display: grid; gap: var(--e1); text-align: left;
+  min-height: 88px;
+  padding: var(--e3) var(--e4);
+  font: inherit; color: var(--tinta);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-grande);
+  cursor: pointer;
+}
+.opcion-cuenta span { font-size: 12.5px; color: var(--tinta-2); line-height: 1.4; }
+.opcion-cuenta.elegida { border: 2px solid var(--acento); background: var(--acento-suave); }
+
+.segmentado {
+  display: inline-flex; gap: 4px; padding: 4px;
+  background: var(--hundido); border-radius: var(--radio-grande);
+  margin-bottom: var(--e3);
+}
+.segmentado button {
+  font: inherit; font-size: 13.5px; font-weight: 500;
+  border: 0; border-radius: var(--radio);
+  padding: 0 var(--e4); min-height: 36px;
+  background: transparent; color: var(--tinta-2); cursor: pointer;
+}
+.segmentado button.elegido { background: var(--superficie); color: var(--tinta); box-shadow: var(--sombra); }
+
+.pareja.documento { grid-template-columns: 1fr 2fr; }
+
+.sugerencias-alias {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--e1);
+  margin: calc(-1 * var(--e2)) 0 var(--e4); font-size: 13px; color: var(--tinta-2);
+}
+.sugerencias-alias button { border: 0; cursor: pointer; font: inherit; font-size: 12.5px; }
+
+.captcha { min-height: 65px; }
+
+.casilla-terminos {
+  display: flex; gap: var(--e2); align-items: flex-start;
+  font-size: 14px; margin: var(--e3) 0 var(--e4); cursor: pointer;
+}
+.casilla-terminos input { width: 18px; height: 18px; margin-top: 2px; flex: none; }
+
+.lista-nota { margin: 0 0 var(--e4); padding-left: var(--e5); font-size: 14px; color: var(--tinta-2); line-height: 1.7; }
+
+@media (max-width: 560px) {
+  .opciones-cuenta { grid-template-columns: 1fr; }
+  .pareja.documento { grid-template-columns: 1fr; }
+}
+
+/* --- La primera entrada sin empresa --- */
+.lista-pasos { list-style: none; counter-reset: paso; margin: 0 0 var(--e5); padding: 0; display: grid; gap: var(--e3); }
+.lista-pasos li {
+  counter-increment: paso;
+  display: flex; align-items: center; gap: var(--e3);
+  font-size: 14px; color: var(--tinta-3);
+}
+.lista-pasos li::before {
+  content: counter(paso);
+  width: 28px; height: 28px; flex: none;
+  display: grid; place-items: center;
+  border: 2px solid var(--borde); border-radius: 50%;
+  font-size: 13px; font-weight: 600;
+}
+.lista-pasos li.hecho { color: var(--tinta); }
+.lista-pasos li.hecho::before { content: "✓"; background: var(--bien); border-color: var(--bien); color: #fff; }
+.lista-pasos li.actual { color: var(--tinta); font-weight: 600; }
+.lista-pasos li.actual::before { border-color: var(--acento); color: var(--acento); }
+
+/* --- «Cuentas» del super administrador --- */
+.filtros-cuentas { display: flex; flex-wrap: wrap; gap: var(--e1); margin-bottom: var(--e4); }
+.filtros-cuentas button { border: 0; cursor: pointer; font: inherit; font-size: 13px; min-height: 32px; }
+.etiqueta.aviso { background: var(--aviso-suave); color: var(--aviso); }
+
+/* El alias junto a la empresa, en la cabecera. */
+.quien .alias { color: var(--tinta-3); }
+
+/* --- La primera entrada sin empresa: dos columnas (mockup de la fase 1) --- */
+.bienvenida-cabecera { margin-bottom: var(--e5); }
+.bienvenida-cabecera .titulo-pagina { margin-bottom: var(--e2); }
+.bienvenida-cabecera .bajada-pagina { margin: 0; font-size: 15px; }
+.titulo-serif { font-family: Georgia, "Times New Roman", serif; font-weight: 600; font-size: 32px; line-height: 1.2; }
+
+.bienvenida { display: flex; flex-wrap: wrap; gap: var(--e5); align-items: flex-start; }
+.bienvenida > .bloque { flex: 2 1 420px; margin: 0; }
+.bienvenida-lado { flex: 1 1 260px; display: grid; gap: var(--e4); }
+.bienvenida-lado .bloque { margin: 0; }
+
+.detalle-paso { font-weight: 400; color: var(--tinta-3); }
+
+.lista-ayuda { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--e2); font-size: 14px; }
+.lista-ayuda .etiqueta { margin-left: var(--e1); }
+
+/* «Cuenta Profesional» en la cabecera, en vez de «Sin rol». */
+.cabecera .quien .rol.cuenta { background: var(--aviso-suave); color: var(--aviso); }
+
+/* --- Volver, arriba y abajo del registro --- */
+.volver-arriba {
+  display: inline-flex; align-items: center; gap: var(--e1);
+  font-size: 14px; color: var(--acento); text-decoration: none;
+  margin-bottom: var(--e4);
+}
+.volver-arriba:hover { text-decoration: underline; }
+.boton-atras { margin-top: var(--e3); text-align: center; text-decoration: none; display: block; }
+
+
+/* ===========================================================================
+   EL ASISTENTE «AGREGA TU EMPRESA» (fase 2) — el mockup «Fase 2 — Asistente
+   de configuración»: los pasos a la izquierda, el paso a la derecha y al pie
+   «← Atrás» / «Guardar y seguir».
+   =========================================================================== */
+
+a.boton { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+a.boton:hover { color: #fff; }
+a.boton.secundario:hover { color: inherit; }
+
+.asistente { display: flex; flex-wrap: wrap; gap: var(--e5); align-items: flex-start; }
+.asistente > .bloque { margin: 0; }
+.asistente-pasos { flex: 1 1 220px; }
+.asistente-paso { flex: 999 1 520px; min-width: 0; display: grid; gap: var(--e4); align-content: start; }
+.asistente-paso > h2, .asistente-paso h2 { margin: 0; font-size: 18px; }
+.asistente-paso .campo, .asistente-paso .aviso, .asistente-paso .pareja > .campo { margin-bottom: 0; }
+.asistente-paso .pareja { gap: var(--e3); }
+.asistente-paso form { display: grid; gap: var(--e4); }
+
+.asistente-pasos .lista-pasos { margin: 0; }
+.paso-boton {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0;
+  text-align: left; cursor: pointer;
+}
+.paso-boton:hover:not(:disabled) { color: var(--acento); }
+.paso-boton:disabled { cursor: default; }
+
+.texto-paso { margin: 0; color: var(--tinta-2); font-size: 14px; line-height: 1.55; }
+
+.pie-asistente {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--e3);
+  padding-top: var(--e3); border-top: 1px solid var(--borde-sutil);
+}
+.pie-asistente-derecha { display: flex; gap: var(--e3); flex-wrap: wrap; justify-content: flex-end; }
+
+.ruc-razon { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.rejilla-direccion { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e3); }
+@media (max-width: 720px) {
+  .rejilla-direccion { grid-template-columns: 1fr 1fr; }
+  .ruc-razon { grid-template-columns: 1fr; }
+}
+
+/* Un aviso con su botón a la derecha. */
+.fila-aviso { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--e3); }
+.aviso p { margin: 0 0 var(--e2); }
+
+/* Subir un archivo: la zona punteada. El input va escondido pero accesible. */
+.oculto { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.zona-archivo {
+  position: relative;
+  border: 2px dashed var(--borde); border-radius: var(--radio-grande);
+  padding: var(--e5); display: flex; flex-direction: column; align-items: center; gap: var(--e2);
+  text-align: center; font-size: 14px; cursor: pointer; background: var(--superficie);
+}
+.zona-archivo:hover, .zona-archivo.encima { border-color: var(--acento); background: var(--acento-suave); }
+.zona-archivo:focus-within { outline: 2px solid var(--acento); outline-offset: 2px; }
+.zona-archivo .enlace { text-decoration: underline; color: var(--acento); }
+.zona-archivo-icono { font-size: 22px; color: var(--acento); }
+.zona-archivo-nombre { font-size: 12.5px; color: var(--tinta-3); }
+.zona-archivo.baja { flex-direction: row; padding: var(--e3); min-height: 72px; justify-content: center; }
+
+/* Las series: los atajos y la fila para agregar. */
+.chips { display: flex; flex-wrap: wrap; gap: var(--e2); align-items: center; }
+.chips-etiqueta { font-size: 13px; color: var(--tinta-2); }
+.chip {
+  font: inherit; font-size: 13px; cursor: pointer;
+  border: 1px dashed var(--borde); background: var(--superficie); color: var(--tinta-2);
+  border-radius: 20px; padding: 5px 12px;
+}
+.chip.elegido { border-style: solid; border-color: var(--acento); color: var(--acento); }
+.chip.puesto { border: 1px solid #b9d9d6; background: var(--acento-suave); color: var(--acento); cursor: default; }
+.nueva-serie {
+  display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: var(--e3); align-items: end;
+}
+.nueva-serie .campo { margin: 0; }
+@media (max-width: 720px) { .nueva-serie { grid-template-columns: 1fr 1fr; } }
+
+/* Correo y marca. */
+.interruptor { display: flex; gap: var(--e2); align-items: center; font-size: 14px; cursor: pointer; }
+.interruptor input { width: 16px; height: 16px; accent-color: var(--acento); }
+.colores { display: flex; gap: var(--e2); align-items: center; min-height: 72px; }
+.color { width: 30px; height: 30px; border-radius: 50%; border: 0; cursor: pointer; }
+.color.elegido { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.logo-inicial {
+  width: 40px; height: 40px; border-radius: var(--radio-grande); color: #fff; flex: none;
+  display: grid; place-items: center; font-family: Georgia, serif; font-weight: 600;
+}
+.logo-inicial.chico { width: 32px; height: 32px; }
+.logo-vista { max-height: 40px; max-width: 120px; object-fit: contain; }
+.logo-vista.chico { max-height: 32px; }
+.vista-correo { border: 1px solid var(--borde); border-radius: var(--radio-grande); overflow: hidden; }
+.vista-correo-titulo { background: var(--papel); padding: var(--e2) var(--e3); font-size: 12px; color: var(--tinta-3); }
+.vista-correo-cuerpo { padding: var(--e4); display: grid; gap: var(--e2); font-size: 14px; }
+.vista-correo-marca { display: flex; gap: var(--e3); align-items: center; }
+.boton-muestra { display: inline-block; color: #fff; border-radius: var(--radio); padding: 7px 14px; font-size: 13px; }
+
+/* SUNAT: lo que se hace fuera. */
+.bloque-interno {
+  border: 1px solid var(--borde); border-radius: var(--radio-grande);
+  padding: var(--e3) var(--e4); display: grid; gap: var(--e2); font-size: 14px;
+}
+.bloque-interno .lista-nota { margin: 0; }
+
+/* Lista para emitir. */
+.cabecera-listo { display: grid; gap: var(--e2); }
+.cabecera-listo h2 { font-size: 26px; }
+.lista-listo { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+.lista-listo li {
+  display: flex; gap: var(--e3); align-items: flex-start;
+  padding: var(--e3) 0; border-bottom: 1px solid var(--borde-sutil);
+}
+.lista-listo-texto { display: grid; gap: 2px; flex: 1; }
+.lista-listo-texto strong { font-weight: 500; }
+.lista-listo-texto span { font-size: 13px; color: var(--tinta-2); }
+.marca-listo {
+  width: 22px; height: 22px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; font-size: 12px;
+}
+.marca-listo.bien { background: var(--bien); color: #fff; }
+.marca-listo.ojo { border: 2px solid var(--aviso-borde); color: var(--aviso); }
+
+/* ===========================================================================
+   LA CARTERA (fase 3) — el lienzo «Fase 3 — Cartera»: Mis empresas, el
+   selector «Trabajando en», la segunda fila de la empresa y Colaboradores.
+   =========================================================================== */
+
+/* La cabecera y, debajo, la fila de la empresa abierta. */
+.cabeceras { display: grid; }
+.subcabecera {
+  background: var(--superficie); border-bottom: 1px solid var(--borde-sutil);
+  padding: 0 var(--e5); display: flex; gap: 2px; overflow-x: auto;
+}
+.subcabecera a {
+  padding: 10px 12px; font-size: 13.5px; color: var(--tinta-2); text-decoration: none;
+  border-bottom: 2px solid transparent; white-space: nowrap;
+}
+.subcabecera a:hover { color: var(--tinta); }
+.subcabecera a.activo { color: var(--acento); border-bottom-color: var(--acento); font-weight: 500; }
+
+/* «Trabajando en: … ▾» */
+.selector-empresa { position: relative; }
+.selector-boton {
+  font: inherit; font-size: 13px; display: flex; align-items: center; gap: var(--e2);
+  border: 1px solid var(--borde); background: var(--superficie); border-radius: var(--radio-grande);
+  padding: 6px 10px; cursor: pointer; max-width: 340px; color: var(--tinta);
+}
+.selector-boton strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.selector-boton.abierto, .selector-boton:hover { border-color: var(--acento); }
+.selector-etiqueta, .selector-flecha { color: var(--tinta-3); white-space: nowrap; }
+.selector-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; width: 380px; max-width: 90vw;
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-grande);
+  box-shadow: 0 8px 24px rgb(22 32 42 / 14%); padding: var(--e2);
+}
+.selector-buscar {
+  width: 100%; box-sizing: border-box; height: 36px; border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 0 10px; font: inherit; font-size: 14px; margin-bottom: 6px;
+}
+.selector-lista { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+.selector-opcion {
+  width: 100%; font: inherit; text-align: left; cursor: pointer; background: none; border: 0;
+  display: flex; justify-content: space-between; align-items: center; gap: var(--e2);
+  padding: 8px 10px; border-radius: var(--radio); color: var(--tinta);
+}
+.selector-opcion:hover { background: var(--papel); }
+.selector-opcion.elegida { background: var(--acento-suave); }
+.selector-opcion strong { display: block; font-weight: 500; font-size: 14px; }
+.selector-ruc { display: block; font-size: 12px; color: var(--tinta-3); }
+.selector-marca { color: var(--acento); }
+.selector-vacio { padding: 8px 10px; color: var(--tinta-3); font-size: 13px; }
+.selector-pie {
+  border-top: 1px solid var(--borde-sutil); margin-top: 6px; padding: 8px 10px 2px;
+  font-size: 13.5px; display: flex; justify-content: space-between; gap: var(--e3);
+}
+
+/* El estado de una empresa, en una pastilla. */
+.estado-empresa {
+  display: inline-block; border-radius: 20px; padding: 2px 8px; font-size: 12px; white-space: nowrap;
+}
+.estado-empresa::before { content: "● "; }
+.estado-empresa.lista       { background: var(--bien-suave);    color: var(--bien); }
+.estado-empresa.falta,
+.estado-empresa.certificado { background: var(--aviso-suave);   color: var(--aviso); }
+.estado-empresa.rechazos    { background: var(--peligro-suave); color: var(--peligro); }
+.estado-empresa.pausa       { background: var(--hundido);       color: var(--tinta-2); }
+.estado-empresa.pausa::before { content: "❚❚ "; }
+
+/* Mis empresas */
+.cabecera-bandeja { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--e4); flex-wrap: wrap; margin-bottom: var(--e5); }
+.cabecera-bandeja .titulo-pagina { margin-bottom: var(--e2); }
+.cabecera-bandeja .bajada-pagina { margin: 0; }
+.resumen-bandeja { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e3); margin-bottom: var(--e4); }
+.resumen-bandeja > div {
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-grande);
+  padding: 14px 16px; display: grid; gap: 2px;
+}
+.resumen-bandeja strong { font-size: 24px; font-weight: 600; }
+.resumen-bandeja span { font-size: 13px; color: var(--tinta-2); }
+.resumen-bandeja .bien strong { color: var(--bien); }
+.resumen-bandeja .ojo strong { color: var(--aviso); }
+.resumen-bandeja .gris strong { color: var(--tinta-2); }
+@media (max-width: 720px) { .resumen-bandeja { grid-template-columns: 1fr 1fr; } }
+
+.filtros-bandeja { display: flex; gap: var(--e3); align-items: center; flex-wrap: wrap; margin-bottom: var(--e3); }
+.filtros-bandeja .segmentado { margin-bottom: 0; }
+.buscar-bandeja {
+  flex: 1 1 260px; max-width: 380px; height: 38px; border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: 0 10px; font: inherit; font-size: 14px;
+}
+.tabla-envoltura { border: 1px solid var(--borde); border-radius: var(--radio-grande); background: var(--superficie); }
+/* Sin overflow en pantalla grande: si no, recorta el menú «⋯» de la última
+   fila. En el teléfono la tabla sí se desplaza de lado. */
+@media (max-width: 900px) { .tabla-envoltura { overflow-x: auto; } }
+.tabla-envoltura .tabla thead th:first-child { border-top-left-radius: var(--radio-grande); }
+.tabla-envoltura .tabla thead th:last-child { border-top-right-radius: var(--radio-grande); }
+.tabla-envoltura .tabla { margin: 0; border: 0; }
+.etiqueta.abierta { margin-left: var(--e2); font-size: 11px; }
+.acciones-bandeja { white-space: nowrap; text-align: right; }
+.acciones-bandeja .boton { padding: 6px 14px; font-size: 13px; }
+.menu-fila { position: relative; display: inline-block; margin-left: var(--e1); }
+.menu-fila-lista {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 200px;
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-grande);
+  box-shadow: 0 8px 24px rgb(22 32 42 / 14%); padding: 4px; display: grid; text-align: left;
+}
+.menu-fila-lista button {
+  font: inherit; font-size: 14px; background: none; border: 0; text-align: left; cursor: pointer;
+  padding: 8px 10px; border-radius: var(--radio); color: var(--tinta);
+}
+.menu-fila-lista button:hover { background: var(--papel); }
+.menu-fila-lista button.peligro { color: var(--peligro); }
+.vacio-bandeja { display: grid; gap: var(--e3); justify-items: start; }
+
+/* Colaboradores */
+.colaboradores { display: flex; gap: var(--e5); align-items: flex-start; flex-wrap: wrap; }
+.colaboradores > .tabla-envoltura { flex: 999 1 520px; min-width: 0; }
+.panel-colaborador { flex: 1 1 320px; margin: 0; display: grid; gap: var(--e3); }
+.panel-colaborador > h2 { margin: 0; font-size: 17px; }
+.panel-colaborador .campo { margin-bottom: 0; }
+.grupo-nivel, .grupo-empresas { border: 0; padding: 0; margin: 0; display: grid; gap: var(--e2); }
+.grupo-nivel legend, .grupo-empresas legend { font-size: 13px; color: var(--tinta-2); font-weight: 500; margin-bottom: var(--e1); }
+.opcion-nivel {
+  display: flex; gap: var(--e2); align-items: flex-start; cursor: pointer;
+  padding: 8px 10px; border: 1px solid var(--borde); border-radius: var(--radio-grande); font-size: 14px;
+}
+.opcion-nivel.elegida { border-color: var(--acento); background: var(--acento-suave); }
+.opcion-nivel input { margin-top: 3px; accent-color: var(--acento); }
+.opcion-nivel span { display: grid; gap: 2px; }
+.opcion-nivel span span { font-size: 12.5px; color: var(--tinta-2); }
+.lista-casillas {
+  border: 1px solid var(--borde); border-radius: var(--radio-grande); padding: 6px 12px;
+  display: grid; gap: 2px; max-height: 260px; overflow-y: auto;
+}
+.pie-panel { display: flex; justify-content: space-between; gap: var(--e2); }
+.texto-ojo { color: var(--aviso); }
+.texto-bien { color: var(--bien); }
+
+/* =============================================================================
+   EL INICIO DE LA EMPRESA (lienzo «Cuenta Negocio», pantalla 1)
+   ============================================================================= */
+.resumen-inicio { grid-template-columns: 1.6fr repeat(3, minmax(0, 1fr)); }
+.resumen-inicio > div > span:first-child { font-size: 12.5px; color: var(--tinta-3); }
+.resumen-inicio .destacado { background: var(--acento-suave); border-color: var(--acento); }
+.resumen-inicio .destacado strong { color: var(--acento); }
+.resumen-inicio .mal strong { color: var(--peligro); }
+@media (max-width: 900px) { .resumen-inicio { grid-template-columns: 1fr 1fr; } .resumen-inicio .destacado { grid-column: 1 / -1; } }
+
+.fila-aviso a { white-space: nowrap; font-weight: 500; }
+
+.inicio-cuerpo { display: flex; gap: var(--e5); align-items: flex-start; flex-wrap: wrap; }
+.inicio-ultimos { flex: 999 1 520px; min-width: 0; margin: 0; }
+.inicio-lado { flex: 1 1 260px; display: grid; gap: var(--e4); }
+.inicio-lado .bloque { margin: 0; }
+
+.cabecera-bloque { display: flex; justify-content: space-between; align-items: baseline; gap: var(--e3); margin-bottom: var(--e3); }
+.cabecera-bloque h2 { margin: 0; }
+.cabecera-bloque a { font-size: 14px; white-space: nowrap; }
+
+.tabla-clic tbody tr { cursor: pointer; }
+.tabla-clic tbody tr:hover { background: var(--papel); }
+.tabla-clic a.principal { color: inherit; text-decoration: none; }
+
+.tu-empresa > h2 { margin-top: 0; }
+.datos-cortos { margin: 0 0 var(--e3); display: grid; gap: var(--e2); }
+.datos-cortos > div { display: flex; justify-content: space-between; gap: var(--e3); font-size: 14px; }
+.datos-cortos dt { color: var(--tinta-3); white-space: nowrap; }
+.datos-cortos dd { margin: 0; text-align: right; min-width: 0; }
+.cortar { overflow-wrap: anywhere; }
+.sin-corte { white-space: nowrap; }
+.enlace-pie { font-size: 14px; }
+
+.pista-convertir {
+  display: grid; gap: var(--e1); padding: 14px 16px; font-size: 14px;
+  border: 1px dashed var(--borde); border-radius: var(--radio-grande); color: var(--tinta-2);
+}
+.pista-convertir strong { color: var(--tinta); }
+
+.convertir-cuenta { scroll-margin-top: 80px; }
+
+/* Usuarios de la empresa (lienzo «Cuenta Negocio», pantalla 2): la tabla y,
+   al lado, «Invitar a alguien». Reutiliza el armazón de Colaboradores. */
+.colaboradores > .lista-usuarios { flex: 999 1 520px; min-width: 0; margin: 0; }
+/* Por encima de 900px no recorta, para que el menú «⋯» se vea entero. */
+@media (min-width: 901px) { .bloque.sin-relleno.lista-usuarios { overflow: visible; } }
+.formulario-panel { display: grid; gap: var(--e3); }
+.formulario-panel .nota { margin: 0; }
+
+/* =============================================================================
+   RECUPERAR LA EMPRESA (fase 4a)
+   ============================================================================= */
+.enlace-recuperar { text-align: center; margin: var(--e4) 0 0; font-size: 14px; }
+.bajada-recuperar { margin: 0 0 var(--e4); color: var(--tinta-2); font-size: 14px; }
+.resumen-recuperar {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e2);
+  border: 1px solid var(--borde); border-radius: var(--radio-grande); padding: 14px; margin-bottom: var(--e4);
+  text-align: center;
+}
+.resumen-recuperar > div { display: grid; gap: 2px; }
+.resumen-recuperar strong { font-size: 20px; font-weight: 600; }
+.resumen-recuperar span { font-size: 12.5px; color: var(--tinta-2); }
+.tarjeta-acceso .formulario-panel h2 { margin: 0; font-size: 17px; }
+
+/* «Es tuya otra vez», en el inicio */
+.de-vuelta { border-color: var(--acento); }
+.de-vuelta h2 { margin-top: 0; }
+.lista-revision { list-style: none; margin: 0 0 var(--e4); padding: 0; }
+.lista-revision li {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--e4);
+  padding: var(--e3) 0; border-top: 1px solid var(--borde); flex-wrap: wrap;
+}
+.lista-revision li > span { display: grid; gap: 2px; flex: 1 1 320px; }
+.lista-revision li .boton { white-space: nowrap; }
+
+/* =============================================================================
+   RECLAMO CON DOCUMENTOS (fase 4b)
+   ============================================================================= */
+.reclamo { display: grid; gap: var(--e4); }
+.fila-archivo {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--e3);
+  padding: var(--e3) 0; border-top: 1px solid var(--borde); flex-wrap: wrap;
+}
+.fila-archivo > div { display: grid; gap: 2px; flex: 1 1 220px; font-size: 14px; }
+.fila-archivo .boton { cursor: pointer; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+
+/* Solicitudes de traspaso (super administrador) */
+.tabla-clic tbody tr.elegida { background: var(--acento-suave); }
+.explicacion-reclamo { margin: 0; font-size: 14px; color: var(--tinta-2); font-style: italic; }
+.etiqueta-panel { display: block; font-size: 13px; color: var(--tinta-2); font-weight: 500; margin-bottom: var(--e1); }
+.lista-documentos { margin: 0; padding-left: var(--e4); font-size: 14px; line-height: 1.8; }
+.lista-documentos .enlace { background: none; border: 0; padding: 0; font: inherit; color: var(--acento); text-decoration: underline; cursor: pointer; }
+.lista-documentos .enlace:disabled { color: var(--texto-suave, inherit); cursor: wait; }
+
+/* =============================================================================
+   FASE 4d: camino B, «traspaso en revisión» y la respuesta al reclamo
+   ============================================================================= */
+
+/* La franja del reclamo, con su botón a la derecha. */
+.franja-reclamo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--e3); }
+.franja-reclamo > span { flex: 1 1 420px; }
+
+/* La marca en la fila de la empresa. */
+.estado-empresa.en-revision { margin-left: var(--e2); }
+.estado-empresa.en-revision::before { content: ""; }
+
+/* Los pedidos del camino B. */
+.pedidos-titular h2 { margin: 0 0 var(--e3); font-size: 16px; }
+.pedidos-titular .nota { margin: var(--e3) 0 0; }
+.estado-empresa.esperando { background: #e7eef8; color: #2b4f86; }
+.estado-empresa.esperando::before, .estado-empresa.apagado::before { content: ""; }
+.estado-empresa.apagado { background: var(--hundido); color: var(--tinta-2); }
+
+/* Un botón que se ve como enlace (quitar de la lista, bajar un documento). */
+button.enlace { background: none; border: 0; padding: 0; font: inherit; color: var(--acento);
+                text-decoration: underline; cursor: pointer; }
+button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
+
+/* El asistente, cuando el RUC ya está en Reyban. */
+.aviso.info { background: var(--acento-suave); border-color: #bfdcd9; color: var(--tinta); }
+.aviso.info > strong { color: var(--acento); font-size: 15px; }
+.ya-en-reyban { display: grid; gap: var(--e2); }
+.ya-en-reyban p { margin: 0; }
+.ya-en-reyban .datos-cortos { margin: 0; max-width: 420px; }
+.ya-en-reyban .datos-cortos > div { justify-content: flex-start; }
+.ya-en-reyban .datos-cortos dt { min-width: 140px; }
+.ya-en-reyban .datos-cortos dd { text-align: left; }
+
+/* Responder al reclamo: las dos opciones. */
+.opciones-respuesta { border: 0; padding: 0; margin: 0 0 var(--e3); display: grid; gap: var(--e2); }
+.opciones-respuesta legend { font-size: 14px; font-weight: 500; margin-bottom: var(--e2); }
+.opciones-respuesta label { display: flex; gap: var(--e2); align-items: flex-start; padding: 10px 12px;
+                            border: 1px solid var(--borde); border-radius: 6px; cursor: pointer; font-size: 14px; }
+.opciones-respuesta label.elegida { border-color: var(--acento); box-shadow: inset 0 0 0 1px var(--acento); }
+.opciones-respuesta input { margin-top: 3px; flex: none; }
+.opciones-respuesta .secundario { display: block; font-size: 13px; }
+
+/* La página del titular. */
+.cita-pedido { margin: 0 0 var(--e3); padding: 10px 14px; background: var(--hundido); border-radius: 6px;
+               color: var(--tinta-2); font-style: italic; }
+
+/* La respuesta de la cuenta, en Solicitudes de traspaso. */
+.respuesta-cuenta { display: grid; gap: 4px; padding: 12px 14px; border-radius: 6px; font-size: 14px; margin: var(--e2) 0; }
+.respuesta-cuenta p { margin: 0; font-style: italic; }
+.respuesta-cuenta button.enlace { justify-self: start; }
+.respuesta-cuenta.se-opone  { background: var(--peligro-suave); border: 1px solid var(--peligro-borde); }
+.respuesta-cuenta.se-opone > strong { color: var(--peligro); }
+.respuesta-cuenta.de-acuerdo { background: var(--bien-suave); border: 1px solid #c6e0d2; }
+.respuesta-cuenta.de-acuerdo > strong { color: var(--bien); }
+
+/* 030 — CONEXIÓN CON SUNAT: la franja de arriba y el interruptor. */
+.franja-sunat { padding: 8px var(--e4); font-size: 13.5px; font-weight: 600; color: #fff; }
+.franja-sunat.beta { background: #b26b00; }
+.franja-sunat.real { background: #2f5fa8; }
+.interruptor-sunat { display: inline-flex; gap: 4px; padding: 4px; margin: var(--e4) 0 var(--e2);
+  border: 1px solid var(--borde); border-radius: 999px; background: var(--hundido); }
+.interruptor-sunat button { border: 0; border-radius: 999px; padding: 9px 18px; font-weight: 600;
+  background: transparent; color: var(--tinta-2); cursor: pointer; }
+.interruptor-sunat button:disabled { cursor: default; }
+.interruptor-sunat button.activo.beta { background: #b26b00; color: #fff; }
+.interruptor-sunat button.activo.real { background: #2f5fa8; color: #fff; }
+.interruptor-sunat button:not(.activo):hover:not(:disabled) { background: var(--superficie); color: var(--tinta); }
+.pista-sunat { font-size: 13px; color: var(--tinta-2); margin: 0 0 var(--e3); }
+.lista-marcar { list-style: none; padding: 0; margin: var(--e3) 0; display: grid; gap: var(--e2); }
+.lista-marcar label { display: flex; gap: var(--e2); align-items: baseline; flex-wrap: wrap; }
+.lista-marcar label.apagada { color: var(--tinta-3); }
+
+/* 031: nota de crédito */
+.motivos-nota { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--e3); margin: var(--e3) 0 var(--e4); }
+.motivos-nota .opcion-cuenta:disabled { opacity: .55; cursor: not-allowed; }
+.numero-nota { width: 90px; text-align: right; }
+.cifras-nota { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--e3); margin-bottom: var(--e3); }
+.cifras-nota > div { border: 1px solid var(--borde); border-radius: var(--radio-grande); padding: var(--e2) var(--e3); display: grid; gap: 2px; }
+.cifras-nota span { font-size: 12.5px; color: var(--tinta-2); }
+.cifras-nota strong { font-size: 18px; }
+
+/* 032: reportes */
+:root { --serie-1: #2a78d6; --serie-2: #eb6834; --serie-3: #1baf7a; }
+.submenu-lateral { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 6px 22px; padding-left: 8px; border-left: 2px solid var(--borde); }
+.submenu-lateral a { font-size: 13px; padding-top: 5px; padding-bottom: 5px; }
+.titulo-submenu { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); padding: 6px 12px 2px; }
+.filtros-reporte .hueco { flex: 1; }
+.acciones-reporte { display: flex; gap: var(--e2); }
+.cifras-reporte { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--e3); margin-bottom: var(--e4); }
+.cifra-reporte { display: grid; gap: 2px; padding: var(--e3) var(--e4); background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-grande); }
+.cifra-reporte span { font-size: 12.5px; color: var(--tinta-2); }
+.cifra-reporte strong { font-size: 22px; }
+.cifra-reporte small { font-size: 12px; color: var(--tinta-2); }
+.dos-reporte { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--e4); }
+.grafico { width: 100%; height: auto; display: block; }
+.grafico .rejilla { stroke: var(--borde); stroke-width: 1; }
+.grafico .eje { stroke: var(--tinta-3); stroke-width: 1; }
+.grafico .texto-eje { font-size: 11px; fill: var(--tinta-2); }
+.serie-1-linea { stroke: var(--serie-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.serie-1-punto { fill: var(--serie-1); stroke: var(--superficie); stroke-width: 2; }
+.zona-punto { fill: transparent; }
+.zona-punto:hover { fill: var(--serie-1); fill-opacity: .15; }
+.serie-1-trazo { stroke: var(--serie-1); } .serie-2-trazo { stroke: var(--serie-2); } .serie-3-trazo { stroke: var(--serie-3); }
+.serie-1-fondo { background: var(--serie-1); } .serie-2-fondo { background: var(--serie-2); } .serie-3-fondo { background: var(--serie-3); }
+.dona-reporte { display: flex; gap: var(--e4); align-items: center; flex-wrap: wrap; }
+.grafico-dona { width: 160px; height: 160px; }
+.leyenda-dona { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--e2); font-size: 13.5px; }
+.leyenda-dona small { color: var(--tinta-2); }
+.muestra { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.barras-reporte { display: grid; gap: 6px; }
+.barra-fila { display: grid; grid-template-columns: minmax(120px, 38%) 1fr auto; gap: var(--e2); align-items: center; font-size: 13px; }
+.barra-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barra-nombre small { color: var(--tinta-2); }
+.barra-pista { height: 14px; }
+.barra { display: block; height: 14px; min-width: 2px; border-radius: 0 4px 4px 0; background: var(--serie-1); }
+.barra.negativa { background: var(--serie-2); }
+.barra-valor { font-size: 12.5px; }
+.como-tabla { margin-top: var(--e2); }
+.enlace-tabla { border: 0; background: none; padding: 0; color: var(--acento); font: inherit; font-size: 12.5px; cursor: pointer; text-decoration: underline; }
+.fila-total td { font-weight: 700; }
+.pie-reporte { margin-top: var(--e4); }
+/* 034 */
+.grupo-submenu { display: flex; flex-direction: column; gap: 1px; }
+.tabla-ancha { overflow-x: auto; }
+.casillas-descarga { display: grid; gap: var(--e2); margin: var(--e3) 0; }
+.casillas-descarga label { display: flex; gap: var(--e2); align-items: center; }
+/* 035: roles propios */
+.lista-roles { display: grid; gap: var(--e3); margin-bottom: var(--e4); }
+.rol-tarjeta { display: flex; gap: var(--e4); align-items: center; justify-content: space-between; flex-wrap: wrap;
+  padding: var(--e3) var(--e4); background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-grande); }
+.rol-tarjeta.apagado { opacity: .65; }
+.rol-texto { display: grid; gap: 2px; }
+.rol-nombre { display: flex; gap: var(--e2); align-items: center; flex-wrap: wrap; }
+.rol-acciones { display: flex; gap: var(--e2); align-items: center; }
+.grupos-permisos { display: grid; gap: var(--e3); margin-top: var(--e3); }
+.grupo-permisos { border: 1px solid var(--borde); border-radius: var(--radio-grande); padding: var(--e2) var(--e3); margin: 0; }
+.grupo-permisos legend { font-weight: 600; font-size: 13.5px; padding: 0 4px; }
+.permiso-casilla { display: flex; gap: var(--e2); align-items: center; padding: 3px 0; font-size: 14px; }
+.permiso-casilla.apagada { color: var(--tinta-3); }
+/* 036: entrada del menú que se abre y se cierra */
+.boton-lateral { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; border: 0;
+  border-radius: var(--radio-grande); background: transparent; color: var(--tinta-2); font: inherit; font-size: 14px;
+  text-align: left; cursor: pointer; }
+.boton-lateral:hover { background: var(--hundido); color: var(--tinta); }
+.boton-lateral.activo { background: var(--acento-suave); color: var(--acento); font-weight: 600; }
+.boton-lateral .texto-lateral { flex: 1; }
+.flecha-lateral { font-size: 12px; opacity: .7; }
+
+/* 037: búsqueda y filtros de los reportes */
+.busqueda-reporte { margin-top: calc(-1 * var(--e2)); }
+.busqueda-reporte .caja-busqueda { flex: 1 1 280px; max-width: 420px; }
+.busqueda-reporte .caja-busqueda input { width: 100%; }
+.limpiar-busqueda { align-self: flex-end; margin-bottom: 9px; }
+.resultado-busqueda { margin: 0 0 var(--e3); }
+.solo-impresion { display: none; }
+
+/* «PDF»: la impresión del navegador, como un documento (037).
+   Cabecera con la empresa, el periodo y los filtros; tablas con cabecera de
+   color que se repite en cada hoja; pie con la fecha y «Página N de M». */
+@media print {
+  .cabecera, .lateral, .velo-lateral, .migas, .franja-sunat, .acciones-reporte, .enlace-tabla { display: none !important; }
+  .contenido { padding: 0 !important; }
+  .bloque, .cifra-reporte, .filtros { break-inside: avoid; box-shadow: none; }
+
+  html, body, #raiz { height: auto !important; background: #fff !important; }
+  .marco, .cuerpo { display: block !important; min-height: 0 !important; }
+  .contenido, .contenido > * { max-width: none !important; margin: 0 !important; }
+
+  .reporte { color: #1d2329; font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; padding: 0 1px; }
+  .reporte, .reporte * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .reporte .encabezado-pagina, .reporte .filtros, .reporte .resultado-busqueda, .reporte .solo-pantalla,
+  .reporte .como-tabla, .reporte .boton { display: none !important; }
+  .reporte .solo-impresion { display: block; }
+
+  .impresion-cabecera { margin-bottom: 5mm; }
+  .impresion-marca { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm;
+    padding-bottom: 2.5mm; border-bottom: 2px solid #1f6f6a; }
+  .impresion-empresa { font-size: 12pt; font-weight: 700; }
+  .impresion-ruc { font-size: 9pt; color: #5c6570; margin-top: 1px; }
+  .impresion-logo { font-size: 10pt; font-weight: 700; color: #1f6f6a; white-space: nowrap; }
+  .impresion-logo span { font-weight: 400; color: #5c6570; }
+  .impresion-titulo { font-size: 17pt; font-weight: 700; color: #1f6f6a; margin: 4mm 0 1.5mm; }
+  .impresion-datos { display: flex; flex-wrap: wrap; gap: 1mm 6mm; font-size: 9pt; color: #5c6570; }
+  .impresion-prueba { margin-top: 2.5mm; padding: 1.8mm 3mm; border: 1px solid #e8b04a; border-left: 4px solid #d08a00;
+    background: #fff6e0; color: #7a4a00; font-size: 8.5pt; font-weight: 700; }
+
+  .reporte .aviso { break-inside: avoid; font-size: 9pt; padding: 2mm 3mm; margin: 0 0 3mm; }
+  .reporte .nota { font-size: 8.5pt; color: #5c6570; }
+  .reporte .pie-reporte { margin-top: 4mm; padding-top: 2mm; border-top: 1px solid #d5dbdb; }
+  .reporte a { color: inherit !important; text-decoration: none !important; }
+  .reporte h2.subtitulo { font-size: 10.5pt; color: #1f6f6a; margin: 0 0 2mm; }
+
+  .reporte .cifras-reporte { display: grid; grid-template-columns: repeat(4, 1fr) !important; gap: 2.5mm; margin-bottom: 4mm; }
+  .reporte .cifra-reporte { border: 1px solid #d5dbdb; border-top: 3px solid #1f6f6a; border-radius: 2px; padding: 2mm 3mm; background: #fff; }
+  .reporte .cifra-reporte span, .reporte .cifra-reporte small { font-size: 8pt; color: #5c6570; }
+  .reporte .cifra-reporte strong { font-size: 13pt; }
+  .reporte .dos-reporte { display: grid; grid-template-columns: 1fr 1fr !important; gap: 4mm; margin-bottom: 4mm; }
+  .reporte .bloque { border: 1px solid #d5dbdb; border-radius: 2px; padding: 3mm; margin-bottom: 4mm; background: #fff; }
+  .reporte .bloque.sin-relleno, .reporte .tabla-ancha { padding: 0; border: 0; overflow: visible !important; break-inside: auto; }
+  .reporte .barra-fila { font-size: 8.5pt; }
+
+  .reporte .tabla { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  .reporte-horizontal .tabla { font-size: 8pt; }
+  .reporte .tabla thead { display: table-header-group; }
+  .reporte .tabla th { background: #1f6f6a !important; color: #fff !important; font-size: 8pt; font-weight: 700;
+    text-transform: none; letter-spacing: 0; padding: 1.6mm 2mm; border: 0; }
+  .reporte .tabla td { padding: 1.3mm 2mm; border-bottom: 1px solid #e3e7e7; vertical-align: top; }
+  .reporte .tabla tbody tr:nth-child(even) td { background: #f3f6f5; }
+  .reporte .tabla tr { break-inside: avoid; }
+  .reporte .tabla .secundario { font-size: 7.5pt; color: #6b7480; }
+  .reporte .tabla .fila-total td { background: #e6f0ee !important; border-top: 1.5px solid #1f6f6a; border-bottom: 0; color: #1f6f6a; }
+}

@@ -3,6 +3,7 @@ import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import { accesoServicio } from '../servicios/accesoServicio'
 
@@ -21,7 +22,7 @@ export function CambiarClave() {
   const [actual, setActual]     = useState('')
   const [nueva, setNueva]       = useState('')
   const [repetida, setRepetida] = useState('')
-  const [error, setError]       = useState<string | null>(null)
+  const mensaje = useMensaje()
   const [enviando, setEnviando] = useState(false)
 
   // Se comprueba aquí para avisar antes de enviar, no para confiar en ello:
@@ -32,14 +33,13 @@ export function CambiarClave() {
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
     setEnviando(true)
 
     try {
       await accesoServicio.cambiarClave(actual, nueva)
       await refrescar()
     } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : 'No se pudo cambiar.')
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo cambiar.')
       setEnviando(false)
     }
   }
@@ -52,8 +52,6 @@ export function CambiarClave() {
         <p className="bajada">
           La que usaste para entrar es temporal. Elige una tuya antes de seguir.
         </p>
-
-        {error && <Aviso>{error}</Aviso>}
 
         <Campo
           etiqueta="Contraseña actual"

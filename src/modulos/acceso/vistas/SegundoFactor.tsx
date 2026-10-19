@@ -6,6 +6,7 @@ import { Cargando } from '../../../componentes/Cargando'
 import { CodigoQr } from '../../../componentes/CodigoQr'
 import { CodigosDeRescate } from '../../../componentes/CodigosDeRescate'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import type { QrSegundoFactor } from '../../../nucleo/sesion/tipos'
 import { accesoServicio } from '../servicios/accesoServicio'
@@ -35,11 +36,11 @@ export function SegundoFactor({ debeConfigurar }: { debeConfigurar: boolean }) {
 
 function Configurar() {
   const { refrescar, salir } = useSesion()
+  const mensaje = useMensaje()
 
   const [qr, setQr]         = useState<QrSegundoFactor>()
   const [fallo, setFallo]   = useState<string>()
   const [codigo, setCodigo] = useState('')
-  const [error, setError]   = useState<string>()
   const [enviando, setEnviando] = useState(false)
   const [rescate, setRescate]   = useState<string[]>()
 
@@ -60,14 +61,13 @@ function Configurar() {
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError(undefined)
     setEnviando(true)
 
     try {
       const r = await accesoServicio.confirmarSegundoFactor(codigo)
       setRescate(r.codigosRecuperacion)
     } catch (err) {
-      setError(err instanceof ErrorApi ? err.message : 'No se pudo confirmar.')
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudo confirmar.')
       setEnviando(false)
     }
   }
@@ -111,9 +111,6 @@ function Configurar() {
           teléfono: Google Authenticator o Microsoft Authenticator sirven, y
           son gratis.
         </p>
-
-        {error && <Aviso>{error}</Aviso>}
-
         <ol className="pasos">
           <li>Abre la aplicación y pulsa «Añadir cuenta» o el signo +.</li>
           <li>Escanea este código:</li>
@@ -166,15 +163,14 @@ function Configurar() {
 
 function PedirCodigo() {
   const { refrescar, salir } = useSesion()
+  const mensaje = useMensaje()
 
   const [codigo, setCodigo]     = useState('')
-  const [error, setError]       = useState<string>()
   const [enviando, setEnviando] = useState(false)
   const [rescatando, setRescatando] = useState(false)
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError(undefined)
     setEnviando(true)
 
     try {
@@ -183,7 +179,7 @@ function PedirCodigo() {
 
       await refrescar()
     } catch (err) {
-      setError(err instanceof ErrorApi ? err.message : 'No se pudo comprobar.')
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudo comprobar.')
       setEnviando(false)
     }
   }
@@ -200,9 +196,6 @@ function PedirCodigo() {
             ? 'Escribe uno de los ocho códigos que guardaste al configurar tu cuenta. Cada uno sirve una sola vez.'
             : 'Abre tu aplicación de códigos y escribe los seis dígitos que te muestre.'}
         </p>
-
-        {error && <Aviso>{error}</Aviso>}
-
         <Campo
           etiqueta={rescatando ? 'Código de recuperación' : 'Código de seis dígitos'}
           inputMode={rescatando ? 'text' : 'numeric'}
@@ -222,7 +215,7 @@ function PedirCodigo() {
           estilo="plano"
           ancho
           style={{ marginTop: 8 }}
-          onClick={() => { setRescatando(!rescatando); setCodigo(''); setError(undefined) }}
+          onClick={() => { setRescatando(!rescatando); setCodigo('') }}
         >
           {rescatando ? 'Volver al código del teléfono' : 'Perdí mi teléfono'}
         </Boton>

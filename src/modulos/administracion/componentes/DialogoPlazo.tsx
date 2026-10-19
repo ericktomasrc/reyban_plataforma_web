@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { empresasServicio } from '../servicios/empresasServicio'
 import type { EmpresaEnLista } from '../tipos'
 
@@ -23,31 +23,30 @@ export function DialogoPlazo({ empresa, onCerrar, onGuardado }: {
   onGuardado: () => void
 }) {
   const [horas, setHoras] = useState(String(empresa.horasInvitacion))
-  const [error, setError] = useState<string>()
+  const mensaje = useMensaje()
   const [guardando, setGuardando] = useState(false)
 
   async function guardar() {
     const n = Number(horas)
 
     if (!Number.isInteger(n) || n < 1 || n > 168) {
-      setError('Tiene que estar entre 1 y 168 horas (siete días).')
+      mensaje.error('Tiene que estar entre 1 y 168 horas (siete días).')
       return
     }
 
-    setError(undefined)
     setGuardando(true)
     try {
       await empresasServicio.cambiarHorasInvitacion(empresa.id, n)
       onGuardado()
     } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : 'No se pudo guardar.')
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo guardar.')
       setGuardando(false)
     }
   }
 
   return (
     <Dialogo
-      titulo={`Enlaces de ${empresa.razonSocial}`}
+      titulo={`Enlaces de ${empresa.nombre}`}
       abierto
       onCerrar={onCerrar}
       acciones={
@@ -59,7 +58,6 @@ export function DialogoPlazo({ empresa, onCerrar, onGuardado }: {
         </>
       }
     >
-      {error && <Aviso>{error}</Aviso>}
 
       <p className="parrafo">
         Cuánto tiempo sirve un enlace de invitación o de contraseña nueva para

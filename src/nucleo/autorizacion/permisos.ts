@@ -36,10 +36,26 @@ export const Permisos = {
     Ver:                   'facturacion.ver',
     Emitir:                'facturacion.emitir',
     Anular:                'facturacion.anular',
+    NotasCredito:          'facturacion.notas_credito',   // 031
     Descargar:             'facturacion.descargar',
     ClientesGestionar:     'facturacion.clientes_gestionar',
     ProductosGestionar:    'facturacion.productos_gestionar',
     CredencialesGestionar: 'facturacion.credenciales_gestionar',
+  },
+
+  // 032: un permiso por reporte.
+  Reportes: {
+    MiDia:          'reportes.mi_dia',
+    TableroVentas:  'reportes.tablero_ventas',
+    VentasCliente:  'reportes.ventas_cliente',
+    VentasProducto: 'reportes.ventas_producto',
+    VentasVendedor: 'reportes.ventas_vendedor',
+    // 034: SUNAT y contabilidad
+    ResumenIgv:     'reportes.resumen_igv',
+    RegistroVentas: 'reportes.registro_ventas',
+    ConProblema:    'reportes.con_problema',
+    AnuladosNotas:  'reportes.anulados_notas',
+    DescargaMasiva: 'reportes.descarga_masiva',
   },
 } as const
 

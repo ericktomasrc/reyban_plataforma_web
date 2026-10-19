@@ -8,8 +8,23 @@
 /** GET /api/admin/empresas */
 export interface EmpresaEnLista {
   id: string
-  ruc: string
-  razonSocial: string
+
+  /** El nombre para mostrar. Es el que se ve en toda la plataforma. */
+  nombre: string
+
+  /**
+   * Los oficiales, del servicio. Desde la parte C llegan en el alta; nulos
+   * solo en una empresa que nunca se conectó.
+   */
+  ruc: string | null
+  razonSocial: string | null
+
+  /** «beta» o «produccion», según el servicio. */
+  ambiente: string | null
+
+  /** Tiene RUC: está conectada con su clave del servicio. */
+  conectada: boolean
+
   activo: boolean
 
   /** Nulo mientras la empresa esté operativa. */
@@ -24,6 +39,35 @@ export interface EmpresaEnLista {
 
   /** Cuánto duran los enlaces de invitación de esta empresa. */
   horasInvitacion: number
+
+  /**
+   * Las marcas de facturación, de lo último que dijo el servicio (sin
+   * preguntarle al abrir la lista). Nulo si no tiene clave del servicio.
+   * Los `null` de dentro son «todavía no se preguntó»: no se pinta nada.
+   */
+  facturacion: MarcasFacturacion | null
+}
+
+export interface MarcasFacturacion {
+  /** El alta se guardó aquí pero el servicio no recibió la confirmación. */
+  altaSinConfirmar: boolean
+
+  /** Falso: sin identificador o sin correo de respuesta, ningún receptor recibe su correo. */
+  correosAlReceptor: boolean | null
+
+  /** Certificado, SOL, una serie y la dirección revisada. Sin esto no se activa Facturación. */
+  listoParaEmitir: boolean | null
+
+  /** Hay una clave anterior guardada que nadie comprobó que esté revocada. */
+  claveAnteriorPendiente: boolean
+
+  /**
+   * Hasta cuándo vale el certificado digital, de la revisión diaria (paso
+   * 6.1). Nulo si todavía no se preguntó o si no tiene certificado activo.
+   */
+  certificadoValidoHasta: string | null
+
+  consultadoEn: string | null
 }
 
 /** GET /api/admin/modulos — el catálogo, no lo contratado. */
@@ -35,12 +79,27 @@ export interface ModuloDelCatalogo {
   icono: string | null
 }
 
-/** Lo que se manda en POST /api/admin/empresas */
+/**
+ * Lo que se manda en POST /api/admin/empresas.
+ *
+ * DESDE LA PARTE C EL ALTA CREA TAMBIÉN EL EMISOR EN EL SERVICIO: el RUC, la
+ * razón social y la dirección se teclean aquí una vez y viajan solos. La
+ * dirección NO se queda en la plataforma: vive en el servicio.
+ */
 export interface AltaEmpresa {
+  /** El nombre para mostrar. Si no va: nombre comercial o razón social. */
+  nombre?: string
+
   ruc: string
   razonSocial: string
   nombreComercial?: string
-  direccion?: string
+
+  direccion: string
+  ubigeo: string
+  distrito: string
+  provincia: string
+  departamento: string
+
   correoAdministrador: string
   nombreAdministrador: string
   modulos: string[]
@@ -53,14 +112,21 @@ export interface AltaEmpresa {
  * Lo que devuelve el alta.
  *
  * NO HAY CONTRASEÑA AQUÍ: al administrador le llega un enlace por correo y la
- * elige él. Quien da de alta la empresa nunca la conoce.
+ * elige él. Quien da de alta la empresa nunca la conoce. Y TAMPOCO LA CLAVE
+ * DEL SERVICIO: la plataforma la guarda cifrada; aquí solo su pista.
  *
  * `invitacionEnviada` en false significa que la empresa quedó creada pero el
  * correo no salió. Se reenvía desde la pantalla de usuarios de esa empresa, o
  * volviendo a pulsar el botón del enlace.
  */
 export interface EmpresaCreada {
-  empresa: { id: string; ruc: string; razonSocial: string }
+  empresa: {
+    id: string
+    nombre: string
+    ruc: string
+    razonSocial: string
+    ambiente: string | null
+  }
   administrador: {
     id: string
     correo: string
@@ -68,6 +134,14 @@ export interface EmpresaCreada {
     invitacionEnviada: boolean
     expiraEn: string
   }
+  emisor: {
+    id: string
+    estado: string
+    ambiente: string
+    pista: string
+    abandonado: string | null
+  }
+  mensaje: string
 }
 
 /**

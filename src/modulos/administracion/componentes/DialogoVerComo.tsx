@@ -6,6 +6,7 @@ import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { fechaYHora } from '../../../nucleo/formato/fechas'
 import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { suplantacionServicio } from '../servicios/suplantacionServicio'
 import type { EmpresaEnLista, UsuariosDeEmpresa } from '../tipos'
 
@@ -29,10 +30,11 @@ interface Props {
  */
 export function DialogoVerComo({ empresa, onCerrar, onEmpezada }: Props) {
   const [datos, setDatos] = useState<UsuariosDeEmpresa>()
-  const [error, setError] = useState<string>()
+  const [errorCarga, setErrorCarga] = useState<string>()
   const [cargando, setCargando] = useState(true)
   const [entrando, setEntrando] = useState<string>()
   const { pedir, dialogo: confirmacion } = useConfirmar()
+  const mensaje = useMensaje()
 
   useEffect(() => {
     let vivo = true
@@ -41,7 +43,7 @@ export function DialogoVerComo({ empresa, onCerrar, onEmpezada }: Props) {
         const d = await suplantacionServicio.usuarios(empresa.id)
         if (vivo) setDatos(d)
       } catch (e) {
-        if (vivo) setError(e instanceof ErrorApi ? e.message : 'No se pudieron cargar los usuarios.')
+        if (vivo) setErrorCarga(e instanceof ErrorApi ? e.message : 'No se pudieron cargar los usuarios.')
       } finally {
         if (vivo) setCargando(false)
       }
@@ -65,20 +67,19 @@ export function DialogoVerComo({ empresa, onCerrar, onEmpezada }: Props) {
           </p>
           <p>
             Queda registrado al empezar y al terminar, y también en la auditoría
-            de {empresa.razonSocial}.
+            de {empresa.nombre}.
           </p>
         </>
       ),
     })
     if (!seguro) return
 
-    setError(undefined)
     setEntrando(id)
     try {
       await suplantacionServicio.empezar(id)
       onEmpezada()
     } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : 'No se pudo entrar a esa cuenta.')
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo entrar a esa cuenta.')
       setEntrando(undefined)
     }
   }
@@ -86,12 +87,12 @@ export function DialogoVerComo({ empresa, onCerrar, onEmpezada }: Props) {
   return (
     <>
     <Dialogo
-      titulo={`Ver como alguien de ${empresa.razonSocial}`}
+      titulo={`Ver como alguien de ${empresa.nombre}`}
       abierto
       onCerrar={onCerrar}
       acciones={<Boton estilo="secundario" onClick={onCerrar}>Cerrar</Boton>}
     >
-      {error && <Aviso>{error}</Aviso>}
+      {errorCarga && <Aviso>{errorCarga}</Aviso>}
 
       {cargando ? (
         <Cargando />

@@ -152,3 +152,90 @@
 @media (max-width: 640px) {
   .barra-suplantacion { padding: var(--e2) var(--e3); }
 }
+
+
+/* =============================================================================
+   UN SOLO MENÚ, A LA IZQUIERDA (12 de octubre, lienzo «Fase 3», pantalla 6)
+
+   Arriba: logo, selector y quién soy. A la izquierda: el menú en secciones
+   (Mi estudio · la empresa abierta · Plataforma). En el teléfono, el menú se
+   esconde y lo abre ☰.
+   ============================================================================= */
+
+.marco { display: flex; flex-direction: column; min-height: 100vh; }
+
+.cabecera { gap: var(--e4); }
+.cabecera .logo { min-width: 180px; }
+.cabecera .hueco { flex: 1; }
+.cabecera .selector-boton { font-size: 14px; border-color: var(--acento); background: var(--acento-suave); padding: 7px 14px; }
+.cabecera .selector-boton .selector-etiqueta,
+.cabecera .selector-boton .selector-flecha { color: var(--acento); }
+
+.boton-menu {
+  display: none; font: inherit; font-size: 20px; line-height: 1; cursor: pointer;
+  background: none; border: 1px solid var(--borde); border-radius: var(--radio);
+  width: 40px; height: 40px; color: var(--tinta);
+}
+
+.cuerpo { flex: 1; display: flex; align-items: stretch; min-height: 0; }
+
+.lateral {
+  width: 240px; flex: none; box-sizing: border-box;
+  background: var(--superficie); border-right: 1px solid var(--borde);
+  padding: var(--e4) var(--e3); display: flex; flex-direction: column; gap: var(--e3);
+}
+.seccion-lateral { display: flex; flex-direction: column; gap: 2px; }
+.seccion-lateral + .seccion-lateral { border-top: 1px solid var(--borde-sutil); padding-top: var(--e3); }
+.titulo-seccion {
+  font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--tinta-3); padding: 6px 12px 4px;
+}
+.empresa-lateral { display: flex; flex-direction: column; gap: 2px; padding-bottom: var(--e2); }
+.empresa-lateral .titulo-seccion { padding-bottom: 2px; }
+.empresa-lateral strong { font-size: 13.5px; padding: 0 12px; line-height: 1.3; }
+.empresa-lateral .mono { font-size: 12px; color: var(--tinta-3); padding: 0 12px; }
+
+.seccion-lateral a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: var(--radio-grande);
+  color: var(--tinta-2); text-decoration: none; font-size: 14px;
+}
+.seccion-lateral a:hover { background: var(--hundido); color: var(--tinta); }
+.seccion-lateral a.activo { background: var(--acento-suave); color: var(--acento); font-weight: 600; }
+.icono-lateral { width: 18px; text-align: center; opacity: .8; }
+
+.contenido { flex: 1; min-width: 0; }
+.migas { font-size: 13px; color: var(--tinta-3); margin-bottom: var(--e3); }
+
+.velo-lateral { display: none; }
+
+@media (max-width: 900px) {
+  .boton-menu { display: inline-block; }
+  .cabecera .logo { min-width: 0; }
+  .lateral {
+    position: fixed; z-index: 40; top: 0; bottom: 0; left: 0; overflow-y: auto;
+    transform: translateX(-100%); transition: transform 160ms ease-out;
+    box-shadow: 0 8px 24px rgb(22 32 42 / 18%);
+  }
+  .menu-abierto .lateral { transform: none; }
+  .menu-abierto .velo-lateral {
+    display: block; position: fixed; inset: 0; z-index: 30; background: rgb(22 32 42 / 35%);
+  }
+}
+
+@media (max-width: 720px) {
+  .cabecera .quien .empresa { display: none; }
+  .cabecera .selector-empresa { order: 5; width: 100%; }
+  .cabecera .selector-boton { width: 100%; max-width: none; }
+}
+
+/* 038: el logo ocupa lo mismo que el menú de la izquierda y lleva su misma
+   raya; «Trabajando en» empieza justo después, alineado y sin montarse. */
+@media (min-width: 901px) {
+  .cabecera .logo {
+    flex: none; box-sizing: border-box; min-width: 0;
+    width: calc(240px - var(--e5)); align-self: stretch;
+    display: flex; align-items: center; border-right: 1px solid var(--borde);
+  }
+  .cabecera .logo + .selector-empresa { margin-left: var(--e2); }
+}

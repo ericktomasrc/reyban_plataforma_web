@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
@@ -7,7 +8,10 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha, fechaYHora } from '../../../nucleo/formato/fechas'
 import { useCargar } from '../../../nucleo/hooks/useCargar'
 import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
-import { useSesion } from '../../../nucleo/sesion/SesionContexto'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
+import { useSesion, useYo } from '../../../nucleo/sesion/SesionContexto'
+import { ConvertirCuenta } from '../../cartera/componentes/ConvertirCuenta'
+import { NOMBRE_NIVEL } from '../../cartera/servicios/carteraServicio'
 import { DialogoClave } from '../componentes/DialogoClave'
 import { DialogoCodigosNuevos } from '../componentes/DialogoCodigosNuevos'
 import { DialogoOtroTelefono } from '../componentes/DialogoOtroTelefono'
@@ -26,6 +30,9 @@ import type { MiPerfil as Datos } from '../tipos'
  *   1. Quién soy — y el nombre, que se cambia aquí mismo.
  *   2. Cómo entro — contraseña y segundo factor, lo delicado.
  *   3. Mis sesiones — el botón de «cierra todo lo demás».
+ *   4. Mi cuenta Negocio o Profesional — y, para el dueño de una Cuenta
+ *      Negocio, «Convertir en Cuenta Profesional» (el inicio enlaza aquí con
+ *      /perfil#convertir).
  *
  * El correo no se cambia desde aquí. Está explicado en el bloque 1, en la
  * pantalla, porque quien busque ese campo merece saber por qué no está en vez
@@ -33,13 +40,14 @@ import type { MiPerfil as Datos } from '../tipos'
  */
 export function MiPerfil() {
   const { refrescar } = useSesion()
+  const { cuenta } = useYo()
+  const ruta = useLocation()
   const { pedir, dialogo: confirmacion } = useConfirmar()
+  const mensaje = useMensaje()
 
   const perfil = useCargar<Datos>(() => perfilServicio.mio())
 
   const [nombre, setNombre]   = useState<string>()
-  const [aviso, setAviso]     = useState<string>()
-  const [error, setError]     = useState<string>()
   const [guardando, setGuardando] = useState(false)
 
   const [cambiandoClave, setCambiandoClave] = useState(false)
@@ -55,17 +63,16 @@ export function MiPerfil() {
 
   async function guardarNombre(e: React.FormEvent) {
     e.preventDefault()
-    setError(undefined); setAviso(undefined)
 
     if (!valor.trim()) {
-      setError('El nombre no puede quedar vacío.')
+      mensaje.error('El nombre no puede quedar vacío.')
       return
     }
 
     setGuardando(true)
     try {
       const r = await perfilServicio.cambiarNombre(valor.trim())
-      setAviso(r.mensaje)
+      mensaje.bien(r.mensaje)
       setNombre(undefined)
       await perfil.recargar()
 
@@ -74,7 +81,7 @@ export function MiPerfil() {
       // completa de la página — y parecería que el cambio no se guardó.
       await refrescar()
     } catch (err) {
-      setError(err instanceof ErrorApi ? err.message : 'No se pudo guardar el nombre.')
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudo guardar el nombre.')
     } finally {
       setGuardando(false)
     }
@@ -97,15 +104,22 @@ export function MiPerfil() {
     })
     if (!seguro) return
 
-    setError(undefined); setAviso(undefined)
     try {
       const r = await perfilServicio.cerrarOtrasSesiones()
-      setAviso(r.mensaje)
+      mensaje.bien(r.mensaje)
       await perfil.recargar()
     } catch (err) {
-      setError(err instanceof ErrorApi ? err.message : 'No se pudieron cerrar las sesiones.')
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudieron cerrar las sesiones.')
     }
   }
+
+  // Desde el inicio se llega con #convertir: se baja hasta ese bloque en
+  // cuanto existe (la página carga primero el perfil).
+  useEffect(() => {
+    if (d && ruta.hash) document.getElementById(ruta.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [d, ruta.hash])
+
+  const convierte = cuenta?.tipo === 'negocio' && cuenta.nivel === 'dueno'
 
   if (perfil.cargando && !d) return <Cargando />
   if (!d) return <Aviso>{perfil.error ?? 'No se pudo cargar tu perfil.'}</Aviso>
@@ -115,8 +129,6 @@ export function MiPerfil() {
       <h1 className="titulo-pagina">Mi cuenta</h1>
 
       {perfil.error && <Aviso>{perfil.error}</Aviso>}
-      {error && <Aviso>{error}</Aviso>}
-      {aviso && <Aviso tono="bien">{aviso}</Aviso>}
 
       {/* ===================================================================
           1. QUIÉN SOY
@@ -297,14 +309,35 @@ export function MiPerfil() {
         </Boton>
       </div>
 
+      {/* ===================================================================
+          4. MI CUENTA (016, 018): Negocio o Profesional
+          =================================================================== */}
+      {!d.esSuperAdmin && cuenta?.titularNombre && (
+        <div className="bloque">
+          <h2 className="subtitulo">Tipo de cuenta</h2>
+          <dl className="datos">
+            <div className="fila">
+              <dt>Cuenta</dt>
+              <dd>
+                <span className="etiqueta acento">{cuenta.tipo === 'profesional' ? 'Cuenta Profesional' : 'Cuenta Negocio'}</span>
+                {cuenta.nivel && <span className="secundario"> · {NOMBRE_NIVEL[cuenta.nivel]}</span>}
+              </dd>
+            </div>
+            <div className="fila"><dt>Titular</dt><dd>{cuenta.titularNombre}</dd></div>
+          </dl>
+        </div>
+      )}
+
+      {convierte && <ConvertirCuenta />}
+
       {confirmacion}
 
       {cambiandoClave && (
         <DialogoClave
           onCerrar={() => setCambiandoClave(false)}
-          onCambiada={mensaje => {
+          onCambiada={texto => {
             setCambiandoClave(false)
-            setAviso(mensaje)
+            mensaje.bien(texto)
             void perfil.recargar()
           }}
         />
@@ -327,7 +360,7 @@ export function MiPerfil() {
           onCerrar={() => setPidiendoCodigos(false)}
           onHechos={() => {
             setPidiendoCodigos(false)
-            setAviso('Tienes ocho códigos nuevos. Los anteriores ya no valen.')
+            mensaje.bien('Tienes ocho códigos nuevos. Los anteriores ya no valen.')
             void perfil.recargar()
           }}
         />

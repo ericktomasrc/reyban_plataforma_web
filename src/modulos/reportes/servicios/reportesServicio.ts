@@ -1,0 +1,154 @@
+import { api } from '../../../nucleo/api/cliente'
+
+// =============================================================================
+// 032 — REPORTES. Solo lectura. Las cuentas las hace la base; aquí se piden.
+// `formato=xlsx` baja el mismo reporte en Excel.
+// =============================================================================
+
+export type NombreReporte = 'mi-dia' | 'ventas' | 'clientes' | 'productos' | 'vendedores'
+  | 'igv' | 'registro' | 'problemas' | 'anulados'
+  | 'cartera' | 'admin/plataforma' | 'admin/empresas' | 'admin/rechazos' | 'admin/cuentas'
+
+/** 036: los del super administrador viven en /api/admin/reportes. */
+function ruta(reporte: NombreReporte) {
+  return reporte.startsWith('admin/') ? `/api/admin/reportes/${reporte.slice(6)}` : `/api/reportes/${reporte}`
+}
+
+export interface Filtros {
+  desde?: string
+  hasta?: string
+  moneda: 'PEN' | 'USD'
+  /** 037: búsqueda y filtros. Se aplican en el servidor: la pantalla y el Excel traen lo mismo. */
+  q?: string
+  tipo?: string
+  estado?: string
+  sunat?: 'real' | 'prueba'
+}
+
+function consulta(f: Filtros, formato?: string) {
+  const p = new URLSearchParams()
+  if (f.desde) p.set('desde', f.desde)
+  if (f.hasta) p.set('hasta', f.hasta)
+  p.set('moneda', f.moneda)
+  if (f.q) p.set('q', f.q)
+  if (f.tipo) p.set('tipo', f.tipo)
+  if (f.estado) p.set('estado', f.estado)
+  if (f.sunat) p.set('sunat', f.sunat)
+  if (formato) p.set('formato', formato)
+  return p.toString()
+}
+
+interface Comun {
+  ambiente: 'beta' | 'produccion'
+  /** 037: viene en true cuando la búsqueda o un filtro dejó fuera alguna fila. */
+  filtrado?: boolean
+  desde: string
+  hasta: string
+  moneda: string
+}
+
+export interface ReporteMiDia extends Comun {
+  total: number
+  facturas: number
+  boletas: number
+  notas: number
+  enCamino: number
+  problemas: number
+  porHora: { hora: number; total: number }[]
+  ultimos: { id: string; tipo: string; numero: string; estado: string; total: number; cliente: string; hora: string }[]
+}
+
+export interface ReporteVentas extends Comun {
+  kpis: { total: number; facturas: number; boletas: number; notas: number; montoNotas: number; promedio: number }
+  igv: { gravado: number; exonerado: number; exportacion: number; igv: number; total: number }
+  porDia: { fecha: string; total: number }[]
+  porTipo: { tipo: string; cantidad: number; total: number }[]
+  topClientes: { cliente: string; documento: string; total: number }[]
+  anterior: { desde: string; hasta: string; total: number }
+}
+
+export interface ReporteClientes extends Comun {
+  total: number
+  filas: { cliente: string; documento: string; comprobantes: number; base: number; igv: number; total: number }[]
+}
+
+export interface ReporteProductos extends Comun {
+  total: number
+  filas: { producto: string; codigo: string | null; unidad: string; cantidad: number | null; base: number; total: number }[]
+}
+
+export interface ReporteVendedores extends Comun {
+  total: number
+  filas: { vendedor: string; comprobantes: number; notas: number; total: number }[]
+}
+
+// --- 034: SUNAT y contabilidad (montos en soles) ----------------------------
+
+export interface ReporteIgv extends Comun {
+  sinTipoCambio: number
+  filas: { mes: string; comprobantes: number; notas: number; gravado: number; exonerado: number;
+           inafecto: number; exportacion: number; igv: number; total: number }[]
+  porTipo: { tipo: string; cantidad: number; base: number; igv: number; total: number }[]
+}
+
+export interface ReporteRegistro extends Comun {
+  filas: { id: string; fecha: string; vence: string | null; tipo: string; serie: string; numero: number;
+           tipoDoc: string; documento: string; cliente: string; exportacion: number; gravado: number;
+           exonerado: number; inafecto: number; igv: number; total: number; moneda: string;
+           tipoCambio: number | null; refFecha: string | null; refTipo: string | null;
+           refSerie: string | null; refNumero: number | null; estado: string }[]
+}
+
+export interface ReporteProblemas extends Comun {
+  filas: { id: string; fecha: string; tipo: string; numero: string | null; cliente: string; total: number;
+           moneda: string; estado: string; codigo: string | null; mensaje: string | null;
+           observaciones: string[] | null }[]
+}
+
+export interface ReporteAnulados extends Comun {
+  filas: { id: string; fecha: string; tipo: string; numero: string; cliente: string; total: number; moneda: string;
+           estado: string; tipoNota: string | null; motivo: string | null; afecta: string | null; afectaId: string | null }[]
+}
+
+// --- 036: cartera y plataforma ----------------------------------------------
+
+interface Periodo { desde: string; hasta: string; ambiente?: string; filtrado?: boolean }
+
+export interface ReporteCartera extends Periodo {
+  filas: { id: string; nombre: string; ruc: string | null; ambiente: string; pausada: boolean;
+           certificadoHasta: string | null; comprobantes: number; notas: number; total: number;
+           rechazados: number; pendientes: number; ultimo: string | null }[]
+}
+
+export interface ReportePlataforma extends Periodo {
+  empresas: number; empresasReal: number; cuentas: number; cuentasNuevas: number
+  reales: number; prueba: number; rechazados: number
+  porDia: { fecha: string; reales: number; prueba: number }[]
+  topEmpresas: { empresa: string; ruc: string | null; comprobantes: number }[]
+}
+
+export interface ReporteEmpresasMes extends Periodo {
+  filas: { empresa: string; ruc: string | null; mes: string; ambiente: string; facturas: number; boletas: number;
+           notas: number; rechazados: number; total: number }[]
+}
+
+export interface ReporteRechazos extends Periodo {
+  filas: { codigo: string; cantidad: number; empresas: number; mensaje: string | null; ultimo: string }[]
+}
+
+export interface ReporteCuentas extends Periodo {
+  porDia: { fecha: string; negocio: number; profesional: number }[]
+  filas: { fecha: string; tipo: string; titular: string | null; correo: string | null; empresas: number }[]
+}
+
+export const reportesServicio = {
+  obtener: <T>(reporte: NombreReporte, f: Filtros) =>
+    api.obtener<T>(`${ruta(reporte)}?${consulta(f)}`),
+
+  excel: (reporte: NombreReporte, f: Filtros) =>
+    api.descargar(`${ruta(reporte)}?${consulta(f, 'xlsx')}`),
+
+  /** 034: un .zip con los XML, CDR y PDF del periodo (hasta 200 comprobantes). */
+  descargaMasiva: (o: { desde: string; hasta: string; xml: boolean; cdr: boolean; pdf: boolean }) =>
+    api.descargar(`/api/reportes/descarga?desde=${o.desde}&hasta=${o.hasta}&xml=${o.xml}&cdr=${o.cdr}&pdf=${o.pdf}`),
+}

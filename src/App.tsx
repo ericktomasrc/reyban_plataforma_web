@@ -3,7 +3,13 @@ import { Cargando } from './componentes/Cargando'
 import { CambiarClave } from './modulos/acceso/vistas/CambiarClave'
 import { Ingreso } from './modulos/acceso/vistas/Ingreso'
 import { Invitacion } from './modulos/acceso/vistas/Invitacion'
+import { Registro } from './modulos/acceso/vistas/Registro'
+import { PedirRecuperacion } from './modulos/recuperacion/vistas/PedirRecuperacion'
+import { RecuperarEmpresa } from './modulos/recuperacion/vistas/RecuperarEmpresa'
+import { ReclamarConDocumentos } from './modulos/recuperacion/vistas/ReclamarConDocumentos'
+import { ResponderPedido } from './modulos/recuperacion/vistas/ResponderPedido'
 import { SegundoFactor } from './modulos/acceso/vistas/SegundoFactor'
+import { ProveedorMensajes } from './nucleo/mensajes/ProveedorMensajes'
 import { ProveedorSesion, useSesion } from './nucleo/sesion/SesionContexto'
 import { Rutas } from './rutas/rutas'
 
@@ -18,14 +24,30 @@ import { Rutas } from './rutas/rutas'
 export default function App() {
   return (
     <ProveedorSesion>
-      <BrowserRouter>
-        <Routes>
-          {/* Fuera de la puerta, a propósito. */}
-          <Route path="/invitacion/:token" element={<Invitacion />} />
+      {/* POR FUERA DEL ROUTER Y DE TODO LO DEMÁS: la ventana de mensaje se
+          monta al final del documento, que es lo que hace que quede por encima
+          de cualquier diálogo abierto. Dentro de una pantalla quedaría dentro
+          de su diálogo, y el navegador la pintaría detrás. */}
+      <ProveedorMensajes>
+        <BrowserRouter>
+          <Routes>
+            {/* Fuera de la puerta, a propósito. */}
+            <Route path="/invitacion/:token" element={<Invitacion />} />
 
-          <Route path="*" element={<Puerta />} />
-        </Routes>
-      </BrowserRouter>
+            {/* El registro libre (016), también sin sesión. */}
+            <Route path="/registro" element={<Registro />} />
+
+            {/* Recuperar la empresa en pausa (021): con sesión o sin ella. */}
+            <Route path="/recuperar" element={<PedirRecuperacion />} />
+            <Route path="/recuperar/empresa/:token" element={<RecuperarEmpresa />} />
+            <Route path="/recuperar/documentos" element={<ReclamarConDocumentos />} />
+            {/* 024: el titular responde el pedido de una cuenta (camino B). Sin sesión. */}
+            <Route path="/pedido/:token" element={<ResponderPedido />} />
+
+            <Route path="*" element={<Puerta />} />
+          </Routes>
+        </BrowserRouter>
+      </ProveedorMensajes>
     </ProveedorSesion>
   )
 }
