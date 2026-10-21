@@ -252,6 +252,18 @@ export interface DatosDocumento {
   tipoCambio?: number | null
   lineas: DatosLinea[]
   datosExtra?: Record<string, string>
+
+  // 040: solo facturas.
+  formaPago?: 'contado' | 'credito'
+  cuotas?: { monto: number; vence: string }[]
+  detraccion?: { codigo: string; porcentaje: number; cuenta: string; medioPago: string } | null
+}
+
+/** 040: lo habitual de la detracción de la empresa. */
+export interface PreferenciasDetraccion {
+  cuenta: string | null
+  codigo: string | null
+  porcentaje: number | null
 }
 
 
@@ -305,6 +317,10 @@ export const documentosServicio = {
 
   tipos: () =>
     api.obtener<{ codigo: string; nombre: string }[]>('/api/facturacion/documentos/tipos'),
+
+  /** 040: la cuenta de detracciones y el código habitual de mi empresa. */
+  preferenciasDetraccion: () =>
+    api.obtener<PreferenciasDetraccion>('/api/facturacion/documentos/preferencias-detraccion'),
 
   /**
    * Guarda el borrador.

@@ -11,6 +11,7 @@ import { fecha, fechaYHora } from '../../../nucleo/formato/fechas'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { ArchivosComprobante } from '../componentes/ArchivosComprobante'
 import { EstadoComprobante } from '../componentes/EstadoComprobante'
+import { nombreDetraccion } from '../componentes/PagoYDetraccion'
 import { documentosServicio } from '../servicios/facturacionServicio'
 import type { DocumentoCompleto } from '../tipos'
 
@@ -376,6 +377,31 @@ export function VerComprobante() {
               <dd className="secundario">
                 {MOTIVOS_NOTA[d.tipoNota ?? ''] ?? d.tipoNota}
                 {d.motivoNota && <div>{d.motivoNota}</div>}
+              </dd>
+            </div>
+          )}
+
+          {/* 040: forma de pago y detracción. */}
+          {d.tipo === '01' && (
+            <div className="fila">
+              <dt>Forma de pago</dt>
+              <dd className="secundario">
+                {d.formaPago === 'credito' ? 'Al crédito' : 'Al contado'}
+                {(d.cuotas ?? []).map(c => (
+                  <div key={c.numero} className="mono">
+                    Cuota {c.numero}: {d.moneda} {c.monto.toFixed(2)} · vence {fecha(c.vence)}
+                  </div>
+                ))}
+              </dd>
+            </div>
+          )}
+          {d.detraccion && (
+            <div className="fila">
+              <dt>Detracción</dt>
+              <dd className="secundario">
+                {nombreDetraccion(d.detraccion.codigo)} ({d.detraccion.codigo}) · {d.detraccion.porcentaje} %
+                {d.detraccion.monto != null && <div className="mono">S/ {d.detraccion.monto.toFixed(2)}</div>}
+                <div className="mono">Cuenta {d.detraccion.cuenta}</div>
               </dd>
             </div>
           )}

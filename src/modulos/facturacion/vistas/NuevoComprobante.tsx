@@ -10,6 +10,11 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { BuscadorCliente } from '../componentes/BuscadorCliente'
 import { BuscadorProducto } from '../componentes/BuscadorProducto'
 import {
+  PagoYDetraccion, detraccionInicial, montoDetraccion, netoPendiente, nombreDetraccion,
+  pagoInicial, revisarPago,
+} from '../componentes/PagoYDetraccion'
+import type { DetraccionEnEdicion, PagoEnEdicion } from '../componentes/PagoYDetraccion'
+import {
   clientesServicio, consultasServicio, documentosServicio, productosServicio,
 } from '../servicios/facturacionServicio'
 import type { DatosDocumento } from '../servicios/facturacionServicio'
@@ -133,6 +138,10 @@ export function NuevoComprobante() {
 
   const [ordenCompra, setOrdenCompra] = useState('')
 
+  // 040: contado o crédito, y la detracción. Solo facturas.
+  const [pago, setPago] = useState<PagoEnEdicion>(pagoInicial())
+  const [det, setDet]   = useState<DetraccionEnEdicion>(detraccionInicial())
+
   // HOY POR DEFECTO, y se puede poner una anterior dentro del plazo: «ayer
   // vendí, hoy facturo con la fecha de ayer» es lo normal en cualquier empresa.
   const [fechaEmision, setFechaEmision] = useState(hoyEnLima())
@@ -169,6 +178,18 @@ export function NuevoComprobante() {
         const cat = await productosServicio.catalogos()
         if (vivo) setCatalogos(cat)
 
+        // 040: la cuenta de detracciones y el código habituales de la empresa.
+        // Se dejan escritos pero SIN marcar: la pantalla propone, no decide.
+        try {
+          const pref = await documentosServicio.preferenciasDetraccion()
+          if (vivo && !id) setDet(d => ({
+            ...d,
+            cuenta: pref.cuenta ?? '',
+            codigo: pref.codigo ?? '',
+            porcentaje: pref.porcentaje != null ? String(pref.porcentaje) : '',
+          }))
+        } catch { /* se escriben a mano */ }
+
         if (id) {
           const d = await documentosServicio.ver(id)
           if (!vivo) return
@@ -187,6 +208,25 @@ export function NuevoComprobante() {
           // La del borrador, tal cual. Si envejeció fuera de plazo, el aviso
           // de debajo del campo lo dice y Emitir no deja seguir.
           setFechaEmision(d.fechaEmision)
+
+          // 040: como se guardó. Ya decidido: no se vuelve a proponer encima.
+          setPago({
+            forma: d.formaPago ?? 'contado',
+            cuotas: (d.cuotas ?? []).map(c => ({
+              clave: crypto.randomUUID(), monto: c.monto.toFixed(2), vence: c.vence,
+            })),
+          })
+          if (d.detraccion) {
+            setDet({
+              activa: true, tocada: true,
+              codigo: d.detraccion.codigo,
+              porcentaje: String(d.detraccion.porcentaje),
+              cuenta: d.detraccion.cuenta,
+              medioPago: d.detraccion.medioPago,
+            })
+          } else {
+            setDet(x => ({ ...x, tocada: true }))
+          }
 
           if (d.cliente) {
             const encontrados = await clientesServicio.listar(d.cliente.numeroDocumento)
@@ -301,6 +341,19 @@ export function NuevoComprobante() {
     !cliente.numeroDocumento.trim() || /^(\d)\1*$/.test(cliente.numeroDocumento.trim()))
   const totalSoles = moneda === 'PEN' ? totales.total : totales.total * num(tipoCambio)
   const boletaSinDni = tipo === '03' && sinIdentificar && totalSoles > 700
+
+  // 040: la detracción en soles y lo que queda por cobrar.
+  const esFactura = tipo === '01'
+  const detSoles = esFactura ? montoDetraccion(det, totalSoles) : null
+  const neto = netoPendiente(totales.total, moneda, num(tipoCambio), detSoles)
+
+  // 040: LA DETRACCIÓN SE PROPONE SOLA cuando la empresa ya tiene un código
+  // habitual y la factura pasa de S/ 700. Solo mientras nadie la haya tocado:
+  // si alguien dice «No», es «No».
+  useEffect(() => {
+    if (!esFactura || det.tocada || det.activa || !det.codigo) return
+    if (totalSoles > 700) setDet(d => ({ ...d, activa: true }))
+  }, [esFactura, totalSoles, det.tocada, det.activa, det.codigo])
 
   /** Al pasar a boleta, el cliente arranca en «Público en general». */
   async function ponerPublicoGeneral() {
@@ -431,6 +484,15 @@ export function NuevoComprobante() {
     datosExtra: ordenCompra.trim()
       ? { ordenCompra: ordenCompra.trim() }
       : ({} as Record<string, string>),
+
+    // 040: solo facturas.
+    formaPago: esFactura ? pago.forma : 'contado',
+    cuotas: esFactura && pago.forma === 'credito'
+      ? pago.cuotas.map(c => ({ monto: num(c.monto), vence: c.vence }))
+      : [],
+    detraccion: esFactura && det.activa
+      ? { codigo: det.codigo, porcentaje: num(det.porcentaje), cuenta: det.cuenta.trim(), medioPago: det.medioPago || '001' }
+      : null,
   })
 
   function revisar(): string | undefined {
@@ -462,6 +524,10 @@ export function NuevoComprobante() {
     const expo = lineas.filter(l => l.tipoAfectacion === '40').length
     if (expo > 0 && expo !== lineas.length)
       return 'En una factura de exportación todas las líneas tienen que ser de exportación.'
+
+    // 040: cuotas y detracción.
+    const pagoMal = revisarPago(tipo, pago, det, fechaEmision, totales.total)
+    if (pagoMal) return pagoMal
 
     return undefined
   }
@@ -510,6 +576,12 @@ export function NuevoComprobante() {
 
     if (boletaSinDni) {
       mensaje.error('Una boleta de más de S/ 700 tiene que llevar el DNI del cliente (norma de SUNAT).')
+      return
+    }
+
+    // 040: a crédito, SUNAT exige al menos una cuota (errores 3249 y 3251).
+    if (esFactura && pago.forma === 'credito' && pago.cuotas.length === 0) {
+      mensaje.error('Una factura al crédito necesita al menos una cuota con su monto y su fecha de vencimiento.')
       return
     }
 
@@ -600,10 +672,45 @@ export function NuevoComprobante() {
               </div>
             )}
 
+            {/* 040 */}
+            {esFactura && (
+              <div className="fila sensible">
+                <dt>Forma de pago</dt>
+                <dd>
+                  {pago.forma === 'credito'
+                    ? <>Al crédito · {pago.cuotas.length} {pago.cuotas.length === 1 ? 'cuota' : 'cuotas'}
+                        <div className="mono">
+                          {pago.cuotas.map(c => `${num(c.monto).toFixed(2)} al ${fechaLarga(c.vence)}`).join(' · ')}
+                        </div></>
+                    : 'Al contado'}
+                </dd>
+              </div>
+            )}
+            {esFactura && (
+              <div className={!det.activa && totalSoles > 700 ? 'fila sensible ojo' : 'fila sensible'}>
+                <dt>Detracción</dt>
+                <dd>
+                  {det.activa
+                    ? <>{det.codigo} · {nombreDetraccion(det.codigo)}
+                        <div className="mono">{det.porcentaje} % = S/ {detSoles?.toFixed(2) ?? '—'} · cuenta {det.cuenta}</div></>
+                    : 'No lleva'}
+                  {!det.activa && totalSoles > 700 && (
+                    <div className="alerta">Pasa de S/ 700: si es un servicio sujeto a detracción, SUNAT la exige.</div>
+                  )}
+                </dd>
+              </div>
+            )}
+
             <div className="fila">
               <dt>Total</dt>
               <dd className="mono grande">{moneda} {totales.total.toFixed(2)}</dd>
             </div>
+            {esFactura && pago.forma === 'credito' && detSoles != null && (
+              <div className="fila">
+                <dt>Neto a cobrar</dt>
+                <dd className="mono">{moneda} {neto.toFixed(2)}</dd>
+              </div>
+            )}
           </dl>
 
           <p>
@@ -713,6 +820,11 @@ export function NuevoComprobante() {
                 // 17 oct: boleta sin cliente → «Público en general»; de vuelta
                 // a factura, ese cliente no sirve y se quita.
                 if (e.target.value === '03' && !cliente) void ponerPublicoGeneral()
+                // 040: crédito y detracción, solo en facturas.
+                if (e.target.value === '03') {
+                  setPago(pagoInicial())
+                  setDet(d => ({ ...d, activa: false }))
+                }
                 if (e.target.value === '01' && cliente?.tipoDocumento === '0') setCliente(undefined)
               }}
             >
@@ -987,6 +1099,21 @@ export function NuevoComprobante() {
           facturación al emitir, y es el que quedará guardado.
         </p>
       </div>
+
+      {/* --- 040: forma de pago y detracción (solo facturas) ----------------- */}
+      {esFactura && (
+        <PagoYDetraccion
+          moneda={moneda}
+          total={totales.total}
+          totalSoles={totalSoles}
+          tipoCambio={num(tipoCambio)}
+          fechaEmision={fechaEmision}
+          pago={pago}
+          onPago={setPago}
+          det={det}
+          onDet={setDet}
+        />
+      )}
 
       <div className="acciones-pagina">
         {borradorId && estadoDoc === 'borrador' && (

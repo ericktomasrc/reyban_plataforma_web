@@ -849,6 +849,18 @@ a.boton.secundario:hover { color: inherit; }
 /* 039 — Recuperar el segundo factor con espera */
 .recuperando { margin-top: var(--e1); font-size: 12px; font-weight: 600; color: var(--aviso); }
 .recuperacion-lista { display: grid; gap: var(--e3); margin-bottom: var(--e4); }
+
+/* 040 — Forma de pago y detracción */
+.opciones-en-linea { display: flex; flex-wrap: wrap; gap: var(--e2) var(--e5); padding: var(--e1) 0; }
+.cuotas { display: grid; gap: var(--e3); margin: 0 0 var(--e4); }
+.fila-cuota { display: grid; grid-template-columns: 28px minmax(120px, 1fr) minmax(150px, 1fr) auto; gap: var(--e3); align-items: end; }
+.fila-cuota .numero { align-self: center; font-weight: 600; text-align: center; }
+.resumen-detraccion { display: grid; grid-template-columns: auto 1fr; gap: var(--e1) var(--e3); align-items: baseline; margin-top: var(--e2); }
+.resumen-detraccion .secundario { grid-column: 1 / -1; font-size: 13px; }
+@media (max-width: 640px) {
+  .fila-cuota { grid-template-columns: 28px 1fr; }
+  .fila-cuota > :nth-child(n+3) { grid-column: 2; }
+}
 .bajada-recuperar { margin: 0 0 var(--e4); color: var(--tinta-2); font-size: 14px; }
 .resumen-recuperar {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e2);

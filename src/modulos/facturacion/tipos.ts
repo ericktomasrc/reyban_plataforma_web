@@ -516,6 +516,12 @@ export interface DocumentoCompleto {
   lineas: LineaDocumento[]
   datosExtra: Record<string, string>
 
+  // --- 040: forma de pago y detracción ---------------------------------------
+  formaPago?: 'contado' | 'credito'
+  cuotas?: { numero: number; monto: number; vence: string }[]
+  /** `monto` en soles, redondeado al entero. */
+  detraccion?: { codigo: string; porcentaje: number; cuenta: string; medioPago: string; monto: number | null } | null
+
   /** Lo escribe un disparador de la base, no el código. Es de solo inserción. */
   historial: {
     ocurridoEn: string
