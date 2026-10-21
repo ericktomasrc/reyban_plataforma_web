@@ -845,6 +845,10 @@ a.boton.secundario:hover { color: inherit; }
 .lista-recuperar { margin: 0 0 var(--e4); padding-left: var(--e5); font-size: 14px; line-height: 1.6; display: grid; gap: var(--e2); }
 .solo-lector { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* 039 — Recuperar el segundo factor con espera */
+.recuperando { margin-top: var(--e1); font-size: 12px; font-weight: 600; color: var(--aviso); }
+.recuperacion-lista { display: grid; gap: var(--e3); margin-bottom: var(--e4); }
 .bajada-recuperar { margin: 0 0 var(--e4); color: var(--tinta-2); font-size: 14px; }
 .resumen-recuperar {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e2);

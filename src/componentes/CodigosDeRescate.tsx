@@ -53,6 +53,13 @@ export function CodigosDeRescate({ codigos, onSeguir }: {
         y <strong>no se pueden volver a consultar</strong>.
       </div>
 
+      {/* 039: si roban el teléfono y la laptop juntos, los códigos tienen que
+          estar en otro sitio. */}
+      <p className="nota">
+        Guárdalos <strong>lejos del teléfono y de tu laptop</strong>: impresos en casa, o en un gestor de
+        contraseñas. Si un día pierdes las dos cosas, sin ellos tendrás que esperar entre 1 y 7 días.
+      </p>
+
       <ul className="codigos-rescate">
         {codigos.map(c => <li key={c}>{c}</li>)}
       </ul>

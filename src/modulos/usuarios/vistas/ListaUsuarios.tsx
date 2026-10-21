@@ -15,6 +15,8 @@ import { DialogoEditarUsuario } from '../componentes/DialogoEditarUsuario'
 import { DialogoRoles } from '../componentes/DialogoRoles'
 import { PanelInvitar } from '../componentes/PanelInvitar'
 import { usuariosServicio } from '../servicios/usuariosServicio'
+import { recuperacion2faServicio } from '../../acceso/servicios/recuperacion2faServicio'
+import type { RecuperacionEnCurso } from '../../acceso/servicios/recuperacion2faServicio'
 import type { UsuarioEnLista } from '../tipos'
 
 /**
@@ -38,6 +40,9 @@ export function ListaUsuarios() {
 
   const usuarios = useCargar<UsuarioEnLista[]>(() => usuariosServicio.listar())
   const catalogo = useCargar(() => usuariosServicio.roles())
+
+  // 039: quién está recuperando su segundo factor (solo los de mi empresa).
+  const recuperaciones = useCargar<RecuperacionEnCurso[]>(() => recuperacion2faServicio.enCurso())
 
   const [editandoRoles, setEditandoRoles] = useState<UsuarioEnLista>()
   const [editando, setEditando]           = useState<UsuarioEnLista>()
@@ -121,6 +126,56 @@ export function ListaUsuarios() {
     }
   }
 
+  /** 039: la persona dice que no la pidió, o ya encontró su teléfono. */
+  async function cancelarRecuperacion(u: UsuarioEnLista, r: RecuperacionEnCurso) {
+    const seguro = await pedir({
+      titulo: `Cancelar la recuperación de ${u.nombre}`,
+      confirmar: 'Cancelar la recuperación',
+      tono: 'peligro',
+      mensaje: (
+        <>
+          <p>
+            <strong>{u.nombre}</strong> pidió recuperar su segundo factor (dice haber perdido el
+            teléfono y sus códigos). Si la cancelas, su teléfono y sus códigos siguen valiendo.
+          </p>
+          <p>Hazlo si no la pidió, o si ya los recuperó. Le avisamos por correo.</p>
+        </>
+      ),
+    })
+    if (!seguro) return
+
+    try {
+      const x = await recuperacion2faServicio.cancelar(r.id)
+      mensaje.bien(x.mensaje)
+    } catch (e) {
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo cancelar.')
+    }
+    await recuperaciones.recargar()
+  }
+
+  /** 039: le robaron la laptop con la sesión abierta. */
+  async function cerrarSesiones(u: UsuarioEnLista) {
+    const seguro = await pedir({
+      titulo: `Cerrar las sesiones de ${u.nombre}`,
+      confirmar: 'Cerrar sus sesiones',
+      tono: 'peligro',
+      mensaje: (
+        <p>
+          Se cierran ahora todas sus sesiones abiertas, en cualquier equipo. Tendrá que volver a
+          entrar con su contraseña y su segundo factor. Le avisamos por correo.
+        </p>
+      ),
+    })
+    if (!seguro) return
+
+    try {
+      const x = await recuperacion2faServicio.cerrarSesiones(u.id)
+      mensaje.bien(x.mensaje)
+    } catch (e) {
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudieron cerrar sus sesiones.')
+    }
+  }
+
   if (yo.esSuperAdmin) {
     return (
       <>
@@ -170,6 +225,7 @@ export function ListaUsuarios() {
               {usuarios.datos.map(u => {
                 const soyYo     = u.id === yo.id
                 const bloqueado = esFutura(u.bloqueadoHasta)
+                const recupera  = recuperaciones.datos?.find(r => r.usuarioId === u.id)
 
                 return (
                   <tr key={u.id} className={u.activo ? undefined : 'apagada'}>
@@ -215,6 +271,16 @@ export function ListaUsuarios() {
                       {u.ultimoIngresoEn && (
                         <div className="secundario">Entró {fechaYHora(u.ultimoIngresoEn)}</div>
                       )}
+                      {/* 039 */}
+                      {recupera && (
+                        <div className="recuperando" title="Dice haber perdido el teléfono y sus códigos.">
+                          {recupera.estado === 'por_confirmar'
+                            ? 'Pidió recuperar su segundo factor (sin confirmar)'
+                            : recupera.lista
+                              ? 'Recuperando su segundo factor · espera terminada'
+                              : `Recuperando su segundo factor · disponible el ${recupera.disponibleTexto}`}
+                        </div>
+                      )}
                     </td>
 
                     <td className="acciones-bandeja">
@@ -232,7 +298,7 @@ export function ListaUsuarios() {
                           </Si>
 
                           {(puede(Permisos.Usuarios.RolesGestionar) || puede(Permisos.Usuarios.Editar)
-                            || puede(Permisos.Usuarios.Desactivar)) && (
+                            || puede(Permisos.Usuarios.Desactivar) || puede(Permisos.Usuarios.SesionesRevocar)) && (
                             <div className="menu-fila">
                               <Boton estilo="secundario" aria-label={`Más acciones de ${u.nombre}`}
                                      aria-expanded={menu === u.id} onClick={() => setMenu(m => m === u.id ? null : u.id)}>⋯</Boton>
@@ -246,6 +312,19 @@ export function ListaUsuarios() {
                                   {puede(Permisos.Usuarios.Editar) && (
                                     <button type="button" role="menuitem" onClick={() => { setMenu(null); void enviarEnlace(u) }}>
                                       {u.ultimoIngresoEn === null ? 'Reenviar la invitación' : 'Enviar enlace de acceso'}
+                                    </button>
+                                  )}
+                                  {/* 039 */}
+                                  {recupera && puede(Permisos.Usuarios.Desactivar) && (
+                                    <button type="button" role="menuitem"
+                                            onClick={() => { setMenu(null); void cancelarRecuperacion(u, recupera) }}>
+                                      Cancelar la recuperación
+                                    </button>
+                                  )}
+                                  {puede(Permisos.Usuarios.SesionesRevocar) && (
+                                    <button type="button" role="menuitem"
+                                            onClick={() => { setMenu(null); void cerrarSesiones(u) }}>
+                                      Cerrar sus sesiones
                                     </button>
                                   )}
                                   {puede(Permisos.Usuarios.Desactivar) && (

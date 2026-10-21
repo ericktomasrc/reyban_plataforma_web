@@ -10,6 +10,9 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import type { QrSegundoFactor } from '../../../nucleo/sesion/tipos'
 import { accesoServicio } from '../servicios/accesoServicio'
+import { recuperacion2faServicio } from '../servicios/recuperacion2faServicio'
+import type { MiRecuperacion } from '../servicios/recuperacion2faServicio'
+import { PedirRecuperacion, RecuperacionEnCurso } from './RecuperacionConEspera'
 
 /**
  * El segundo factor, con la sesión a medias.
@@ -169,6 +172,18 @@ function PedirCodigo() {
   const [enviando, setEnviando] = useState(false)
   const [rescatando, setRescatando] = useState(false)
 
+  // 039: perdió el teléfono Y los códigos → recuperación con espera.
+  const [sinNada, setSinNada] = useState(false)
+  const [recuperacion, setRecuperacion] = useState<MiRecuperacion | null>(null)
+
+  useEffect(() => {
+    let vivo = true
+    recuperacion2faServicio.mia()
+      .then(r => { if (vivo) setRecuperacion(r.recuperacion) })
+      .catch(() => { /* sin esto la pantalla sigue sirviendo */ })
+    return () => { vivo = false }
+  }, [])
+
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
     setEnviando(true)
@@ -184,10 +199,26 @@ function PedirCodigo() {
     }
   }
 
+  if (sinNada) {
+    return (
+      <div className="pantalla-centrada">
+        <div className="tarjeta-acceso">
+          <p className="marca">Reyban Consulting</p>
+          <PedirRecuperacion
+            onVolver={() => setSinNada(false)}
+            onPedida={r => { setRecuperacion(r); setSinNada(false) }}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="pantalla-centrada">
       <form className="tarjeta-acceso" onSubmit={enviar}>
         <p className="marca">Reyban Consulting</p>
+
+        {recuperacion && <RecuperacionEnCurso r={recuperacion} />}
 
         <h1>{rescatando ? 'Código de recuperación' : 'Código de seguridad'}</h1>
 
@@ -219,6 +250,13 @@ function PedirCodigo() {
         >
           {rescatando ? 'Volver al código del teléfono' : 'Perdí mi teléfono'}
         </Boton>
+
+        {/* 039: sin teléfono y sin códigos. */}
+        {rescatando && !recuperacion && (
+          <Boton estilo="plano" ancho onClick={() => setSinNada(true)}>
+            Tampoco tengo mis códigos
+          </Boton>
+        )}
 
         <Boton estilo="plano" ancho onClick={() => void salir()}>Salir</Boton>
       </form>

@@ -200,6 +200,8 @@ export function Disposicion() {
               )}
               {/* 038: los correos de acceso que no salieron. */}
               <NavLink to="/admin/correos" className={activo}><Icono>✉</Icono>Correos</NavLink>
+              {/* 039: recuperaciones del segundo factor en curso. */}
+              <NavLink to="/admin/recuperaciones" className={activo}><Icono>⚿</Icono>Recuperaciones</NavLink>
               {puede(Permisos.Usuarios.BitacoraVer) && (
                 <NavLink to="/auditoria" className={activo}><Icono>◷</Icono>Auditoría</NavLink>
               )}
@@ -258,5 +260,6 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/admin/traspasos')) return 'Solicitudes de traspaso'
   if (ruta.startsWith('/admin/conexion-sunat')) return 'Conexión con SUNAT'
   if (ruta.startsWith('/admin/correos')) return 'Correos'
+  if (ruta.startsWith('/admin/recuperaciones')) return 'Recuperaciones'
   return null
 }

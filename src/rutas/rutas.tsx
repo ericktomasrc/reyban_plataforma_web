@@ -7,6 +7,7 @@ import { ListaCuentas } from '../modulos/administracion/vistas/ListaCuentas'
 import { SolicitudesTraspaso } from '../modulos/administracion/vistas/SolicitudesTraspaso'
 import { ConexionSunatPagina } from '../modulos/administracion/vistas/ConexionSunat'
 import { CorreosPagina } from '../modulos/administracion/vistas/Correos'
+import { RecuperacionesPagina } from '../modulos/administracion/vistas/Recuperaciones'
 import { Cambios } from '../modulos/auditoria/vistas/Cambios'
 import { Eventos } from '../modulos/auditoria/vistas/Eventos'
 import { Clientes } from '../modulos/facturacion/vistas/Clientes'
@@ -155,6 +156,15 @@ export function Rutas() {
           element={
             <Protegido soloSuperAdmin>
               <CorreosPagina />
+            </Protegido>
+          }
+        />
+        {/* 039: recuperaciones del segundo factor en curso. */}
+        <Route
+          path="/admin/recuperaciones"
+          element={
+            <Protegido soloSuperAdmin>
+              <RecuperacionesPagina />
             </Protegido>
           }
         />

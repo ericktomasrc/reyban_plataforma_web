@@ -6,6 +6,7 @@ import { Invitacion } from './modulos/acceso/vistas/Invitacion'
 import { Registro } from './modulos/acceso/vistas/Registro'
 import { RecuperarAcceso } from './modulos/acceso/vistas/RecuperarAcceso'
 import { Restablecer } from './modulos/acceso/vistas/Restablecer'
+import { RecuperarSegundoFactor } from './modulos/acceso/vistas/RecuperarSegundoFactor'
 import { PedirRecuperacion } from './modulos/recuperacion/vistas/PedirRecuperacion'
 import { RecuperarEmpresa } from './modulos/recuperacion/vistas/RecuperarEmpresa'
 import { ReclamarConDocumentos } from './modulos/recuperacion/vistas/ReclamarConDocumentos'
@@ -42,6 +43,8 @@ export default function App() {
             {/* 038: recuperar el acceso por correo, también sin sesión. */}
             <Route path="/recuperar-acceso" element={<RecuperarAcceso />} />
             <Route path="/restablecer/:token" element={<Restablecer />} />
+            {/* 039: el enlace para confirmar la recuperación del segundo factor. */}
+            <Route path="/recuperar-segundo-factor/:token" element={<RecuperarSegundoFactor />} />
 
             {/* Recuperar la empresa en pausa (021): con sesión o sin ella. */}
             <Route path="/recuperar" element={<PedirRecuperacion />} />
