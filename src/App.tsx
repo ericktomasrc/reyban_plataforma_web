@@ -4,6 +4,8 @@ import { CambiarClave } from './modulos/acceso/vistas/CambiarClave'
 import { Ingreso } from './modulos/acceso/vistas/Ingreso'
 import { Invitacion } from './modulos/acceso/vistas/Invitacion'
 import { Registro } from './modulos/acceso/vistas/Registro'
+import { RecuperarAcceso } from './modulos/acceso/vistas/RecuperarAcceso'
+import { Restablecer } from './modulos/acceso/vistas/Restablecer'
 import { PedirRecuperacion } from './modulos/recuperacion/vistas/PedirRecuperacion'
 import { RecuperarEmpresa } from './modulos/recuperacion/vistas/RecuperarEmpresa'
 import { ReclamarConDocumentos } from './modulos/recuperacion/vistas/ReclamarConDocumentos'
@@ -36,6 +38,10 @@ export default function App() {
 
             {/* El registro libre (016), también sin sesión. */}
             <Route path="/registro" element={<Registro />} />
+
+            {/* 038: recuperar el acceso por correo, también sin sesión. */}
+            <Route path="/recuperar-acceso" element={<RecuperarAcceso />} />
+            <Route path="/restablecer/:token" element={<Restablecer />} />
 
             {/* Recuperar la empresa en pausa (021): con sesión o sin ella. */}
             <Route path="/recuperar" element={<PedirRecuperacion />} />

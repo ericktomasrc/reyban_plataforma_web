@@ -6,6 +6,7 @@ import { ListaEmpresas } from '../modulos/administracion/vistas/ListaEmpresas'
 import { ListaCuentas } from '../modulos/administracion/vistas/ListaCuentas'
 import { SolicitudesTraspaso } from '../modulos/administracion/vistas/SolicitudesTraspaso'
 import { ConexionSunatPagina } from '../modulos/administracion/vistas/ConexionSunat'
+import { CorreosPagina } from '../modulos/administracion/vistas/Correos'
 import { Cambios } from '../modulos/auditoria/vistas/Cambios'
 import { Eventos } from '../modulos/auditoria/vistas/Eventos'
 import { Clientes } from '../modulos/facturacion/vistas/Clientes'
@@ -145,6 +146,15 @@ export function Rutas() {
           element={
             <Protegido soloSuperAdmin>
               <ConexionSunatPagina />
+            </Protegido>
+          }
+        />
+        {/* 038: los correos de acceso que no salieron. */}
+        <Route
+          path="/admin/correos"
+          element={
+            <Protegido soloSuperAdmin>
+              <CorreosPagina />
             </Protegido>
           }
         />

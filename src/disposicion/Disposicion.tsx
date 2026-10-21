@@ -198,6 +198,8 @@ export function Disposicion() {
               {conexion && !conexion.fija && (
                 <NavLink to="/admin/conexion-sunat" className={activo}><Icono>⇆</Icono>Conexión con SUNAT</NavLink>
               )}
+              {/* 038: los correos de acceso que no salieron. */}
+              <NavLink to="/admin/correos" className={activo}><Icono>✉</Icono>Correos</NavLink>
               {puede(Permisos.Usuarios.BitacoraVer) && (
                 <NavLink to="/auditoria" className={activo}><Icono>◷</Icono>Auditoría</NavLink>
               )}
@@ -255,5 +257,6 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'
   if (ruta.startsWith('/admin/traspasos')) return 'Solicitudes de traspaso'
   if (ruta.startsWith('/admin/conexion-sunat')) return 'Conexión con SUNAT'
+  if (ruta.startsWith('/admin/correos')) return 'Correos'
   return null
 }

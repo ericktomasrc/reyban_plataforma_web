@@ -90,6 +90,11 @@ export function Ingreso() {
             <Boton type="submit" ancho ocupado={enviando} textoOcupado="Entrando…">
               Ingresar
             </Boton>
+
+            {/* 038: un solo enlace para los dos casos; el back decide qué mandar. */}
+            <p className="enlace-olvido">
+              <Link to="/recuperar-acceso">¿Olvidaste tu contraseña o no te llegó el correo?</Link>
+            </p>
           </form>
 
           {/* EL REGISTRO LIBRE (016). Dos puertas, una por cuenta: quien llega
