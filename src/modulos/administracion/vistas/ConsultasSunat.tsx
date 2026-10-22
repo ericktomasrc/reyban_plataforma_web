@@ -7,7 +7,7 @@ import { fechaYHora } from '../../../nucleo/formato/fechas'
 import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { consultasSunatServicio } from '../servicios/consultasSunatServicio'
-import type { EstadoConsultas, ModoConsultas } from '../servicios/consultasSunatServicio'
+import type { AvancePadron, EstadoConsultas, ModoConsultas } from '../servicios/consultasSunatServicio'
 
 const n = (v: number | null | undefined) => v == null ? '—' : v.toLocaleString('es-PE')
 
@@ -26,6 +26,9 @@ export function ConsultasSunatPagina() {
   const [fallo, setFallo] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState<'modo' | 'descargar' | 'subir' | null>(null)
   const elegir = useRef<HTMLInputElement>(null)
+  // 22 oct: la barra. `subida` = lo que va del archivo hacia el servidor.
+  const [subida, setSubida] = useState<{ enviados: number; total: number } | null>(null)
+  const estabaActivo = useRef(false)
 
   const cargar = useCallback(async () => {
     try {
@@ -38,12 +41,24 @@ export function ConsultasSunatPagina() {
 
   useEffect(() => { void cargar() }, [cargar])
 
-  // Mientras una carga está en curso, se refresca sola cada 15 segundos.
+  // Mientras hay una carga en marcha, se refresca sola cada 2 segundos (la barra).
+  const enMarcha = !!estado && (estado.avance !== null || estado.padron.enCurso)
   useEffect(() => {
-    if (!estado?.padron.enCurso) return
-    const t = setInterval(() => void cargar(), 15000)
+    if (!enMarcha) return
+    const t = setInterval(() => void cargar(), 2000)
     return () => clearInterval(t)
-  }, [estado?.padron.enCurso, cargar])
+  }, [enMarcha, cargar])
+
+  // Cuando termina, se dice cómo salió (una sola vez).
+  useEffect(() => {
+    if (!estado) return
+    if (enMarcha) { estabaActivo.current = true; return }
+    if (!estabaActivo.current) return
+    estabaActivo.current = false
+    const u = estado.padron.cargas[0]
+    if (u?.estado === 'ok') mensaje.bien(`Padrón de SUNAT cargado: ${n(u.filas)} RUC. Ya se usa en las consultas.`)
+    else if (u?.estado === 'error') mensaje.error('No se pudo cargar el padrón.', u.motivo)
+  }, [estado, enMarcha, mensaje])
 
   async function cambiarModo(modo: ModoConsultas) {
     if (!estado || estado.padron.modo === modo) return
@@ -80,9 +95,10 @@ export function ConsultasSunatPagina() {
   async function descargar() {
     setOcupado('descargar')
     try {
-      const r = await consultasSunatServicio.descargar()
-      mensaje.bien(r.mensaje)
-      setTimeout(() => void cargar(), 3000)
+      // Sin cartel: el avance se ve en la barra al instante.
+      await consultasSunatServicio.descargar()
+      estabaActivo.current = true
+      await cargar()
     } catch (e) {
       mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo empezar la descarga.')
     } finally {
@@ -93,15 +109,17 @@ export function ConsultasSunatPagina() {
   async function subir(archivo: File | undefined) {
     if (!archivo) return
     setOcupado('subir')
+    setSubida({ enviados: 0, total: archivo.size })
     try {
-      const r = await consultasSunatServicio.subir(archivo)
-      mensaje.bien(r.mensaje)
-      setTimeout(() => void cargar(), 3000)
+      await consultasSunatServicio.subir(archivo, (enviados, total) => setSubida({ enviados, total }))
+      estabaActivo.current = true
+      await cargar()
     } catch (e) {
       mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo subir el archivo.')
       await cargar()
     } finally {
       setOcupado(null)
+      setSubida(null)
       if (elegir.current) elegir.current.value = ''
     }
   }
@@ -150,11 +168,11 @@ export function ConsultasSunatPagina() {
               <h2 className="subtitulo">Padrón de RUC de SUNAT</h2>
               <div className="botonera">
                 <Boton estilo="secundario" ocupado={ocupado === 'descargar'} textoOcupado="Empezando…"
-                       disabled={ocupado !== null || p.enCurso} onClick={() => void descargar()}>
+                       disabled={ocupado !== null || enMarcha} onClick={() => void descargar()}>
                   Descargar ahora
                 </Boton>
                 <Boton estilo="secundario" ocupado={ocupado === 'subir'} textoOcupado="Subiendo…"
-                       disabled={ocupado !== null || p.enCurso} onClick={() => elegir.current?.click()}>
+                       disabled={ocupado !== null || enMarcha} onClick={() => elegir.current?.click()}>
                   Subir archivo…
                 </Boton>
                 <input ref={elegir} type="file" accept=".zip,.txt" hidden
@@ -162,8 +180,10 @@ export function ConsultasSunatPagina() {
               </div>
             </div>
 
-            {p.enCurso ? (
-              <Aviso tono="ojo">Se está cargando el padrón. Tarda varios minutos; esta pantalla se actualiza sola.</Aviso>
+            {subida ? (
+              <ProgresoPadron subida={subida} avance={null} />
+            ) : enMarcha ? (
+              <ProgresoPadron subida={null} avance={estado.avance} />
             ) : ultima?.estado === 'error' ? (
               <Aviso>
                 <strong>La última carga falló</strong> ({fechaYHora(ultima.iniciadaEn)}): {ultima.motivo}
@@ -230,5 +250,91 @@ export function ConsultasSunatPagina() {
       )}
       {dialogo}
     </>
+  )
+}
+
+// =============================================================================
+// 22 oct — LA BARRA: en qué paso va la carga del padrón y cuánto le falta.
+// =============================================================================
+
+const MB = (b: number) => (b / 1_048_576).toLocaleString('es-PE', { maximumFractionDigits: 0 })
+
+function transcurrido(desde: string | undefined, ahora: number) {
+  if (!desde) return ''
+  const s = Math.max(0, Math.floor((ahora - new Date(desde).getTime()) / 1000))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+type Paso = { titulo: string; estado: 'hecho' | 'ahora' | 'falta' }
+
+function ProgresoPadron({ subida, avance }: {
+  subida: { enviados: number; total: number } | null
+  avance: AvancePadron | null
+}) {
+  // Un reloj para el «lleva 1:23» (la pantalla pide el estado cada 2 s).
+  const [ahora, setAhora] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setAhora(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  const etapa = subida ? 'subiendo' : avance?.etapa ?? 'cargando'
+  const primero = subida || avance?.subido ? 'Subir el archivo' : 'Bajar el archivo de SUNAT'
+  const orden = ['en_cola', 'bajando', 'subiendo', 'cargando', 'activando']
+  const i = orden.indexOf(etapa)
+  const estadoDe = (desde: number, hasta: number): Paso['estado'] => i > hasta ? 'hecho' : i >= desde ? 'ahora' : 'falta'
+  const pasos: Paso[] = [
+    { titulo: primero, estado: estadoDe(0, 2) },
+    { titulo: 'Cargar los RUC', estado: estadoDe(3, 3) },
+    { titulo: 'Ordenar y activar', estado: estadoDe(4, 4) },
+  ]
+
+  let pct: number | null = null
+  let texto: string
+  let detalle = ''
+  if (subida) {
+    pct = subida.total > 0 ? Math.min(100, Math.floor(subida.enviados * 100 / subida.total)) : null
+    texto = pct === 100 ? 'Archivo subido. El servidor lo está revisando…' : 'Subiendo tu archivo al servidor…'
+    detalle = `${MB(subida.enviados)} de ${MB(subida.total)} MB`
+  } else if (!avance || avance.etapa === 'en_cola') {
+    texto = avance?.subido ? 'Archivo recibido. Empezando la carga…' : 'Preparando la descarga…'
+  } else if (avance.etapa === 'bajando') {
+    pct = avance.porcentaje
+    texto = 'Bajando el padrón de SUNAT…'
+    detalle = avance.total ? `${MB(avance.hecho)} de ${MB(avance.total)} MB` : `${MB(avance.hecho)} MB bajados`
+  } else if (avance.etapa === 'cargando') {
+    pct = avance.porcentaje
+    texto = 'Cargando los RUC en la base de datos…'
+    detalle = `${n(avance.filas)} RUC`
+  } else {
+    texto = 'Ordenando e indexando para que las búsquedas sean rápidas. Es el último paso…'
+    detalle = `${n(avance.filas)} RUC`
+  }
+
+  return (
+    <div className="progreso-padron" role="status" aria-live="polite">
+      <ol className="pasos-padron">
+        {pasos.map((x, k) => (
+          <li key={k} className={x.estado}>
+            <span className="marca">{x.estado === 'hecho' ? '✓' : k + 1}</span>{x.titulo}
+          </li>
+        ))}
+      </ol>
+      <div className="linea-padron">
+        <strong>{texto}</strong>
+        <span className="mono">
+          {detalle}{pct != null && <> · {pct} %</>}
+          {!subida && avance && <> · lleva {transcurrido(avance.desde, ahora)}</>}
+        </span>
+      </div>
+      <div className={pct == null ? 'pista-padron indeterminada' : 'pista-padron'}
+           role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined}>
+        <span style={pct == null ? undefined : { width: `${pct}%` }} />
+      </div>
+      <p className="nota">
+        {subida ? 'No cierres esta pestaña hasta que termine de subir.'
+          : 'Puedes salir de esta pantalla: la carga sigue en el servidor. El padrón anterior se sigue usando hasta que termine.'}
+      </p>
+    </div>
   )
 }

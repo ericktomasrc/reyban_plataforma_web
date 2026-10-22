@@ -850,6 +850,26 @@ a.boton.secundario:hover { color: inherit; }
 .recuperando { margin-top: var(--e1); font-size: 12px; font-weight: 600; color: var(--aviso); }
 .recuperacion-lista { display: grid; gap: var(--e3); margin-bottom: var(--e4); }
 
+/* 22 oct — Consultas SUNAT: la barra de avance del padrón */
+.progreso-padron { display: grid; gap: var(--e2); padding: var(--e4); border-radius: 8px;
+  border: 1px solid #bfdcd9; background: var(--acento-suave); }
+.pasos-padron { display: flex; flex-wrap: wrap; gap: var(--e2) var(--e4); margin: 0 0 var(--e1); padding: 0; list-style: none; font-size: 13px; }
+.pasos-padron li { display: flex; align-items: center; gap: 6px; color: var(--tinta-2); }
+.pasos-padron .marca { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--borde); font-size: 12px; background: #fff; }
+.pasos-padron li.ahora { color: var(--tinta); font-weight: 600; }
+.pasos-padron li.ahora .marca { border-color: var(--acento); color: var(--acento); }
+.pasos-padron li.hecho .marca { border-color: var(--acento); background: var(--acento); color: #fff; }
+.linea-padron { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--e2); align-items: baseline; }
+.linea-padron .mono { font-size: 13px; color: var(--tinta-2); }
+.pista-padron { position: relative; height: 10px; border-radius: 999px; overflow: hidden; background: rgba(0, 0, 0, .08); }
+.pista-padron > span { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--acento);
+  transition: width .6s ease; min-width: 4px; }
+.pista-padron.indeterminada > span { width: 35%; animation: pista-padron 1.3s ease-in-out infinite; }
+@keyframes pista-padron { from { left: -35%; } to { left: 100%; } }
+@media (prefers-reduced-motion: reduce) { .pista-padron.indeterminada > span { animation: none; width: 100%; opacity: .45; } }
+.progreso-padron .nota { margin: 0; }
+
 /* 042 — Consultas SUNAT: los dos modos */
 .modos-consulta { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--e3); }
 .modos-consulta .modo { display: grid; gap: var(--e1); text-align: left; padding: var(--e4); border-radius: 8px;
