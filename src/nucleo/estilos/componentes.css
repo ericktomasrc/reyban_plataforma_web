@@ -850,6 +850,15 @@ a.boton.secundario:hover { color: inherit; }
 .recuperando { margin-top: var(--e1); font-size: 12px; font-weight: 600; color: var(--aviso); }
 .recuperacion-lista { display: grid; gap: var(--e3); margin-bottom: var(--e4); }
 
+/* 042 — Consultas SUNAT: los dos modos */
+.modos-consulta { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--e3); }
+.modos-consulta .modo { display: grid; gap: var(--e1); text-align: left; padding: var(--e4); border-radius: 8px;
+  border: 1px solid var(--borde, #d3dbe1); background: transparent; cursor: pointer; font: inherit; color: inherit; }
+.modos-consulta .modo .etiqueta { justify-self: start; }
+.modos-consulta .modo span:last-child { font-size: 13px; opacity: .8; }
+.modos-consulta .modo.elegido { border: 2px solid var(--acento, #0f6f6c); }
+.modos-consulta .modo:disabled { cursor: default; opacity: .7; }
+
 /* 040 — Forma de pago y detracción */
 .opciones-en-linea { display: flex; flex-wrap: wrap; gap: var(--e2) var(--e5); padding: var(--e1) 0; }
 .cuotas { display: grid; gap: var(--e3); margin: 0 0 var(--e4); }

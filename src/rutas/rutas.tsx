@@ -8,6 +8,7 @@ import { SolicitudesTraspaso } from '../modulos/administracion/vistas/Solicitude
 import { ConexionSunatPagina } from '../modulos/administracion/vistas/ConexionSunat'
 import { CorreosPagina } from '../modulos/administracion/vistas/Correos'
 import { RecuperacionesPagina } from '../modulos/administracion/vistas/Recuperaciones'
+import { ConsultasSunatPagina } from '../modulos/administracion/vistas/ConsultasSunat'
 import { Cambios } from '../modulos/auditoria/vistas/Cambios'
 import { Eventos } from '../modulos/auditoria/vistas/Eventos'
 import { Clientes } from '../modulos/facturacion/vistas/Clientes'
@@ -165,6 +166,15 @@ export function Rutas() {
           element={
             <Protegido soloSuperAdmin>
               <RecuperacionesPagina />
+            </Protegido>
+          }
+        />
+        {/* 042: modo de consultas (SUNAT / Decolecta) y padrón de SUNAT. */}
+        <Route
+          path="/admin/consultas-sunat"
+          element={
+            <Protegido permiso={Permisos.Plataforma.ConsultasGestionar}>
+              <ConsultasSunatPagina />
             </Protegido>
           }
         />

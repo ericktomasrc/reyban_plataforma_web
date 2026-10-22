@@ -20,6 +20,8 @@ export const Permisos = {
     ModulosGestionar:  'plataforma.modulos_gestionar',
     BitacoraVer:       'plataforma.bitacora_ver',
     Suplantar:         'plataforma.suplantar',
+    // 042: modo de consultas y padrón de SUNAT.
+    ConsultasGestionar: 'plataforma.consultas_gestionar',
   },
 
   Usuarios: {

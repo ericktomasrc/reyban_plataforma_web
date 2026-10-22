@@ -202,6 +202,8 @@ export function Disposicion() {
               <NavLink to="/admin/correos" className={activo}><Icono>✉</Icono>Correos</NavLink>
               {/* 039: recuperaciones del segundo factor en curso. */}
               <NavLink to="/admin/recuperaciones" className={activo}><Icono>⚿</Icono>Recuperaciones</NavLink>
+              {/* 042: de dónde salen RUC, DNI y tipo de cambio; padrón de SUNAT. */}
+              <NavLink to="/admin/consultas-sunat" className={activo}><Icono>⌕</Icono>Consultas SUNAT</NavLink>
               {puede(Permisos.Usuarios.BitacoraVer) && (
                 <NavLink to="/auditoria" className={activo}><Icono>◷</Icono>Auditoría</NavLink>
               )}
@@ -261,5 +263,6 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/admin/conexion-sunat')) return 'Conexión con SUNAT'
   if (ruta.startsWith('/admin/correos')) return 'Correos'
   if (ruta.startsWith('/admin/recuperaciones')) return 'Recuperaciones'
+  if (ruta.startsWith('/admin/consultas-sunat')) return 'Consultas SUNAT'
   return null
 }
