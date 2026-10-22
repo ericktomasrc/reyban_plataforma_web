@@ -17,7 +17,12 @@ import { Marco, useReporte, type Busqueda } from './Reportes'
  * comprobante). Solo lectura.
  */
 
-const TIPO: Record<string, string> = { '01': 'Factura', '03': 'Boleta', '07': 'Nota de crédito' }
+const TIPO: Record<string, string> = { '01': 'Factura', '03': 'Boleta', '07': 'Nota de crédito', '08': 'Nota de débito' }
+
+// 22 oct: motivos de nota de débito (catálogo 10).
+const MOTIVO_DEBITO: Record<string, string> = {
+  '01': 'Intereses por mora', '02': 'Aumento en el valor', '03': 'Penalidades u otros conceptos',
+}
 
 const ESTADO: Record<string, string> = {
   aceptado: 'Aceptado', observado: 'Con observaciones', encolado: 'En camino', anulado: 'Anulado',
@@ -35,7 +40,7 @@ function queHacer(estado: string, tipo: string) {
     case 'rechazado': return 'SUNAT no lo aceptó: no vale. Corrige el dato y emite uno nuevo.'
     case 'error': return 'No llegó al servicio. Ábrelo y pulsa «Reintentar».'
     case 'observado': return 'Vale, pero SUNAT dejó observaciones: léelas para la próxima.'
-    case 'encolado': return tipo === '03' || tipo === '07'
+    case 'encolado': return tipo === '03' || tipo === '07' || tipo === '08'
       ? 'Sin respuesta de SUNAT: se acerca el plazo de 7 días. Avisa a soporte.'
       : 'Sin respuesta de SUNAT: se acerca el plazo de 3 días. Avisa a soporte.'
     default: return ''
@@ -43,7 +48,7 @@ function queHacer(estado: string, tipo: string) {
 }
 
 /** 037: los filtros de los reportes de comprobantes. */
-const TIPOS_FILTRO: [string, string][] = [['01', 'Facturas'], ['03', 'Boletas'], ['07', 'Notas de crédito']]
+const TIPOS_FILTRO: [string, string][] = [['01', 'Facturas'], ['03', 'Boletas'], ['07', 'Notas de crédito'], ['08', 'Notas de débito']]
 const BUSCAR_COMPROBANTE = 'Cliente, RUC/DNI o número (F001-123)'
 
 const BUSQUEDA_REGISTRO: Busqueda = {
@@ -238,7 +243,7 @@ export function ReporteAnuladosPagina() {
                     <div className="secundario">{TIPO[f.tipo] ?? f.tipo}</div></td>
                   <td>{f.cliente}</td>
                   <td className="mono">{f.afectaId ? <Link to={`/facturacion/comprobantes/${f.afectaId}`}>{f.afecta}</Link> : ''}</td>
-                  <td className="secundario">{f.tipoNota ? (MOTIVO[f.tipoNota] ?? f.tipoNota) : ''}{f.motivo && <div>{f.motivo}</div>}</td>
+                  <td className="secundario">{f.tipoNota ? ((f.tipo === '08' ? MOTIVO_DEBITO : MOTIVO)[f.tipoNota] ?? f.tipoNota) : ''}{f.motivo && <div>{f.motivo}</div>}</td>
                   <td className="derecha mono">{f.moneda} {dinero(f.total)}</td>
                   <td>{ESTADO[f.estado] ?? f.estado}</td>
                 </tr>

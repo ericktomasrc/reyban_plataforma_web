@@ -45,7 +45,7 @@ export function InicioReportes() {
   return primero ? <Navigate to={primero.ruta} replace /> : <Navigate to="/" replace />
 }
 
-const TIPOS: Record<string, string> = { '01': 'Facturas', '03': 'Boletas', '07': 'Notas de crédito' }
+const TIPOS: Record<string, string> = { '01': 'Facturas', '03': 'Boletas', '07': 'Notas de crédito', '08': 'Notas de débito' }
 
 function hoyLima() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' })

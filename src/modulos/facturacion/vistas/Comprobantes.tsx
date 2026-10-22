@@ -11,7 +11,7 @@ import { EstadoComprobante } from '../componentes/EstadoComprobante'
 import { documentosServicio } from '../servicios/facturacionServicio'
 import type { Atrasado, PaginaDocumentos } from '../tipos'
 
-const TIPOS: Record<string, string> = { '01': 'Factura', '03': 'Boleta', '07': 'Nota de crédito' }
+const TIPOS: Record<string, string> = { '01': 'Factura', '03': 'Boleta', '07': 'Nota de crédito', '08': 'Nota de débito' }
 
 /** «vence hoy», «vence mañana», «venció el 5 oct. 2026»… */
 function plazo(a: Atrasado): string {
@@ -277,12 +277,12 @@ export function Comprobantes() {
                     <Boton
                       estilo="plano"
                       onClick={() => navegar(
-                        (d.estado === 'borrador' || d.estado === 'error') && d.tipo !== '07'
+                        (d.estado === 'borrador' || d.estado === 'error') && d.tipo !== '07' && d.tipo !== '08'
                           ? `/facturacion/comprobantes/${d.id}/editar`
                           : `/facturacion/comprobantes/${d.id}`
                       )}
                     >
-                      {(d.estado === 'borrador' || d.estado === 'error') && d.tipo !== '07' ? 'Continuar' : 'Ver'}
+                      {(d.estado === 'borrador' || d.estado === 'error') && d.tipo !== '07' && d.tipo !== '08' ? 'Continuar' : 'Ver'}
                     </Boton>
                   </td>
                 </tr>

@@ -1,8 +1,10 @@
 import { api } from '../../../nucleo/api/cliente'
+import { ErrorApi } from '../../../nucleo/api/errores'
 import type {
   Atrasados, CatalogosSunat, CodigoSunat, ClaveRevocada, ClienteEnLista, ComprobacionClave, ConfirmacionAlta,
   Conexion, DocumentoCompleto, Emitido, EstadoFacturacion, PaginaDocumentos, ProductoEnLista,
   PruebaConexion, CalculoNotaCredito, PeticionNotaCredito, PreviaNotaCredito,
+  CalculoNotaDebito, PeticionNotaDebito, PreviaNotaDebito,
 } from '../tipos'
 
 // =============================================================================
@@ -25,6 +27,10 @@ export interface DatosCliente {
 
   /** Catálogo 07. `null` = sin preferencia, manda la del producto. */
   afectacionHabitual?: string | null
+
+  /** 043: el WhatsApp (como se escriba: el back lo limpia) y la casilla general. */
+  whatsapp?: string | null
+  whatsappActivo?: boolean
 }
 
 export interface DatosProducto {
@@ -133,6 +139,32 @@ export const productosServicio = {
   codigosSunat: (q: string) =>
     api.obtener<CodigoSunat[]>(
       `/api/facturacion/productos/codigos-sunat?q=${encodeURIComponent(q)}`),
+
+  /** 22 oct: la plantilla de Excel (con los productos que ya tengo). */
+  plantilla: () => api.descargar('/api/facturacion/productos/plantilla'),
+
+  /**
+   * 22 oct: revisar (`simular`) o importar un Excel de productos. El archivo
+   * va tal cual en el cuerpo, como el padrón.
+   */
+  importar: async (archivo: File, simular: boolean, actualizar: boolean): Promise<RevisionImportacion> => {
+    let r: Response
+    try {
+      r = await fetch(`/api/facturacion/productos/importar?simular=${simular}&actualizar=${actualizar}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: archivo,
+      })
+    } catch {
+      throw new ErrorApi(0, 'No se pudo enviar el archivo. Revisa tu conexión e inténtalo otra vez.')
+    }
+    const texto = await r.text()
+    let datos: (RevisionImportacion & { error?: string; detalle?: string }) | null = null
+    try { datos = texto ? JSON.parse(texto) : null } catch { /* no es JSON */ }
+    if (!r.ok) throw new ErrorApi(r.status, [datos?.error, datos?.detalle].filter(Boolean).join(' ') || `Error ${r.status}`)
+    return datos as RevisionImportacion
+  },
 
   crear: (datos: DatosProducto) =>
     api.crear<{ id: string; codigo: string }>('/api/facturacion/productos', datos),
@@ -257,6 +289,9 @@ export interface DatosDocumento {
   formaPago?: 'contado' | 'credito'
   cuotas?: { monto: number; vence: string }[]
   detraccion?: { codigo: string; porcentaje: number; cuenta: string; medioPago: string } | null
+
+  /** 043: mandarlo por WhatsApp al emitirlo. */
+  whatsapp?: boolean
 }
 
 /** 21 oct: una serie de la empresa, con el número que sigue («F002-00000010»). */
@@ -292,6 +327,40 @@ export const notaCreditoServicio = {
   emitir: (id: string, datos: PeticionNotaCredito) =>
     api.crear<{ id: string; numero: string; estado: string; importeTotal: number; mensaje: string }>(
       `/api/facturacion/documentos/${id}/nota-credito`, { ...datos, simular: false }),
+}
+
+/** 22 oct: NOTAS DE DÉBITO, como las de crédito: siempre desde el original. */
+export const notaDebitoServicio = {
+  previa: (id: string) =>
+    api.obtener<PreviaNotaDebito>(`/api/facturacion/documentos/${id}/nota-debito`),
+
+  calcular: (id: string, datos: PeticionNotaDebito) =>
+    api.crear<CalculoNotaDebito>(`/api/facturacion/documentos/${id}/nota-debito`, { ...datos, simular: true }),
+
+  emitir: (id: string, datos: PeticionNotaDebito) =>
+    api.crear<{ id: string; numero: string; estado: string; importeTotal: number; mensaje: string; whatsapp?: boolean }>(
+      `/api/facturacion/documentos/${id}/nota-debito`, { ...datos, simular: false }),
+}
+
+/** 043: lo que devuelve «preparar»: a qué número, el texto y el enlace de WhatsApp. */
+export interface MensajeWhatsapp {
+  numero: string
+  numeroLegible: string
+  mensaje: string
+  /** El enlace al portal (abre solo este comprobante). */
+  enlace: string
+  /** https://wa.me/…?text=… */
+  abrir: string
+}
+
+/** 043: mandar un comprobante por WhatsApp (semiautomático). */
+export const whatsappServicio = {
+  /** Con `numero`, a ese (y se guarda en el cliente). Sin él, al del cliente. */
+  preparar: (id: string, numero?: string) =>
+    api.crear<MensajeWhatsapp>(`/api/facturacion/documentos/${id}/whatsapp`, { numero: numero ?? null }),
+
+  resultado: (id: string, resultado: 'enviado' | 'sin_whatsapp' | 'no_enviado') =>
+    api.crear<{ estado: string; mensaje: string }>(`/api/facturacion/documentos/${id}/whatsapp/resultado`, { resultado }),
 }
 
 export const documentosServicio = {
@@ -375,6 +444,39 @@ export const documentosServicio = {
    * `comprobante_id` cada vez. El CDR llega como ZIP, que es como lo manda
    * SUNAT. Qué botones se enseñan lo decide `ArchivosComprobante.tsx`.
    */
-  descargar: (id: string, archivo: 'xml' | 'cdr' | 'pdf') =>
-    api.descargar(`/api/facturacion/documentos/${id}/${archivo}`),
+  descargar: (id: string, archivo: 'xml' | 'cdr' | 'pdf', formato?: FormatoPdf) =>
+    api.descargar(`/api/facturacion/documentos/${id}/${archivo}` +
+      (archivo === 'pdf' && formato && formato !== 'a4' ? `?formato=${formato}` : '')),
+
+  /** 22 oct: el PDF como Blob, para imprimirlo sin bajarlo. */
+  pdf: (id: string, formato: FormatoPdf) =>
+    api.archivo(`/api/facturacion/documentos/${id}/pdf` + (formato !== 'a4' ? `?formato=${formato}` : '')),
+}
+
+/** 22 oct: el formato del PDF: hoja A4 o ticket de impresora térmica. */
+export type FormatoPdf = 'a4' | 'ticket80' | 'ticket58'
+
+/** 22 oct: cómo salió cada fila del Excel de productos. */
+export interface FilaImportacion {
+  fila: number
+  codigo: string
+  descripcion: string
+  unidad: string
+  precio: number | null
+  incluyeIgv: boolean
+  afectacion: string
+  codigoSunat: string | null
+  resultado: 'nuevo' | 'actualiza' | 'igual' | 'existe' | 'error'
+  mensaje: string | null
+  precioAntes: number | null
+}
+
+export interface RevisionImportacion {
+  nuevos: number
+  actualizan: number
+  iguales: number
+  errores: number
+  total: number
+  filas: FilaImportacion[]
+  mensaje?: string
 }

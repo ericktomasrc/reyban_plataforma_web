@@ -46,6 +46,11 @@ export interface ClienteEnLista {
   afectacionHabitual: string | null
 
   activo: boolean
+
+  /** 043: su WhatsApp, solo dígitos con el código de país (51987654321). */
+  whatsapp?: string | null
+  /** 043: «enviarle sus comprobantes por WhatsApp» (la regla general). */
+  whatsappActivo?: boolean
 }
 
 /** GET /api/facturacion/productos */
@@ -494,7 +499,17 @@ export interface DocumentoCompleto {
     numeroDocumento: string
     razonSocial: string
     direccion: string | null
+    whatsapp?: string | null       // 043
+    whatsappActivo?: boolean       // 043
   } | null
+
+  /** 043: WhatsApp de este comprobante. */
+  whatsapp?: {
+    enviar: boolean
+    estado: 'pendiente' | 'enviado' | 'sin_whatsapp' | 'no_enviado' | null
+    numero: string | null
+    en: string | null
+  }
 
   /**
    * COPIA INFORMATIVA mientras es un borrador; la cifra del servicio en cuanto
@@ -542,6 +557,8 @@ export interface DocumentoCompleto {
   notasCredito?: NotaCreditoResumen[]
   /** Lo que queda del total después de las notas que valen. */
   saldo?: number
+  /** 22 oct: en una factura o boleta, sus notas de débito. */
+  notasDebito?: NotaCreditoResumen[]
 }
 
 /** 031: una nota de crédito de un comprobante. `cuenta` = vale y resta del saldo. */
@@ -608,8 +625,51 @@ export interface PeticionNotaCredito {
   linea?: number
 }
 
+/** 22 oct: GET .../{id}/nota-debito */
+export interface PreviaNotaDebito {
+  id: string
+  tipo: string
+  numero: string
+  moneda: string
+  fechaEmision: string
+  importeTotal: number
+  ambiente?: 'beta' | 'produccion' | null
+  formaPago?: 'contado' | 'credito'
+  vence: string | null
+  cliente: { razonSocial: string; numeroDocumento: string } | null
+  serieNota: string
+  puede: boolean
+  problema: string | null
+  debitos: number
+  creditos: number
+  notas: NotaCreditoResumen[]
+  lineas: { numero: number; descripcion: string; importeTotal: number; tipoAfectacion: string; sePuede: boolean }[]
+}
+
+/** 22 oct: POST .../{id}/nota-debito con simular. */
+export interface CalculoNotaDebito {
+  problema?: string | null
+  total?: number
+  gravado?: number
+  igv?: number
+  serie?: string
+  descripcionLinea?: string
+}
+
+/** 22 oct: lo que se manda para calcular o emitir una nota de débito. */
+export interface PeticionNotaDebito {
+  clave: string
+  motivo?: string
+  descripcion: string
+  monto?: number
+  afectacion?: string
+  linea?: number
+}
+
 /** POST .../emitir */
 export interface Emitido {
+  /** 043: quedó pendiente de mandarse por WhatsApp. */
+  whatsapp?: boolean
   id: string
   numero: string
   estado: EstadoDocumento

@@ -8,6 +8,7 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { BuscadorCliente } from '../componentes/BuscadorCliente'
+import { whatsappLegible } from '../componentes/PanelWhatsapp'
 import { BuscadorProducto } from '../componentes/BuscadorProducto'
 import {
   PagoYDetraccion, detraccionInicial, montoDetraccion, netoPendiente, nombreDetraccion,
@@ -137,6 +138,8 @@ export function NuevoComprobante() {
   // 033: si SUNAT no publicó ese día, de qué día es el propuesto.
   const [tcNota, setTcNota] = useState<string | null>(null)
   const [cliente, setCliente] = useState<ClienteEnLista>()
+  // 043: null = lo que diga el cliente; true/false = decidido para este comprobante.
+  const [porWhatsapp, setPorWhatsapp] = useState<boolean | null>(null)
   const [lineas, setLineas] = useState<LineaEnEdicion[]>([vacia()])
 
   const [ordenCompra, setOrdenCompra] = useState('')
@@ -222,6 +225,7 @@ export function NuevoComprobante() {
           // La del borrador, tal cual. Si envejeció fuera de plazo, el aviso
           // de debajo del campo lo dice y Emitir no deja seguir.
           setFechaEmision(d.fechaEmision)
+          setPorWhatsapp(d.whatsapp?.enviar ?? null)   // 043: como se guardó
 
           // 040: como se guardó. Ya decidido: no se vuelve a proponer encima.
           setPago({
@@ -511,6 +515,9 @@ export function NuevoComprobante() {
     detraccion: esFactura && det.activa
       ? { codigo: det.codigo, porcentaje: num(det.porcentaje), cuenta: det.cuenta.trim(), medioPago: det.medioPago || '001' }
       : null,
+
+    // 043
+    whatsapp: !!cliente?.whatsapp && (porWhatsapp ?? !!cliente?.whatsappActivo),
   })
 
   function revisar(): string | undefined {
@@ -746,7 +753,7 @@ export function NuevoComprobante() {
 
     try {
       const r = await documentosServicio.emitir(idBorrador)
-      navegar(`/facturacion/comprobantes/${r.id}`, { state: { reciente: r.mensaje } })
+      navegar(`/facturacion/comprobantes/${r.id}`, { state: { reciente: r.mensaje, abrirWhatsapp: r.whatsapp } })
     } catch (e) {
       // La capa se quita ANTES del mensaje: si no, el error saldría tapado.
       setCapa(undefined)
@@ -885,7 +892,7 @@ export function NuevoComprobante() {
           )}
         </div>
 
-        <BuscadorCliente elegido={cliente} onElegir={setCliente} />
+        <BuscadorCliente elegido={cliente} onElegir={c => { setCliente(c); setPorWhatsapp(null) }} />
 
         {boletaSinDni && (
           <Aviso>
@@ -1155,6 +1162,34 @@ export function NuevoComprobante() {
           det={det}
           onDet={setDet}
         />
+      )}
+
+      {/* --- 043: a dónde se le manda --------------------------------------- */}
+      {cliente && (
+        <div className="bloque">
+          <h2 className="subtitulo">Envío al cliente</h2>
+          <label className="casilla-wsp">
+            <input type="checkbox" checked={!!cliente.correo} disabled />
+            {cliente.correo ? <>Correo a {cliente.correo}</> : <>Sin correo: no se le manda por correo</>}
+          </label>
+          {cliente.whatsapp ? (
+            <label className={(porWhatsapp ?? !!cliente.whatsappActivo) ? 'casilla-wsp caja-whatsapp' : 'casilla-wsp'}>
+              <input type="checkbox" checked={porWhatsapp ?? !!cliente.whatsappActivo}
+                     onChange={e => setPorWhatsapp(e.target.checked)} />
+              WhatsApp a {whatsappLegible(cliente.whatsapp)}
+            </label>
+          ) : (
+            <p className="nota">Sin WhatsApp guardado. Se puede mandar después, desde el detalle del comprobante.</p>
+          )}
+          {cliente.whatsapp && (
+            <p className="nota">
+              {cliente.whatsappActivo
+                ? 'Viene marcada porque el cliente lo tiene activado. Desmárcala si este no.'
+                : 'El cliente no lo tiene activado: márcala si este sí.'}
+              {' '}Al emitir se abre WhatsApp con el mensaje listo: solo pulsas Enviar.
+            </p>
+          )}
+        </div>
       )}
 
       <div className="acciones-pagina">

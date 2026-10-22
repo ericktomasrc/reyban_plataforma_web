@@ -850,6 +850,29 @@ a.boton.secundario:hover { color: inherit; }
 .recuperando { margin-top: var(--e1); font-size: 12px; font-weight: 600; color: var(--aviso); }
 .recuperacion-lista { display: grid; gap: var(--e3); margin-bottom: var(--e4); }
 
+/* 22 oct — Imprimir: el formato de este equipo */
+.impresion-equipo { display: flex; flex-wrap: wrap; gap: var(--e2) var(--e4); align-items: center; margin-top: var(--e3); font-size: 14px; }
+.impresion-equipo label:first-child { display: flex; gap: var(--e2); align-items: center; }
+.impresion-equipo select { min-height: 36px; }
+
+/* 22 oct — Importar productos desde Excel */
+.importar-pasos { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--e5, 24px); }
+.importar-pasos > div { display: grid; gap: var(--e2); align-content: start; }
+.importar-pasos .zona-archivo { font: inherit; color: inherit; cursor: pointer; width: 100%; }
+.tabla-desliza { overflow-x: auto; }
+.tabla-desliza .tabla { min-width: 720px; }
+.fila-mal { background: var(--peligro-suave); }
+.texto-mal { color: var(--peligro); font-weight: 600; }
+
+/* 043 — WhatsApp: el recuadro verde (detalle, emisión y ficha del cliente) */
+.caja-whatsapp { border: 2px solid var(--bien); }
+label.casilla-wsp.caja-whatsapp { border-radius: 8px; padding: 8px 12px; background: var(--bien-suave); }
+.caja-whatsapp-cliente { display: grid; gap: var(--e1); padding: var(--e3); margin-bottom: var(--e3);
+  border: 1px solid #c6e0d2; border-radius: 8px; background: var(--bien-suave); }
+.caja-whatsapp-cliente .campo { margin-bottom: 0; }
+label.casilla-wsp { display: flex; gap: var(--e2); align-items: center; min-height: 40px; }
+a.boton { display: inline-flex; align-items: center; text-decoration: none; }
+
 /* 22 oct — Consultas SUNAT: la barra de avance del padrón */
 .progreso-padron { display: grid; gap: var(--e2); padding: var(--e4); border-radius: 8px;
   border: 1px solid #bfdcd9; background: var(--acento-suave); }

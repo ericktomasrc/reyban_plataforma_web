@@ -7,6 +7,7 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { clientesServicio, consultasServicio } from '../servicios/facturacionServicio'
 import type { CatalogosSunat, ClienteEnLista } from '../tipos'
+import { whatsappLegible } from './PanelWhatsapp'
 
 interface Props {
   /** Sin valor, es un alta. */
@@ -52,6 +53,10 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
   const [correo, setCorreo]   = useState(cliente?.correo ?? '')
   const [telefono, setTelefono] = useState(cliente?.telefono ?? '')
   const [afectacion, setAfectacion] = useState(cliente?.afectacionHabitual ?? '')
+  // 043: su WhatsApp (opcional) y si se le mandan los comprobantes por ahí.
+  const [whatsapp, setWhatsapp] = useState(whatsappLegible(cliente?.whatsapp))
+  const [whatsappActivo, setWhatsappActivo] = useState(cliente?.whatsappActivo ?? false)
+  const sinWhatsapp = whatsapp.replace(/\D/g, '').length < 8
 
   const mensaje = useMensaje()
   const [guardando, setGuardando] = useState(false)
@@ -112,6 +117,8 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
       correo: correo.trim() || null,
       telefono: telefono.trim() || null,
       afectacionHabitual: afectacion || null,
+      whatsapp: whatsapp.trim(),
+      whatsappActivo: whatsappActivo && !sinWhatsapp,
     }
 
     try {
@@ -225,6 +232,28 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
           onChange={e => setCorreo(e.target.value)}
           pista="A donde se le mandará su comprobante."
         />
+
+        {/* 043: WHATSAPP, aparte del teléfono (el fijo de la oficina no lo recibe). */}
+        <div className="caja-whatsapp-cliente">
+          <Campo
+            etiqueta="WhatsApp"
+            value={whatsapp}
+            onChange={e => setWhatsapp(e.target.value.replace(/[^\d +()-]/g, ''))}
+            inputMode="tel"
+            placeholder="987 654 321"
+            pista="Opcional. Sin código de país se entiende Perú (+51)."
+          />
+          <label className="casilla-wsp">
+            <input type="checkbox" checked={whatsappActivo && !sinWhatsapp} disabled={sinWhatsapp}
+                   onChange={e => setWhatsappActivo(e.target.checked)} />
+            Enviarle sus comprobantes por WhatsApp
+          </label>
+          <span className="pista">
+            {sinWhatsapp
+              ? 'Escribe su número para poder activarlo.'
+              : 'Al emitir, viene marcado; se puede cambiar en cada comprobante. Además del correo, no en su lugar.'}
+          </span>
+        </div>
 
         {/* LA AFECTACIÓN VIVE AQUÍ Y NO SOLO EN EL PRODUCTO porque no es una
             propiedad de lo que vendes: es de la operación, y la operación la

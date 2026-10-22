@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
@@ -19,6 +20,7 @@ import type { CatalogosSunat, ProductoEnLista } from '../tipos'
  * factura. El día que haga falta llevar existencias, eso es otro módulo.
  */
 export function Productos() {
+  const navegar = useNavigate()
   const { pedir, dialogo: confirmacion } = useConfirmar()
   const mensaje = useMensaje()
 
@@ -143,9 +145,15 @@ export function Productos() {
         <h1 className="titulo-pagina">Productos</h1>
 
         <Si puede={Permisos.Facturacion.ProductosGestionar}>
-          <Boton onClick={() => setCreando(true)} disabled={!catalogos}>
-            Nuevo producto
-          </Boton>
+          <div className="botonera">
+            {/* 22 oct: importar (o cambiar precios de golpe) desde Excel. */}
+            <Boton estilo="secundario" onClick={() => navegar('/facturacion/productos/importar')}>
+              Importar desde Excel
+            </Boton>
+            <Boton onClick={() => setCreando(true)} disabled={!catalogos}>
+              Nuevo producto
+            </Boton>
+          </div>
         </Si>
       </div>
 

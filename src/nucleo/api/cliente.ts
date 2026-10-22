@@ -120,6 +120,26 @@ async function descargar(ruta: string): Promise<void> {
 }
 
 /**
+ * 22 oct: un archivo como Blob, sin bajarlo (para imprimirlo). Los mismos
+ * errores que `descargar`.
+ */
+async function archivo(ruta: string): Promise<Blob> {
+  let respuesta: Response
+  try {
+    respuesta = await fetch(ruta, { method: 'GET', credentials: 'include' })
+  } catch {
+    throw new ErrorApi(0, 'No se pudo conectar con el servidor. ¿Está corriendo la API?')
+  }
+  if (!respuesta.ok) {
+    const texto = await respuesta.text()
+    const datos = texto ? intentarJson(texto) : null
+    const mensaje = [datos?.error, datos?.detalle].filter(Boolean).join(' ')
+    throw new ErrorApi(respuesta.status, mensaje || `Error ${respuesta.status}`, datos?.codigo)
+  }
+  return respuesta.blob()
+}
+
+/**
  * El nombre de `Content-Disposition`. Gana `filename*=UTF-8''...` —el que
  * admite tildes— y si no está, el `filename=` normal, con o sin comillas.
  */
@@ -146,6 +166,9 @@ export const api = {
 
   /** Un archivo, no JSON. Ver `descargar`. */
   descargar,
+
+  /** 22 oct: un archivo como Blob, sin bajarlo. */
+  archivo,
 }
 
 export { ErrorApi }

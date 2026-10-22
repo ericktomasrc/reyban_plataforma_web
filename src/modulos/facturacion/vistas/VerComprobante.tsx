@@ -12,10 +12,16 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { ArchivosComprobante } from '../componentes/ArchivosComprobante'
 import { EstadoComprobante } from '../componentes/EstadoComprobante'
 import { nombreDetraccion } from '../componentes/PagoYDetraccion'
+import { PanelWhatsapp } from '../componentes/PanelWhatsapp'
 import { documentosServicio } from '../servicios/facturacionServicio'
 import type { DocumentoCompleto } from '../tipos'
 
-const TIPOS: Record<string, string> = { '01': 'Factura', '03': 'Boleta de venta', '07': 'Nota de crédito' }
+const TIPOS: Record<string, string> = { '01': 'Factura', '03': 'Boleta de venta', '07': 'Nota de crédito', '08': 'Nota de débito' }
+
+// 22 oct: los motivos de nota de débito (catálogo 10). Chocan con los de crédito: se elige por tipo.
+const MOTIVOS_DEBITO: Record<string, string> = {
+  '01': 'Intereses por mora', '02': 'Aumento en el valor', '03': 'Penalidades u otros conceptos',
+}
 
 // 031: los motivos de nota de crédito (catálogo 09) en palabras.
 const MOTIVOS_NOTA: Record<string, string> = {
@@ -71,6 +77,12 @@ export function VerComprobante() {
   // veces a propósito, así que sin ella la emisión se anunciaría dos veces.
   const anunciado = useRef(false)
 
+  // 22 oct: recién emitido (viene de «Emitir»): si este equipo lo pide, se imprime solo.
+  const [recienEmitido] = useState(() => !!(ubicacion.state as { reciente?: string } | null)?.reciente)
+
+  // 043: recién emitido y marcado «por WhatsApp»: se intenta abrir solo.
+  const [abrirWhatsapp] = useState(() => !!(ubicacion.state as { abrirWhatsapp?: boolean } | null)?.abrirWhatsapp)
+
   useEffect(() => {
     const reciente = (ubicacion.state as { reciente?: string } | null)?.reciente
     if (!reciente || anunciado.current) return
@@ -116,7 +128,11 @@ export function VerComprobante() {
   const serie = d.serie ?? ''
 
   // 031: NOTAS DE CRÉDITO. Las suyas (si es factura o boleta) y lo que queda.
-  const esNota = d.tipo === '07'
+  const esNota = d.tipo === '07' || d.tipo === '08'
+  const motivos = d.tipo === '08' ? MOTIVOS_DEBITO : MOTIVOS_NOTA
+  const notasDebito = d.notasDebito ?? []
+  // 22 oct: NOTA DE DÉBITO, sobre una factura o boleta aceptada (mismo permiso que la de crédito).
+  const puedeDebito = aceptado && (d.tipo === '01' || d.tipo === '03') && puede(Permisos.Facturacion.NotasCredito)
   const notas = d.notasCredito ?? []
   const saldo = d.saldo ?? d.totales.importeTotal
   const conNotas = notas.some(n => n.cuenta)
@@ -136,7 +152,7 @@ export function VerComprobante() {
       mensaje.bien(r.mensaje)
       await cargar()
     } catch (e) {
-      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo reenviar la nota de crédito.')
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo reenviar la nota.')
     } finally { setOcupado(false) }
   }
 
@@ -237,11 +253,16 @@ export function VerComprobante() {
 
         {/* 18 OCT: ANULAR, con el nombre que usa SUNAT. */}
         {/* 031: NOTA DE CRÉDITO, sin plazo. Y dentro de los 7 días, también la baja. */}
-        {(puedeNota || (anulable && dias <= 7)) && (
+        {(puedeNota || puedeDebito || (anulable && dias <= 7)) && (
           <div className="acciones-linea">
             {puedeNota && (
               <Boton onClick={() => navegar(`/facturacion/comprobantes/${d.id}/nota-credito`)}>
                 Hacer nota de crédito
+              </Boton>
+            )}
+            {puedeDebito && (
+              <Boton estilo="secundario" onClick={() => navegar(`/facturacion/comprobantes/${d.id}/nota-debito`)}>
+                Hacer nota de débito
               </Boton>
             )}
             {anulable && dias <= 7 && (
@@ -297,6 +318,31 @@ export function VerComprobante() {
         </div>
       )}
 
+      {/* --- 22 oct: sus notas de débito --------------------------------------- */}
+      {notasDebito.length > 0 && (
+        <div className="bloque">
+          <h2 className="subtitulo">Notas de débito</h2>
+          <table className="tabla">
+            <thead>
+              <tr><th>Nota</th><th>Motivo</th><th>Fecha</th><th className="derecha">Monto</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+              {notasDebito.map(n => (
+                <tr key={n.id}>
+                  <td className="mono">
+                    <Boton estilo="plano" onClick={() => navegar(`/facturacion/comprobantes/${n.id}`)}>{n.numero}</Boton>
+                  </td>
+                  <td>{MOTIVOS_DEBITO[n.tipoNota ?? ''] ?? n.tipoNota}</td>
+                  <td className="secundario">{fecha(n.fechaEmision)}</td>
+                  <td className="derecha mono">+ {n.importeTotal.toFixed(2)}</td>
+                  <td><EstadoComprobante estado={n.estado} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <Dialogo titulo={`${textoAnular} ${d.numero}`} abierto={ventana === 'anular'} onCerrar={() => setVentana(null)}
                acciones={<>
                  <Boton estilo="secundario" onClick={() => setVentana(null)} disabled={ocupado}>Cancelar</Boton>
@@ -337,7 +383,10 @@ export function VerComprobante() {
       </Dialogo>
 
       {/* --- Archivos: XML, CDR y PDF, los que existan ---------------------- */}
-      <ArchivosComprobante d={d} />
+      <ArchivosComprobante d={d} recienEmitido={recienEmitido} />
+
+      {/* --- 043: WhatsApp ----------------------------------------------------- */}
+      <PanelWhatsapp d={d} autoAbrir={abrirWhatsapp} onCambio={cargar} />
 
       {/* --- Datos --------------------------------------------------------- */}
       <div className="bloque">
@@ -375,7 +424,7 @@ export function VerComprobante() {
             <div className="fila">
               <dt>Motivo</dt>
               <dd className="secundario">
-                {MOTIVOS_NOTA[d.tipoNota ?? ''] ?? d.tipoNota}
+                {motivos[d.tipoNota ?? ''] ?? d.tipoNota}
                 {d.motivoNota && <div>{d.motivoNota}</div>}
               </dd>
             </div>

@@ -15,6 +15,8 @@ import { Clientes } from '../modulos/facturacion/vistas/Clientes'
 import { Comprobantes } from '../modulos/facturacion/vistas/Comprobantes'
 import { NuevoComprobante } from '../modulos/facturacion/vistas/NuevoComprobante'
 import { NotaCredito } from '../modulos/facturacion/vistas/NotaCredito'
+import { ImportarProductos } from '../modulos/facturacion/vistas/ImportarProductos'
+import { NotaDebito } from '../modulos/facturacion/vistas/NotaDebito'
 import {
   InicioReportes, ReporteClientesPagina, ReporteMiDiaPagina, ReporteProductosPagina,
   ReporteVendedoresPagina, ReporteVentasPagina,
@@ -225,6 +227,15 @@ export function Rutas() {
             </Protegido>
           }
         />
+        {/* 22 oct: nota de débito, desde el comprobante original. */}
+        <Route
+          path="/facturacion/comprobantes/:id/nota-debito"
+          element={
+            <Protegido permiso={Permisos.Facturacion.NotasCredito} modulo={Modulos.Facturacion}>
+              <NotaDebito />
+            </Protegido>
+          }
+        />
         <Route
           path="/facturacion/comprobantes/:id"
           element={
@@ -247,6 +258,15 @@ export function Rutas() {
           element={
             <Protegido permiso={Permisos.Facturacion.Ver} modulo={Modulos.Facturacion}>
               <Productos />
+            </Protegido>
+          }
+        />
+        {/* 22 oct: importar productos desde Excel. */}
+        <Route
+          path="/facturacion/productos/importar"
+          element={
+            <Protegido permiso={Permisos.Facturacion.ProductosGestionar} modulo={Modulos.Facturacion}>
+              <ImportarProductos />
             </Protegido>
           }
         />
