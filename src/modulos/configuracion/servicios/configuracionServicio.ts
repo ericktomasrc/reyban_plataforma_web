@@ -131,6 +131,10 @@ export const configuracionServicio = {
   certificadoDePrueba: () =>
     api.crear<CertificadoGuardado>('/api/configuracion/certificado/prueba'),
 
+  /** 22 oct: solo una serie que nunca se usó (último número 0, sin comprobantes). */
+  quitarSerie: (id: string) =>
+    api.borrar<{ mensaje: string }>(`/api/configuracion/series/${id}`),
+
   agregarSerie: (tipoComprobante: string, serie: string, ultimoCorrelativo: number, confirmado: boolean) =>
     api.crear<{ mensaje: string }>('/api/configuracion/series',
       { tipoComprobante, serie, ultimoCorrelativo, confirmado }),

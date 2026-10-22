@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Asterisco, Campo } from '../../../componentes/Campo'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
-import { clientesServicio } from '../servicios/facturacionServicio'
+import { clientesServicio, consultasServicio } from '../servicios/facturacionServicio'
 import type { CatalogosSunat, ClienteEnLista } from '../tipos'
 
 interface Props {
@@ -56,6 +57,46 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
   const [guardando, setGuardando] = useState(false)
 
   const largoEsperado = tipo === '6' ? 11 : tipo === '1' ? 8 : 0
+
+  // 22 OCT: AL COMPLETAR EL RUC (o el DNI) SE TRAEN LOS DATOS, igual que en el
+  // alta rápida desde el comprobante. Solo en un alta: al editar, lo escrito
+  // manda. Si no se encuentra, se escribe a mano.
+  const [nota, setNota] = useState<{ tono: 'bien' | 'ojo' | 'error'; texto: string }>()
+  const [consultando, setConsultando] = useState(false)
+  useEffect(() => {
+    setNota(undefined)
+    if (editando || largoEsperado === 0 || numero.length !== largoEsperado) return
+    let vivo = true
+    setConsultando(true)
+    void (async () => {
+      try {
+        if (tipo === '6') {
+          const d = await consultasServicio.ruc(numero)
+          if (!vivo) return
+          if (d.razonSocial) setRazon(d.razonSocial)
+          setDireccion([d.direccion, d.distrito, d.provincia, d.departamento].filter(Boolean).join(' - '))
+          if (d.ubigeo) setUbigeo(d.ubigeo)
+          const activo = (d.estado ?? '').toUpperCase() === 'ACTIVO'
+          const habido = (d.condicion ?? '').toUpperCase() === 'HABIDO'
+          setNota(!activo
+            ? { tono: 'error', texto: `Según SUNAT este RUC está ${d.estado ?? 'sin estado'}. No se le puede emitir factura.` }
+            : !habido
+              ? { tono: 'ojo', texto: `SUNAT lo tiene como ${d.condicion ?? 'sin condición'}: se le puede facturar, pero no podrá usar el crédito fiscal.` }
+              : { tono: 'bien', texto: 'Datos traídos de SUNAT · ACTIVO · HABIDO. Revisa y completa el correo.' })
+        } else {
+          const d = await consultasServicio.dni(numero)
+          if (!vivo) return
+          if (d.nombreCompleto) setRazon(d.nombreCompleto)
+          setNota({ tono: 'bien', texto: 'Nombre traído de RENIEC. Puedes corregirlo.' })
+        }
+      } catch (e) {
+        if (vivo) setNota({ tono: 'ojo', texto: e instanceof ErrorApi ? e.message : 'No se pudo consultar. Escribe los datos a mano.' })
+      } finally {
+        if (vivo) setConsultando(false)
+      }
+    })()
+    return () => { vivo = false }
+  }, [tipo, numero, largoEsperado, editando])
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
@@ -132,6 +173,9 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
             autoFocus
           />
         </div>
+
+        {consultando && <p className="nota">Consultando…</p>}
+        {nota && <Aviso tono={nota.tono}>{nota.texto}</Aviso>}
 
         <Campo
           etiqueta="Razón social"

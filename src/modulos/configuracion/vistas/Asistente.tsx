@@ -644,6 +644,25 @@ function PasoSeries({ estado, atras, alCambiar, alTerminar }: {
     setTipo(t); setSerie(s); setUltimo('0'); setConfirmado(false); setError(null)
   }
 
+  // 22 OCT: QUITAR UNA SERIE AGREGADA POR ERROR. Solo si nunca se usó: último
+  // número 0 y ningún comprobante. Si no, el botón queda apagado y dice por qué.
+  const [quitando, setQuitando] = useState<string | null>(null)
+  const sinUsar = (s: { ultimoCorrelativo: number; comprobantes: number }) =>
+    s.ultimoCorrelativo === 0 && (s.comprobantes ?? 0) === 0
+  const quitar = async (id: string) => {
+    setError(null)
+    setQuitando(id)
+    try {
+      const r = await configuracionServicio.quitarSerie(id)
+      mensaje.bien(r.mensaje)
+      await alCambiar()
+    } catch (err) {
+      setError(textoDe(err, 'No se pudo quitar la serie.'))
+    } finally {
+      setQuitando(null)
+    }
+  }
+
   const agregar = async () => {
     setError(null)
     if (!nValido) { setError('El último número va de 0 a 99999999.'); return }
@@ -684,7 +703,8 @@ function PasoSeries({ estado, atras, alCambiar, alTerminar }: {
       {series.length > 0 && (
         <table className="tabla">
           <thead>
-            <tr><th>Comprobante</th><th>Serie</th><th>Último número usado</th><th>El siguiente será</th></tr>
+            <tr><th>Comprobante</th><th>Serie</th><th>Último número usado</th><th>El siguiente será</th>
+              <th><span className="solo-lector">Acción</span></th></tr>
           </thead>
           <tbody>
             {series.map(s => (
@@ -693,6 +713,14 @@ function PasoSeries({ estado, atras, alCambiar, alTerminar }: {
                 <td className="mono">{s.serie}</td>
                 <td className="mono">{s.ultimoCorrelativo}</td>
                 <td className="mono">{numero(s.serie, s.ultimoCorrelativo + 1)}</td>
+                <td className="derecha">
+                  <Boton estilo="plano" ocupado={quitando === s.id} textoOcupado="Quitando…"
+                         disabled={!sinUsar(s) || quitando !== null}
+                         title={sinUsar(s) ? `Quitar la ${s.serie} (nunca se usó)` : `La ${s.serie} ya se usó: no se puede quitar`}
+                         onClick={() => void quitar(s.id)}>
+                    Quitar
+                  </Boton>
+                </td>
               </tr>
             ))}
           </tbody>
