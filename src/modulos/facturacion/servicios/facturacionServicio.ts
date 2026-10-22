@@ -259,6 +259,14 @@ export interface DatosDocumento {
   detraccion?: { codigo: string; porcentaje: number; cuenta: string; medioPago: string } | null
 }
 
+/** 21 oct: una serie de la empresa, con el número que sigue («F002-00000010»). */
+export interface SerieEmpresa {
+  tipo: string
+  serie: string
+  ultimo: number
+  siguiente: string
+}
+
 /** 040: lo habitual de la detracción de la empresa. */
 export interface PreferenciasDetraccion {
   cuenta: string | null
@@ -317,6 +325,10 @@ export const documentosServicio = {
 
   tipos: () =>
     api.obtener<{ codigo: string; nombre: string }[]>('/api/facturacion/documentos/tipos'),
+
+  /** 21 oct: las series de mi empresa (del servicio) y el número que sigue. */
+  series: () =>
+    api.obtener<SerieEmpresa[]>('/api/facturacion/documentos/series'),
 
   /** 040: la cuenta de detracciones y el código habitual de mi empresa. */
   preferenciasDetraccion: () =>

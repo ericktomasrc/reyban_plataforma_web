@@ -17,7 +17,7 @@ import type { DetraccionEnEdicion, PagoEnEdicion } from '../componentes/PagoYDet
 import {
   clientesServicio, consultasServicio, documentosServicio, productosServicio,
 } from '../servicios/facturacionServicio'
-import type { DatosDocumento } from '../servicios/facturacionServicio'
+import type { DatosDocumento, SerieEmpresa } from '../servicios/facturacionServicio'
 import type { CatalogosSunat, ClienteEnLista, ProductoEnLista } from '../tipos'
 
 /** Una línea mientras se está escribiendo. Los importes se calculan al vuelo. */
@@ -125,6 +125,9 @@ export function NuevoComprobante() {
 
   const [tipo, setTipo]     = useState('01')
   const [serie, setSerie]   = useState('F001')
+  // 21 OCT: las series de la empresa, del servicio. Null = no se pudieron
+  // leer (queda el campo de texto); [] = la empresa no tiene ninguna.
+  const [series, setSeries] = useState<SerieEmpresa[] | null>(null)
   const [moneda, setMoneda] = useState('PEN')
   // Soles por dólar, como lo escribe la gente («3.745»). Solo en dólares.
   const [tipoCambio, setTipoCambio] = useState('')
@@ -177,6 +180,17 @@ export function NuevoComprobante() {
       try {
         const cat = await productosServicio.catalogos()
         if (vivo) setCatalogos(cat)
+
+        // 21 OCT: LA SERIE SALE SOLA, de las que tiene dada de alta la empresa.
+        // En un comprobante nuevo, la primera de factura; un borrador trae la suya.
+        try {
+          const ss = await documentosServicio.series()
+          if (vivo) {
+            setSeries(ss)
+            const primera = ss.find(s => s.tipo === '01')
+            if (!id && primera) setSerie(primera.serie)
+          }
+        } catch { /* queda el campo de texto */ }
 
         // 040: la cuenta de detracciones y el código habituales de la empresa.
         // Se dejan escritos pero SIN marcar: la pantalla propone, no decide.
@@ -341,6 +355,10 @@ export function NuevoComprobante() {
     !cliente.numeroDocumento.trim() || /^(\d)\1*$/.test(cliente.numeroDocumento.trim()))
   const totalSoles = moneda === 'PEN' ? totales.total : totales.total * num(tipoCambio)
   const boletaSinDni = tipo === '03' && sinIdentificar && totalSoles > 700
+
+  // 21 oct: las series de este tipo, y el número que tocará con la elegida.
+  const seriesDelTipo = (series ?? []).filter(s => s.tipo === tipo)
+  const siguiente = seriesDelTipo.find(s => s.serie === serie)?.siguiente
 
   // 040: la detracción en soles y lo que queda por cobrar.
   const esFactura = tipo === '01'
@@ -645,7 +663,7 @@ export function NuevoComprobante() {
               <dt>Comprobante</dt>
               <dd>
                 {tipo === '01' ? 'Factura' : 'Boleta de venta'}
-                <div className="mono">serie {serie.trim().toUpperCase()}</div>
+                <div className="mono">{siguiente ?? `serie ${serie.trim().toUpperCase()}`}</div>
               </dd>
             </div>
 
@@ -735,7 +753,8 @@ export function NuevoComprobante() {
       if (e instanceof ErrorApi) {
         mensaje.error(
           e.message,
-          'El comprobante sigue guardado. Cuando el servicio vuelva, púlsalo otra vez: ' +
+          'El comprobante sigue guardado: corrige lo que dice arriba y vuelve a pulsar Emitir. ' +
+          'Si el servicio no respondía, púlsalo cuando vuelva: ' +
           'la clave de idempotencia impide que se emita dos veces.',
         )
       } else {
@@ -816,7 +835,8 @@ export function NuevoComprobante() {
                 // La serie sigue al tipo: una factura empieza por F y una
                 // boleta por B. Dejar «F001» en una boleta es un rechazo
                 // seguro, y el mensaje de SUNAT no menciona la serie.
-                setSerie(e.target.value === '01' ? 'F001' : 'B001')
+                setSerie(series?.find(s => s.tipo === e.target.value)?.serie
+                  ?? (e.target.value === '01' ? 'F001' : 'B001'))
                 // 17 oct: boleta sin cliente → «Público en general»; de vuelta
                 // a factura, ese cliente no sirve y se quita.
                 if (e.target.value === '03' && !cliente) void ponerPublicoGeneral()
@@ -833,14 +853,36 @@ export function NuevoComprobante() {
             </select>
           </label>
 
-          <Campo
-            etiqueta="Serie"
-            obligatorio
-            value={serie}
-            onChange={e => setSerie(e.target.value.toUpperCase())}
-            maxLength={4}
-            pista="Una de las que tiene dada de alta tu empresa en el servicio."
-          />
+          {/* 21 OCT: LA SERIE Y EL NÚMERO, de la configuración de la empresa. */}
+          {seriesDelTipo.length > 0 ? (
+            <label className="campo">
+              <span className="etiqueta">Serie y número<Asterisco /></span>
+              <select value={serie} onChange={e => setSerie(e.target.value)}>
+                {!seriesDelTipo.some(s => s.serie === serie) && (
+                  <option value={serie}>{serie} (no está dada de alta)</option>
+                )}
+                {seriesDelTipo.map(s => (
+                  <option key={s.serie} value={s.serie}>{s.siguiente}</option>
+                ))}
+              </select>
+              <span className="pista">
+                {seriesDelTipo.length > 1 ? 'Elige la serie. ' : ''}
+                El número lo confirma el servicio al emitir.
+              </span>
+            </label>
+          ) : (
+            <Campo
+              etiqueta="Serie"
+              obligatorio
+              value={serie}
+              onChange={e => setSerie(e.target.value.toUpperCase())}
+              maxLength={4}
+              mal={series !== null}
+              pista={series !== null
+                ? `Tu empresa no tiene serie de ${tipo === '01' ? 'factura' : 'boleta'}. Agrégala en Configuración › Series.`
+                : 'Una de las que tiene dada de alta tu empresa en el servicio.'}
+            />
+          )}
         </div>
 
         <BuscadorCliente elegido={cliente} onElegir={setCliente} />
