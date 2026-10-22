@@ -256,7 +256,10 @@ export function NotaCredito() {
                   Emitir nota de crédito
                 </Boton>
                 <span className="secundario">
-                  La serie {previa.serieNota} se crea sola la primera vez. Se envía al cliente por correo, como una factura.
+                  {previa.serieNueva
+                    ? <>No tienes serie de notas de crédito configurada: se crea {previa.serieNota} al emitir esta.</>
+                    : <>Sale con tu serie {previa.serieNota}.</>}
+                  {' '}Se envía al cliente por correo, como una factura.
                 </span>
               </div>
             </div>

@@ -585,6 +585,8 @@ export interface PreviaNotaCredito {
   cliente: { razonSocial: string; numeroDocumento: string } | null
   saldo: number
   serieNota: string
+  /** 22 oct: la serie no existe todavía: se crea sola al emitir la primera nota. */
+  serieNueva?: boolean
   puede: boolean
   problema: string | null
   diasDesdeEmision: number
@@ -638,6 +640,7 @@ export interface PreviaNotaDebito {
   vence: string | null
   cliente: { razonSocial: string; numeroDocumento: string } | null
   serieNota: string
+  serieNueva?: boolean   // 22 oct
   puede: boolean
   problema: string | null
   debitos: number
