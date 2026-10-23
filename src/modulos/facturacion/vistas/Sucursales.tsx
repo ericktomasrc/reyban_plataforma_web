@@ -117,7 +117,7 @@ export function Sucursales() {
 
   return (
     <>
-      <div className="encabezado-pagina">
+      <div className="cabecera-bandeja">
         <div>
           <h1 className="titulo-pagina">Sucursales</h1>
           <p className="bajada-pagina">Los locales de tu empresa registrados en tu ficha RUC. Todos emiten con el mismo RUC.</p>
