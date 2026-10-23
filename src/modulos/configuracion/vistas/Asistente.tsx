@@ -12,7 +12,7 @@ import { useSesion, useYo } from '../../../nucleo/sesion/SesionContexto'
 import {
   configuracionServicio, identificadorDesde, rucValido,
 } from '../servicios/configuracionServicio'
-import type { EstadoConfiguracion } from '../servicios/configuracionServicio'
+import type { EstadoConfiguracion, FormatoPdf } from '../servicios/configuracionServicio'
 import { pedidosServicio } from '../../cartera/servicios/pedidosServicio'
 import { SelectorUbigeo, buscarUbigeo } from '../../../nucleo/ubigeo/SelectorUbigeo'
 import { noActiva, noHabida, useFichaRuc } from '../../../nucleo/sunat/useFichaRuc'
@@ -789,6 +789,32 @@ function PasoCorreo({ estado, atras, alTerminar }: {
   const [color, setColor] = useState(COLORES[0])
   const [logo, setLogo] = useState<File | null>(null)
   const [vista, setVista] = useState<string | null>(null)
+  // 23 oct: el formato del PDF. null = todavía no se sabe (o el servicio no lo tiene).
+  const [formato, setFormato] = useState<FormatoPdf | null>(null)
+  const [formatoGuardado, setFormatoGuardado] = useState<FormatoPdf | null>(null)
+  const [viendo, setViendo] = useState<FormatoPdf | null>(null)
+
+  useEffect(() => {
+    let vivo = true
+    configuracionServicio.formatoPdf()
+      .then(r => { if (vivo) { setFormato(r.formato); setFormatoGuardado(r.formato) } })
+      .catch(() => { /* sin el servicio actualizado: no se ofrece */ })
+    return () => { vivo = false }
+  }, [])
+
+  const verEjemplo = async (f: FormatoPdf) => {
+    setViendo(f)
+    try {
+      const pdf = await configuracionServicio.muestraPdf(f)
+      const url = URL.createObjectURL(pdf)
+      window.open(url, '_blank', 'noopener')
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (err) {
+      mensaje.error(textoDe(err, 'No se pudo generar el ejemplo.'))
+    } finally {
+      setViendo(null)
+    }
+  }
   const [error, setError] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
 
@@ -810,6 +836,10 @@ function PasoCorreo({ estado, atras, alTerminar }: {
         copiaAlEmisor: copia,
       })
       if (logo) await configuracionServicio.subirLogo(logo)
+      if (formato && formato !== formatoGuardado) {
+        await configuracionServicio.guardarFormatoPdf(formato)
+        setFormatoGuardado(formato)
+      }
       mensaje.bien('Correo y marca guardados.')
       await alTerminar()
     } catch (err) {
@@ -869,6 +899,37 @@ function PasoCorreo({ estado, atras, alTerminar }: {
           <span className="pista">Para el correo y la página de descarga.</span>
         </div>
       </div>
+
+      {/* 23 OCT: EL FORMATO DEL PDF (A4) de facturas, boletas y notas. */}
+      {formato && (
+        <div className="campo">
+          <span className="etiqueta">Formato del PDF</span>
+          <div className="modos-consulta">
+            <div className={formato === 'moderno' ? 'modo elegido' : 'modo'}>
+              <label className="interruptor">
+                <input type="radio" name="formato-pdf" checked={formato === 'moderno'} onChange={() => setFormato('moderno')} />
+                <strong>Moderno</strong>
+              </label>
+              <span>Con tu logo, limpio, los totales que existen y el QR al pie.</span>
+              <Boton estilo="plano" ocupado={viendo === 'moderno'} textoOcupado="Generando…"
+                     onClick={() => void verEjemplo('moderno')}>Ver ejemplo</Boton>
+            </div>
+            <div className={formato === 'clasico' ? 'modo elegido' : 'modo'}>
+              <label className="interruptor">
+                <input type="radio" name="formato-pdf" checked={formato === 'clasico'} onChange={() => setFormato('clasico')} />
+                <strong>Clásico (estilo SUNAT)</strong>
+              </label>
+              <span>Como el del portal de SUNAT: blanco y negro, cuadro de totales completo y cuadro de detracción.</span>
+              <Boton estilo="plano" ocupado={viendo === 'clasico'} textoOcupado="Generando…"
+                     onClick={() => void verEjemplo('clasico')}>Ver ejemplo</Boton>
+            </div>
+          </div>
+          <span className="pista">
+            Vale para facturas, boletas y notas: en tu panel, en la página de descargas y en el correo
+            (también los ya emitidos). El ticket no cambia. El ejemplo sale con tus datos y tu logo ya guardado.
+          </span>
+        </div>
+      )}
 
       <div className="vista-correo">
         <div className="vista-correo-titulo">Vista previa del correo</div>

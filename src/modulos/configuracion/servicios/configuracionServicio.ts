@@ -103,6 +103,9 @@ export interface CertificadoGuardado {
   mensaje: string
 }
 
+/** 23 oct: el formato A4 del PDF de la empresa. */
+export type FormatoPdf = 'moderno' | 'clasico'
+
 export interface DatosMarca {
   identificador: string | null
   colorMarca: string | null
@@ -147,6 +150,17 @@ export const configuracionServicio = {
     f.append('archivo', archivo)
     return api.subir<{ mensaje: string }>('/api/configuracion/logo', f)
   },
+
+  /** 23 oct: el formato del PDF (moderno / clásico estilo SUNAT). */
+  formatoPdf: () =>
+    api.obtener<{ formato: FormatoPdf }>('/api/configuracion/formato-pdf'),
+
+  guardarFormatoPdf: (formato: FormatoPdf) =>
+    api.cambiar<{ formato: FormatoPdf; mensaje: string }>('/api/configuracion/formato-pdf', { formato }),
+
+  /** Un PDF de ejemplo con los datos y el logo de la empresa. */
+  muestraPdf: (formato: FormatoPdf) =>
+    api.archivo(`/api/configuracion/formato-pdf/muestra?formato=${formato}`),
 
   guardarSol: (usuario: string, clave: string) =>
     api.cambiar<{ mensaje: string; usuario: string }>('/api/configuracion/sol', { usuario, clave }),
