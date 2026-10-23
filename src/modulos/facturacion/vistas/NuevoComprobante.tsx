@@ -18,7 +18,20 @@ import type { DetraccionEnEdicion, PagoEnEdicion } from '../componentes/PagoYDet
 import {
   clientesServicio, consultasServicio, documentosServicio, productosServicio,
 } from '../servicios/facturacionServicio'
-import type { DatosDocumento, SerieEmpresa } from '../servicios/facturacionServicio'
+import type { DatosDocumento, SerieEmpresa, SucursalMia } from '../servicios/facturacionServicio'
+import { sucursalesServicio } from '../servicios/facturacionServicio'
+
+/** 044: la sucursal con la que se emitió la última vez en este equipo. */
+const CLAVE_SUCURSAL = 'reyban.sucursal'
+
+/** 044: con qué sucursal abre la pantalla: la de la última vez, o la primera que tenga series. */
+function sucursalInicial(mias: SucursalMia[], series: SerieEmpresa[]): string {
+  if (mias.length === 0) return ''
+  let guardada: string | null = null
+  try { guardada = localStorage.getItem(CLAVE_SUCURSAL) } catch { /* sin almacenamiento */ }
+  if (guardada && mias.some(m => m.id === guardada)) return guardada
+  return (mias.find(m => series.some(s => s.sucursalId === m.id)) ?? mias[0]).id
+}
 import type { CatalogosSunat, ClienteEnLista, ProductoEnLista } from '../tipos'
 
 /** Una línea mientras se está escribiendo. Los importes se calculan al vuelo. */
@@ -129,6 +142,9 @@ export function NuevoComprobante() {
   // 21 OCT: las series de la empresa, del servicio. Null = no se pudieron
   // leer (queda el campo de texto); [] = la empresa no tiene ninguna.
   const [series, setSeries] = useState<SerieEmpresa[] | null>(null)
+  // 044: las sucursales en las que trabajo, y desde cuál emito.
+  const [sucursales, setSucursales] = useState<SucursalMia[]>([])
+  const [sucursalId, setSucursalId] = useState('')
   const [moneda, setMoneda] = useState('PEN')
   // Soles por dólar, como lo escribe la gente («3.745»). Solo en dólares.
   const [tipoCambio, setTipoCambio] = useState('')
@@ -186,11 +202,18 @@ export function NuevoComprobante() {
 
         // 21 OCT: LA SERIE SALE SOLA, de las que tiene dada de alta la empresa.
         // En un comprobante nuevo, la primera de factura; un borrador trae la suya.
+        let ss: SerieEmpresa[] = []
         try {
-          const ss = await documentosServicio.series()
+          ss = await documentosServicio.series()
+          // 044: las sucursales en las que trabajo (el selector sale si son dos o más).
+          let mias: SucursalMia[] = []
+          try { mias = (await sucursalesServicio.mias()).sucursales } catch { /* como antes, sin sucursales */ }
           if (vivo) {
             setSeries(ss)
-            const primera = ss.find(s => s.tipo === '01')
+            setSucursales(mias)
+            const suc = sucursalInicial(mias, ss)
+            setSucursalId(suc)
+            const primera = ss.find(s => s.tipo === '01' && (!suc || !s.sucursalId || s.sucursalId === suc))
             if (!id && primera) setSerie(primera.serie)
           }
         } catch { /* queda el campo de texto */ }
@@ -219,6 +242,9 @@ export function NuevoComprobante() {
           setEstadoDoc(d.estado)
           setTipo(d.tipo)
           setSerie(d.serie ?? (d.tipo === '01' ? 'F001' : 'B001'))
+          // 044: la sucursal del borrador es la de su serie.
+          const deSerie = ss.find(s => s.tipo === d.tipo && s.serie === d.serie)?.sucursalId
+          if (deSerie) setSucursalId(deSerie)
           setMoneda(d.moneda)
           setTipoCambio(d.tipoCambio != null ? d.tipoCambio.toFixed(3) : '')
           setOrdenCompra(d.datosExtra?.ordenCompra ?? '')
@@ -361,7 +387,10 @@ export function NuevoComprobante() {
   const boletaSinDni = tipo === '03' && sinIdentificar && totalSoles > 700
 
   // 21 oct: las series de este tipo, y el número que tocará con la elegida.
-  const seriesDelTipo = (series ?? []).filter(s => s.tipo === tipo)
+  // 044: solo las de la sucursal elegida (sin asignar = de la 0000, que ya viene con su id).
+  const seriesDeSucursal = (series ?? []).filter(s => !sucursalId || !s.sucursalId || s.sucursalId === sucursalId)
+  const seriesDelTipo = seriesDeSucursal.filter(s => s.tipo === tipo)
+  const sucursalElegida = sucursales.find(s => s.id === sucursalId)
   const siguiente = seriesDelTipo.find(s => s.serie === serie)?.siguiente
 
   // 040: la detracción en soles y lo que queda por cobrar.
@@ -832,6 +861,22 @@ export function NuevoComprobante() {
 
       {/* --- Cabecera ------------------------------------------------------ */}
       <div className="bloque">
+        {/* 044: DESDE QUÉ SUCURSAL. Solo si trabajas en más de una. */}
+        {sucursales.length > 1 && (
+          <label className="campo selector-sucursal">
+            <span className="etiqueta">Sucursal<Asterisco /></span>
+            <select value={sucursalId} onChange={e => {
+              const v = e.target.value
+              setSucursalId(v)
+              try { localStorage.setItem(CLAVE_SUCURSAL, v) } catch { /* sin almacenamiento */ }
+              setSerie((series ?? []).find(s => s.tipo === tipo && (!s.sucursalId || s.sucursalId === v))?.serie
+                ?? (tipo === '01' ? 'F001' : 'B001'))
+            }}>
+              {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre} ({s.codigo})</option>)}
+            </select>
+            <span className="pista">Sale en el XML (código de establecimiento) y su dirección en el PDF.</span>
+          </label>
+        )}
         <div className="pareja">
           <label className="campo">
             <span className="etiqueta">Tipo<Asterisco /></span>
@@ -842,7 +887,7 @@ export function NuevoComprobante() {
                 // La serie sigue al tipo: una factura empieza por F y una
                 // boleta por B. Dejar «F001» en una boleta es un rechazo
                 // seguro, y el mensaje de SUNAT no menciona la serie.
-                setSerie(series?.find(s => s.tipo === e.target.value)?.serie
+                setSerie(seriesDeSucursal.find(s => s.tipo === e.target.value)?.serie
                   ?? (e.target.value === '01' ? 'F001' : 'B001'))
                 // 17 oct: boleta sin cliente → «Público en general»; de vuelta
                 // a factura, ese cliente no sirve y se quita.
@@ -886,7 +931,9 @@ export function NuevoComprobante() {
               maxLength={4}
               mal={series !== null}
               pista={series !== null
-                ? `Tu empresa no tiene serie de ${tipo === '01' ? 'factura' : 'boleta'}. Agrégala en Configuración › Series.`
+                ? (sucursalElegida && sucursales.length > 1
+                    ? `«${sucursalElegida.nombre}» no tiene serie de ${tipo === '01' ? 'factura' : 'boleta'}. Agrégala en Sucursales.`
+                    : `Tu empresa no tiene serie de ${tipo === '01' ? 'factura' : 'boleta'}. Agrégala en Configuración › Series.`)
                 : 'Una de las que tiene dada de alta tu empresa en el servicio.'}
             />
           )}

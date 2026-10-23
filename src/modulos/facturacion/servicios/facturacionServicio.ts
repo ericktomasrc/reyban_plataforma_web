@@ -300,6 +300,8 @@ export interface SerieEmpresa {
   serie: string
   ultimo: number
   siguiente: string
+  /** 044: de qué sucursal es (sin asignar = la 0000). */
+  sucursalId?: string | null
 }
 
 /** 040: lo habitual de la detracción de la empresa. */
@@ -479,4 +481,109 @@ export interface RevisionImportacion {
   total: number
   filas: FilaImportacion[]
   mensaje?: string
+}
+
+// =============================================================================
+// 044 — SUCURSALES (locales del mismo RUC), sus series y sus usuarios.
+// =============================================================================
+
+/** Una sucursal en Configuración › Sucursales. */
+export interface Sucursal {
+  id: string
+  /** El código de establecimiento de la ficha RUC. «0000» = domicilio fiscal. */
+  codigo: string
+  nombre: string
+  direccion: string | null
+  ubigeo: string | null
+  /** «Comas, Lima - Lima». */
+  lugar: string | null
+  activo: boolean
+  esPrincipal: boolean
+  series: { tipo: string; serie: string; ultimo: number }[]
+  usuarios: number
+  /** Comprobantes que salieron de ella (contando borradores). */
+  documentos: number
+  puedeEliminar: boolean
+  /** Por qué no se puede eliminar (solo desactivar). */
+  motivoNoEliminar: string | null
+  /** El código se corrige solo mientras no haya salido ningún comprobante con él. */
+  puedeCambiarCodigo: boolean
+}
+
+export interface ListaSucursales {
+  sucursales: Sucursal[]
+  /** false = el servicio de facturación no respondió: las series pueden no estar completas. */
+  seriesLeidas: boolean
+  puedeGestionar: boolean
+}
+
+/** Un local de mi RUC según el padrón de locales anexos de SUNAT. */
+export interface LocalSunat {
+  direccion: string | null
+  ubigeo: string | null
+  lugar: string | null
+  /** Si ya es una sucursal: «Tienda Norte (0001)». */
+  yaEs: string | null
+}
+
+export interface PeticionSucursal {
+  codigo: string
+  nombre: string
+  direccion: string
+  ubigeo: string | null
+  series?: { tipo: string; serie: string }[]
+  /** La dirección se repite con otra sucursal y se guarda igual. */
+  confirmado?: boolean
+}
+
+/** Una sucursal desde la que puedo emitir. */
+export interface SucursalMia {
+  id: string
+  codigo: string
+  nombre: string
+  direccion: string | null
+}
+
+export interface UsuarioSucursales {
+  id: string
+  nombre: string
+  correo: string
+  /** Vacío = trabaja en todas. */
+  sucursales: string[]
+  todas: boolean
+}
+
+export const sucursalesServicio = {
+  listar: () =>
+    api.obtener<ListaSucursales>('/api/facturacion/sucursales'),
+
+  mias: () =>
+    api.obtener<{ principalId: string; sucursales: SucursalMia[] }>('/api/facturacion/sucursales/mias'),
+
+  localesSunat: () =>
+    api.obtener<{ cargado: boolean; ruc: string | null; locales: LocalSunat[] }>('/api/facturacion/sucursales/locales-sunat'),
+
+  crear: (p: PeticionSucursal) =>
+    api.crear<{ id: string; mensaje: string }>('/api/facturacion/sucursales', p),
+
+  cambiar: (id: string, p: PeticionSucursal) =>
+    api.cambiar<{ id: string; mensaje: string }>(`/api/facturacion/sucursales/${id}`, p),
+
+  agregarSeries: (id: string, series: { tipo: string; serie: string }[]) =>
+    api.crear<{ mensaje: string }>(`/api/facturacion/sucursales/${id}/series`, { series }),
+
+  desactivar: (id: string) =>
+    api.crear<{ mensaje: string; aviso: string | null }>(`/api/facturacion/sucursales/${id}/desactivar`),
+
+  reactivar: (id: string) =>
+    api.crear<{ mensaje: string }>(`/api/facturacion/sucursales/${id}/reactivar`),
+
+  eliminar: (id: string) =>
+    api.borrar<{ mensaje: string }>(`/api/facturacion/sucursales/${id}`),
+
+  usuarios: () =>
+    api.obtener<UsuarioSucursales[]>('/api/facturacion/sucursales/usuarios'),
+
+  asignar: (usuarioId: string, sucursales: string[]) =>
+    api.cambiar<{ mensaje: string }>(`/api/facturacion/sucursales/usuarios/${usuarioId}`, { sucursales }),
 }

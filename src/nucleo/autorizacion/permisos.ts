@@ -43,6 +43,7 @@ export const Permisos = {
     ClientesGestionar:     'facturacion.clientes_gestionar',
     ProductosGestionar:    'facturacion.productos_gestionar',
     CredencialesGestionar: 'facturacion.credenciales_gestionar',
+    SucursalesGestionar:   'facturacion.sucursales_gestionar',   // 044
   },
 
   // 032: un permiso por reporte.

@@ -21,14 +21,26 @@ export interface CargaPadron {
   usuario: string | null
 }
 
+/** 045: los dos padrones de SUNAT. */
+export type TipoPadron = 'ruc' | 'anexos'
+
+/** El estado de un padrón: el que está en uso, si hay una carga en curso, y las últimas. */
+export interface EstadoPadron {
+  enUso: { filas: number; cargadoEn: string; origen: string; archivo: string | null } | null
+  enCurso: boolean
+  cargas: CargaPadron[]
+}
+
 export interface EstadoConsultas {
-  padron: {
+  padron: EstadoPadron & {
     modo: ModoConsultas
-    enUso: { filas: number; cargadoEn: string; origen: string; archivo: string | null } | null
-    enCurso: boolean
-    cargas: CargaPadron[]
+    /** 045: el de locales anexos (para Sucursales). Falta si la base no tiene la 045. */
+    anexos?: EstadoPadron
   }
-  automatico: { activo: boolean; hora: number; url: string; minimo: number }
+  automatico: {
+    activo: boolean; hora: number; url: string; minimo: number
+    urlAnexos?: string; minimoAnexos?: number   // 045
+  }
   /** 22 oct: la carga en marcha, para la barra. null = nada en marcha. */
   avance: AvancePadron | null
   decolecta: { configurado: boolean; usadas: number; limite: number }
@@ -43,6 +55,8 @@ export interface EstadoConsultas {
  */
 export interface AvancePadron {
   etapa: 'en_cola' | 'bajando' | 'cargando' | 'activando'
+  /** 045: de qué padrón es la carga. */
+  padron?: TipoPadron
   origen: string
   /** true = archivo subido a mano; false = bajado de SUNAT. */
   subido: boolean
@@ -61,8 +75,8 @@ export const consultasSunatServicio = {
   cambiarModo: (modo: ModoConsultas) =>
     api.cambiar<{ modo: ModoConsultas; mensaje: string }>('/api/admin/consultas-sunat/modo', { modo }),
 
-  descargar: () =>
-    api.crear<{ mensaje: string }>('/api/admin/consultas-sunat/padron/descargar'),
+  descargar: (padron: TipoPadron = 'ruc') =>
+    api.crear<{ mensaje: string }>(`/api/admin/consultas-sunat/padron/descargar?padron=${padron}`),
 
   /**
    * El .zip de SUNAT (o el .txt), tal cual, como cuerpo. Puede pesar cientos
@@ -71,10 +85,10 @@ export const consultasSunatServicio = {
    * 22 oct: con XMLHttpRequest (no fetch) para poder ir diciendo cuánto se
    * subió: `alSubir(enviados, total)` alimenta la barra de la pantalla.
    */
-  subir: (archivo: File, alSubir?: (enviados: number, total: number) => void): Promise<{ mensaje: string }> =>
+  subir: (archivo: File, padron: TipoPadron, alSubir?: (enviados: number, total: number) => void): Promise<{ mensaje: string }> =>
     new Promise((resolver, rechazar) => {
       const x = new XMLHttpRequest()
-      x.open('POST', `/api/admin/consultas-sunat/padron/subir?nombre=${encodeURIComponent(archivo.name)}`)
+      x.open('POST', `/api/admin/consultas-sunat/padron/subir?nombre=${encodeURIComponent(archivo.name)}&padron=${padron}`)
       x.withCredentials = true
       x.setRequestHeader('Content-Type', 'application/octet-stream')
       x.upload.onprogress = e => { if (alSubir) alSubir(e.loaded, e.lengthComputable ? e.total : archivo.size) }

@@ -156,6 +156,10 @@ export function Disposicion() {
                   <NavLink to="/facturacion/comprobantes" className={activo}><Icono>▤</Icono>Comprobantes</NavLink>
                   <NavLink to="/facturacion/clientes" className={activo}><Icono>☺</Icono>Clientes</NavLink>
                   <NavLink to="/facturacion/productos" className={activo}><Icono>◫</Icono>Productos</NavLink>
+                  {/* 044: los locales del mismo RUC. */}
+                  {puede(Permisos.Facturacion.SucursalesGestionar) && (
+                    <NavLink to="/facturacion/sucursales" className={activo}><Icono>⌖</Icono>Sucursales</NavLink>
+                  )}
                 </>
               )}
 
@@ -247,6 +251,7 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/facturacion/comprobantes')) return 'Comprobantes'
   if (ruta.startsWith('/facturacion/clientes')) return 'Clientes'
   if (ruta.startsWith('/facturacion/productos')) return 'Productos'
+  if (ruta.startsWith('/facturacion/sucursales')) return 'Sucursales'
   if (ruta.startsWith('/reportes')) return 'Reportes'
   if (ruta.startsWith('/mi-cartera')) return 'Reportes de la cartera'
   if (ruta.startsWith('/admin/reportes')) return 'Reportes de la plataforma'

@@ -893,6 +893,20 @@ a.boton { display: inline-flex; align-items: center; text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { .pista-padron.indeterminada > span { animation: none; width: 100%; opacity: .45; } }
 .progreso-padron .nota { margin: 0; }
 
+/* 044 — Sucursales: los locales de SUNAT y las series al crear */
+.locales-sunat { display: grid; gap: var(--e1); padding: var(--e3); margin-bottom: var(--e3);
+  border: 1px solid #bfdcd9; border-radius: 8px; background: var(--acento-suave); }
+.lista-locales { display: grid; gap: 6px; margin-top: var(--e1); max-height: 220px; overflow-y: auto; }
+.lista-locales .local { display: grid; gap: 2px; text-align: left; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--borde); background: #fff; cursor: pointer; font: inherit; color: inherit; }
+.lista-locales .local.elegido { border: 2px solid var(--acento); }
+.lista-locales .local:disabled { cursor: default; opacity: .6; }
+.series-sucursal { display: grid; gap: 6px; margin-top: var(--e3); padding-top: var(--e3); border-top: 1px solid var(--borde); }
+.fila-serie { display: grid; grid-template-columns: 20px 1fr 90px; gap: var(--e2); align-items: center; min-height: 36px; }
+.fila-serie input[type="checkbox"] { width: 18px; height: 18px; }
+.fila-serie input:not([type]) { padding: 6px 8px; border: 1px solid var(--borde); border-radius: 6px; font: inherit; }
+.selector-sucursal { max-width: 360px; }
+
 /* 042 — Consultas SUNAT: los dos modos */
 .modos-consulta { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--e3); }
 .modos-consulta .modo { display: grid; gap: var(--e1); text-align: left; padding: var(--e4); border-radius: 8px;

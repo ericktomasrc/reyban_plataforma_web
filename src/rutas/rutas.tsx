@@ -16,6 +16,7 @@ import { Comprobantes } from '../modulos/facturacion/vistas/Comprobantes'
 import { NuevoComprobante } from '../modulos/facturacion/vistas/NuevoComprobante'
 import { NotaCredito } from '../modulos/facturacion/vistas/NotaCredito'
 import { ImportarProductos } from '../modulos/facturacion/vistas/ImportarProductos'
+import { Sucursales } from '../modulos/facturacion/vistas/Sucursales'
 import { NotaDebito } from '../modulos/facturacion/vistas/NotaDebito'
 import {
   InicioReportes, ReporteClientesPagina, ReporteMiDiaPagina, ReporteProductosPagina,
@@ -267,6 +268,16 @@ export function Rutas() {
           element={
             <Protegido permiso={Permisos.Facturacion.ProductosGestionar} modulo={Modulos.Facturacion}>
               <ImportarProductos />
+            </Protegido>
+          }
+        />
+
+        {/* 044: sucursales (locales del mismo RUC), sus series y sus usuarios. */}
+        <Route
+          path="/facturacion/sucursales"
+          element={
+            <Protegido permiso={Permisos.Facturacion.Ver} modulo={Modulos.Facturacion}>
+              <Sucursales />
             </Protegido>
           }
         />
