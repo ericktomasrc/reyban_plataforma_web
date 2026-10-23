@@ -132,15 +132,19 @@ export function VerComprobante() {
   const motivos = d.tipo === '08' ? MOTIVOS_DEBITO : MOTIVOS_NOTA
   const notasDebito = d.notasDebito ?? []
   // 22 oct: NOTA DE DÉBITO, sobre una factura o boleta aceptada (mismo permiso que la de crédito).
-  const puedeDebito = aceptado && (d.tipo === '01' || d.tipo === '03') && puede(Permisos.Facturacion.NotasCredito)
   const notas = d.notasCredito ?? []
   const saldo = d.saldo ?? d.totales.importeTotal
-  const conNotas = notas.some(n => n.cuenta)
-  const puedeNota = aceptado && (d.tipo === '01' || d.tipo === '03') && saldo > 0 &&
+  // 23 oct: REGLAS DE SUNAT. Con notas (de crédito O de débito) ya no hay baja;
+  // con la baja pedida y sin respuesta, no hay notas; con saldo 0, ninguna nota.
+  const bajaPedida = d.bajaPedidaEn ?? null
+  const conNotas = (d.notasVigentes ?? 0) > 0 || notas.some(n => n.cuenta)
+  const puedeDebito = aceptado && (d.tipo === '01' || d.tipo === '03') && saldo > 0 && !bajaPedida &&
+    puede(Permisos.Facturacion.NotasCredito)
+  const puedeNota = aceptado && (d.tipo === '01' || d.tipo === '03') && saldo > 0 && !bajaPedida &&
     puede(Permisos.Facturacion.NotasCredito)
 
   // Una factura con notas ya no se da de baja: se sigue con notas.
-  const anulable = aceptado && (d.tipo === '01' || d.tipo === '03' || esNota) && !conNotas &&
+  const anulable = aceptado && (d.tipo === '01' || d.tipo === '03' || esNota) && !conNotas && !bajaPedida &&
     puede(Permisos.Facturacion.Anular)
   const textoAnular = d.tipo === '01' || (esNota && serie.startsWith('F')) ? 'Comunicar baja' : 'Anular'
   const numero1033 = ['1033', '01033'].includes(d.codigoSunat ?? '')
@@ -251,6 +255,14 @@ export function VerComprobante() {
           </Aviso>
         )}
 
+        {/* 23 oct: la baja / anulación ya pedida, esperando a SUNAT. */}
+        {bajaPedida && (
+          <Aviso tono="ojo">
+            <strong>Se pidió {textoAnular === 'Anular' ? 'la anulación' : 'la baja'} el {fechaYHora(bajaPedida)}.</strong>{' '}
+            Esperando la respuesta de SUNAT: mientras tanto no se pueden hacer notas. Si SUNAT la acepta, pasa a «anulado».
+          </Aviso>
+        )}
+
         {/* 18 OCT: ANULAR, con el nombre que usa SUNAT. */}
         {/* 031: NOTA DE CRÉDITO, sin plazo. Y dentro de los 7 días, también la baja. */}
         {(puedeNota || puedeDebito || (anulable && dias <= 7)) && (
@@ -276,7 +288,7 @@ export function VerComprobante() {
             </span>
           </div>
         )}
-        {aceptado && dias > 7 && (d.tipo === '01' || d.tipo === '03') && !conNotas && (
+        {aceptado && dias > 7 && (d.tipo === '01' || d.tipo === '03') && !conNotas && !bajaPedida && (
           <Aviso tono="ojo">
             <strong>Ya pasaron los 7 días para «{textoAnular}».</strong> Para anularlo o corregirlo, haz una
             <strong> nota de crédito</strong>: es el camino que SUNAT acepta, sin plazo.

@@ -559,6 +559,10 @@ export interface DocumentoCompleto {
   saldo?: number
   /** 22 oct: en una factura o boleta, sus notas de débito. */
   notasDebito?: NotaCreditoResumen[]
+  /** 23 oct: notas de crédito o débito que valen (emitidas, aceptadas o en camino). Con alguna, no hay baja. */
+  notasVigentes?: number
+  /** 23 oct: cuándo se pidió la baja / anulación, si SUNAT todavía no contesta. Mientras tanto, no hay notas. */
+  bajaPedidaEn?: string | null
 }
 
 /** 031: una nota de crédito de un comprobante. `cuenta` = vale y resta del saldo. */
