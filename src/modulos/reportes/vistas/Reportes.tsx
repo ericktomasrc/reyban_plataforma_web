@@ -12,7 +12,7 @@ import { useSesion, useYo } from '../../../nucleo/sesion/SesionContexto'
 import { Barras, Cifra, Dona, GraficoLinea, dinero } from '../componentes/Graficos'
 import {
   reportesServicio, type Filtros, type NombreReporte, type ReporteClientes, type ReporteMiDia,
-  type ReporteProductos, type ReporteVendedores, type ReporteVentas,
+  type ReporteProductos, type ReporteSucursales, type ReporteVendedores, type ReporteVentas,
 } from '../servicios/reportesServicio'
 
 /**
@@ -24,17 +24,20 @@ import {
  */
 
 /** Los reportes de esta entrega, en el orden del menú, con su permiso. */
-export const REPORTES: { ruta: string; nombre: string; permiso: string; grupo: string }[] = [
+export const REPORTES: { ruta: string; nombre: string; permiso: string; grupo: string; conSucursales?: boolean }[] = [
   { ruta: '/reportes/mi-dia',     nombre: 'Mi día',              permiso: Permisos.Reportes.MiDia,          grupo: 'Mi negocio' },
   { ruta: '/reportes/ventas',     nombre: 'Tablero de ventas',   permiso: Permisos.Reportes.TableroVentas,  grupo: 'Mi negocio' },
   { ruta: '/reportes/clientes',   nombre: 'Ventas por cliente',  permiso: Permisos.Reportes.VentasCliente,  grupo: 'Mi negocio' },
   { ruta: '/reportes/productos',  nombre: 'Ventas por producto', permiso: Permisos.Reportes.VentasProducto, grupo: 'Mi negocio' },
   { ruta: '/reportes/vendedores', nombre: 'Ventas por vendedor', permiso: Permisos.Reportes.VentasVendedor, grupo: 'Mi negocio' },
+  // e147: solo sale si la empresa tiene más de un local.
+  { ruta: '/reportes/sucursales', nombre: 'Ventas por sucursal', permiso: Permisos.Reportes.TableroVentas, grupo: 'Mi negocio', conSucursales: true },
   // 034: SUNAT y contabilidad
   { ruta: '/reportes/igv',       nombre: 'Resumen de IGV',              permiso: Permisos.Reportes.ResumenIgv,     grupo: 'SUNAT y contabilidad' },
   { ruta: '/reportes/registro',  nombre: 'Registro de Ventas',          permiso: Permisos.Reportes.RegistroVentas, grupo: 'SUNAT y contabilidad' },
   { ruta: '/reportes/problemas', nombre: 'Comprobantes con problema',   permiso: Permisos.Reportes.ConProblema,    grupo: 'SUNAT y contabilidad' },
   { ruta: '/reportes/anulados',  nombre: 'Anulados y notas de crédito', permiso: Permisos.Reportes.AnuladosNotas,  grupo: 'SUNAT y contabilidad' },
+  { ruta: '/reportes/personas-notas', nombre: 'Notas y anulaciones por persona', permiso: Permisos.Reportes.AnuladosNotas, grupo: 'SUNAT y contabilidad' },
   { ruta: '/reportes/descarga',  nombre: 'Descarga masiva',             permiso: Permisos.Reportes.DescargaMasiva, grupo: 'SUNAT y contabilidad' },
 ]
 
@@ -548,21 +551,75 @@ export function ReporteVendedoresPagina() {
         <>
           <div className="bloque">
             <h2 className="subtitulo">Quién emitió cada comprobante</h2>
-            <Barras cabeceras={['Vendedor', 'Total']}
-                    filas={d.filas.map(f => ({ etiqueta: f.vendedor, valor: f.total, nota: `${f.comprobantes} comprobantes` }))} />
+            <Barras cabeceras={['Vendedor', 'Total']} filas={porPersona(d.filas)} />
           </div>
           <div className="bloque sin-relleno">
             <table className="tabla">
-              <thead><tr><th>Quién emitió</th><th className="derecha">Comprobantes</th>
+              <thead><tr><th>Quién emitió</th>{d.variasSucursales && <th>Sucursal</th>}<th className="derecha">Comprobantes</th>
                 <th className="derecha">Notas de crédito</th><th className="derecha">Total</th></tr></thead>
               <tbody>
                 {d.filas.map((f, i) => (
                   <tr key={i}>
-                    <td>{f.vendedor}</td><td className="derecha mono">{f.comprobantes}</td>
+                    <td>{f.vendedor}</td>{d.variasSucursales && <td className="secundario">{f.sucursal}</td>}
+                    <td className="derecha mono">{f.comprobantes}</td>
                     <td className="derecha mono">{f.notas}</td><td className="derecha mono">{dinero(f.total)}</td>
                   </tr>
                 ))}
-                <tr className="fila-total"><td colSpan={3}>Total</td><td className="derecha mono">{dinero(d.total)}</td></tr>
+                <tr className="fila-total"><td colSpan={d.variasSucursales ? 4 : 3}>Total</td><td className="derecha mono">{dinero(d.total)}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </Marco>
+  )
+}
+
+
+/** e147: el gráfico, una barra por persona (la tabla la parte por sucursal). */
+function porPersona(filas: ReporteVendedores['filas']) {
+  const m = new Map<string, { total: number; n: number }>()
+  for (const f of filas) {
+    const x = m.get(f.vendedor) ?? { total: 0, n: 0 }
+    m.set(f.vendedor, { total: x.total + f.total, n: x.n + f.comprobantes })
+  }
+  return [...m].sort((a, b) => b[1].total - a[1].total)
+    .map(([etiqueta, x]) => ({ etiqueta, valor: x.total, nota: `${x.n} comprobantes` }))
+}
+
+
+// =============================================================================
+/** e147: VENTAS POR SUCURSAL. Salen también los locales que no vendieron en el periodo. */
+export function ReporteSucursalesPagina() {
+  const r = useReporte<ReporteSucursales>('sucursales', true)
+  return (
+    <Marco titulo="Ventas por sucursal" reporte="sucursales" r={r} busqueda={{ texto: 'Nombre o código del local' }}>
+      {d => (
+        <>
+          <div className="bloque">
+            <h2 className="subtitulo">Cuánto vendió cada local</h2>
+            <Barras cabeceras={['Sucursal', 'Total']}
+                    filas={d.filas.map(f => ({ etiqueta: `${f.codigo ?? ''} ${f.sucursal}`.trim(), valor: f.total,
+                                               nota: `${f.facturas + f.boletas} comprobantes` }))} />
+          </div>
+          <div className="bloque sin-relleno">
+            <table className="tabla">
+              <thead><tr><th>Sucursal</th><th className="derecha">Facturas</th><th className="derecha">Boletas</th>
+                <th className="derecha">Notas</th><th className="derecha">Base</th><th className="derecha">IGV</th>
+                <th className="derecha">Total</th><th className="derecha">%</th></tr></thead>
+              <tbody>
+                {d.filas.map((f, i) => (
+                  <tr key={i} className={f.total === 0 ? 'apagada' : undefined}>
+                    <td><span className="mono secundario">{f.codigo}</span> {f.sucursal}
+                      {!f.activa && <span className="secundario"> · desactivada</span>}</td>
+                    <td className="derecha mono">{f.facturas}</td><td className="derecha mono">{f.boletas}</td>
+                    <td className="derecha mono">{f.notas}</td>
+                    <td className="derecha mono">{dinero(f.base)}</td><td className="derecha mono">{dinero(f.igv)}</td>
+                    <td className="derecha mono">{dinero(f.total)}</td>
+                    <td className="derecha mono secundario">{d.total ? ((f.total / d.total) * 100).toFixed(1) : '0'}</td>
+                  </tr>
+                ))}
+                <tr className="fila-total"><td colSpan={6}>Total</td><td className="derecha mono">{dinero(d.total)}</td><td /></tr>
               </tbody>
             </table>
           </div>

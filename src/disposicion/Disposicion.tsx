@@ -84,7 +84,8 @@ export function Disposicion() {
   const facturacion = menu.some(m => m.codigo === 'facturacion')
 
   // 032: REPORTES. Sale si puede ver al menos uno; sus submenús, al entrar.
-  const reportes = REPORTES.filter(r => puede(r.permiso))
+  // e147: «Ventas por sucursal», solo con más de un local.
+  const reportes = REPORTES.filter(r => puede(r.permiso) && (!r.conSucursales || (alcance?.total ?? 0) > 1))
   // 036: «Reportes» lo abre y lo cierra MenuDesplegable.
   const otrosModulos = menu.filter(m => m.codigo !== 'facturacion')
 

@@ -20,10 +20,11 @@ import { Sucursales } from '../modulos/facturacion/vistas/Sucursales'
 import { NotaDebito } from '../modulos/facturacion/vistas/NotaDebito'
 import {
   InicioReportes, ReporteClientesPagina, ReporteMiDiaPagina, ReporteProductosPagina,
-  ReporteVendedoresPagina, ReporteVentasPagina,
+  ReporteSucursalesPagina, ReporteVendedoresPagina, ReporteVentasPagina,
 } from '../modulos/reportes/vistas/Reportes'
 import {
-  ReporteAnuladosPagina, ReporteDescargaPagina, ReporteIgvPagina, ReporteProblemasPagina, ReporteRegistroPagina,
+  ReporteAnuladosPagina, ReporteDescargaPagina, ReporteIgvPagina, ReportePersonasNotasPagina, ReporteProblemasPagina,
+  ReporteRegistroPagina,
 } from '../modulos/reportes/vistas/ReportesSunat'
 import {
   ReporteCarteraPagina, ReporteCertificadosPagina, ReporteCuentasPagina, ReporteEmpresasPagina,
@@ -307,6 +308,9 @@ export function Rutas() {
           <Protegido permiso={Permisos.Reportes.VentasProducto} modulo={Modulos.Facturacion}><ReporteProductosPagina /></Protegido>} />
         <Route path="/reportes/vendedores" element={
           <Protegido permiso={Permisos.Reportes.VentasVendedor} modulo={Modulos.Facturacion}><ReporteVendedoresPagina /></Protegido>} />
+        {/* e147 */}
+        <Route path="/reportes/sucursales" element={
+          <Protegido permiso={Permisos.Reportes.TableroVentas} modulo={Modulos.Facturacion}><ReporteSucursalesPagina /></Protegido>} />
 
         {/* 036: REPORTES de la cartera (quien tiene cartera; el back no le da nada a los demás). */}
         <Route path="/mi-cartera/reportes" element={<ReporteCarteraPagina />} />
@@ -327,6 +331,8 @@ export function Rutas() {
           <Protegido permiso={Permisos.Reportes.ConProblema} modulo={Modulos.Facturacion}><ReporteProblemasPagina /></Protegido>} />
         <Route path="/reportes/anulados" element={
           <Protegido permiso={Permisos.Reportes.AnuladosNotas} modulo={Modulos.Facturacion}><ReporteAnuladosPagina /></Protegido>} />
+        <Route path="/reportes/personas-notas" element={
+          <Protegido permiso={Permisos.Reportes.AnuladosNotas} modulo={Modulos.Facturacion}><ReportePersonasNotasPagina /></Protegido>} />
         <Route path="/reportes/descarga" element={
           <Protegido permiso={Permisos.Reportes.DescargaMasiva} modulo={Modulos.Facturacion}><ReporteDescargaPagina /></Protegido>} />
 

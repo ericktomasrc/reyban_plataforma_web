@@ -5,8 +5,8 @@ import { api } from '../../../nucleo/api/cliente'
 // `formato=xlsx` baja el mismo reporte en Excel.
 // =============================================================================
 
-export type NombreReporte = 'mi-dia' | 'ventas' | 'clientes' | 'productos' | 'vendedores'
-  | 'igv' | 'registro' | 'problemas' | 'anulados'
+export type NombreReporte = 'mi-dia' | 'ventas' | 'clientes' | 'productos' | 'vendedores' | 'sucursales'
+  | 'igv' | 'registro' | 'problemas' | 'anulados' | 'personas-notas'
   | 'cartera' | 'admin/plataforma' | 'admin/empresas' | 'admin/rechazos' | 'admin/cuentas'
 
 /** 036: los del super administrador viven en /api/admin/reportes. */
@@ -79,7 +79,16 @@ export interface ReporteProductos extends Comun {
 
 export interface ReporteVendedores extends Comun {
   total: number
-  filas: { vendedor: string; comprobantes: number; notas: number; total: number }[]
+  /** e147: la empresa tiene más de un local: sale la columna «Sucursal» (una fila por persona y sucursal). */
+  variasSucursales?: boolean
+  filas: { vendedor: string; sucursal?: string; comprobantes: number; notas: number; total: number }[]
+}
+
+/** e147: Ventas por sucursal (también las que no vendieron, si las puede ver). */
+export interface ReporteSucursales extends Comun {
+  total: number
+  filas: { codigo: string | null; sucursal: string; activa: boolean; facturas: number; boletas: number; notas: number;
+           base: number; igv: number; total: number }[]
 }
 
 // --- 034: SUNAT y contabilidad (montos en soles) ----------------------------
@@ -107,7 +116,16 @@ export interface ReporteProblemas extends Comun {
 
 export interface ReporteAnulados extends Comun {
   filas: { id: string; fecha: string; tipo: string; numero: string; cliente: string; total: number; moneda: string;
-           estado: string; tipoNota: string | null; motivo: string | null; afecta: string | null; afectaId: string | null }[]
+           estado: string; tipoNota: string | null; motivo: string | null; afecta: string | null; afectaId: string | null
+           /** e147 */
+           sucursal?: string; emitio?: string; anulo?: string | null }[]
+}
+
+/** e147: Notas y anulaciones por persona (en soles). */
+export interface ReportePersonasNotas extends Comun {
+  filas: { persona: string; cargo: string | null; notasCredito: number; montoNotasCredito: number;
+           notasDebito: number; montoNotasDebito: number; anulaciones: number; montoAnulaciones: number;
+           acciones: number }[]
 }
 
 // --- 036: cartera y plataforma ----------------------------------------------

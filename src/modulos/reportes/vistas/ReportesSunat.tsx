@@ -6,7 +6,7 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha } from '../../../nucleo/formato/fechas'
 import { Barras, Cifra, dinero } from '../componentes/Graficos'
 import {
-  reportesServicio, type ReporteAnulados, type ReporteIgv, type ReporteProblemas, type ReporteRegistro,
+  reportesServicio, type ReporteAnulados, type ReporteIgv, type ReportePersonasNotas, type ReporteProblemas, type ReporteRegistro,
 } from '../servicios/reportesServicio'
 import { Marco, useReporte, type Busqueda } from './Reportes'
 
@@ -234,23 +234,74 @@ export function ReporteAnuladosPagina() {
         <div className="bloque sin-relleno">
           <table className="tabla">
             <thead><tr><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th>Modifica a</th><th>Motivo</th>
-              <th className="derecha">Total</th><th>Estado</th></tr></thead>
+              <th className="derecha">Total</th><th>Estado</th><th>Quién</th></tr></thead>
             <tbody>
               {d.filas.map(f => (
                 <tr key={f.id}>
                   <td className="secundario">{fecha(f.fecha)}</td>
                   <td className="mono"><Link to={`/facturacion/comprobantes/${f.id}`}>{f.numero}</Link>
-                    <div className="secundario">{TIPO[f.tipo] ?? f.tipo}</div></td>
+                    <div className="secundario">{TIPO[f.tipo] ?? f.tipo}</div>
+                    {f.sucursal && <div className="secundario">{f.sucursal}</div>}</td>
                   <td>{f.cliente}</td>
                   <td className="mono">{f.afectaId ? <Link to={`/facturacion/comprobantes/${f.afectaId}`}>{f.afecta}</Link> : ''}</td>
                   <td className="secundario">{f.tipoNota ? ((f.tipo === '08' ? MOTIVO_DEBITO : MOTIVO)[f.tipoNota] ?? f.tipoNota) : ''}{f.motivo && <div>{f.motivo}</div>}</td>
                   <td className="derecha mono">{f.moneda} {dinero(f.total)}</td>
                   <td>{ESTADO[f.estado] ?? f.estado}</td>
+                  <td className="secundario">
+                    {f.estado === 'anulado'
+                      ? <>Anuló: {f.anulo ?? '—'}{f.tipo === '07' || f.tipo === '08' ? <div>Emitió: {f.emitio}</div> : null}</>
+                      : <>Emitió: {f.emitio ?? '—'}</>}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+    </Marco>
+  )
+}
+
+
+// =============================================================================
+/**
+ * e147 — NOTAS Y ANULACIONES POR PERSONA (en soles). Las notas, de quien las
+ * emitió; las anulaciones, de quien las pidió (registrado desde el 23 oct).
+ */
+export function ReportePersonasNotasPagina() {
+  const r = useReporte<ReportePersonasNotas>('personas-notas', true)
+  return (
+    <Marco titulo="Notas y anulaciones por persona" reporte="personas-notas" r={r} conMoneda={false}
+           busqueda={{ texto: 'Nombre de la persona' }}
+           pie={<p className="nota">Montos en soles. El detalle de cada una está en «Anulados y notas de crédito».</p>}>
+      {d => d.filas.length === 0 ? (
+        <p className="nota">Nadie hizo notas ni anulaciones en este periodo.</p>
+      ) : (
+        <>
+          <div className="bloque">
+            <h2 className="subtitulo">Quién corrige más</h2>
+            <Barras cabeceras={['Persona', 'Notas y anulaciones']} formato={n => String(n)}
+                    filas={d.filas.map(f => ({ etiqueta: f.persona, valor: f.acciones }))} />
+          </div>
+          <div className="bloque sin-relleno">
+            <table className="tabla">
+              <thead><tr><th>Persona</th>
+                <th className="derecha">Notas de crédito</th><th className="derecha">Monto</th>
+                <th className="derecha">Notas de débito</th><th className="derecha">Monto</th>
+                <th className="derecha">Anulaciones</th><th className="derecha">Monto</th></tr></thead>
+              <tbody>
+                {d.filas.map((f, i) => (
+                  <tr key={i}>
+                    <td>{f.persona}{f.cargo && <div className="secundario">{f.cargo}</div>}</td>
+                    <td className="derecha mono">{f.notasCredito}</td><td className="derecha mono">{dinero(f.montoNotasCredito)}</td>
+                    <td className="derecha mono">{f.notasDebito}</td><td className="derecha mono">{dinero(f.montoNotasDebito)}</td>
+                    <td className="derecha mono">{f.anulaciones}</td><td className="derecha mono">{dinero(f.montoAnulaciones)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </Marco>
   )
