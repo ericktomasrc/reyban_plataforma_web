@@ -3,7 +3,8 @@ import { Aviso } from '../../../componentes/Aviso'
 import { fecha } from '../../../nucleo/formato/fechas'
 import { Barras, Cifra, GraficoLinea, dinero } from '../componentes/Graficos'
 import type {
-  ReporteCartera, ReporteCuentas, ReporteEmpresasMes, ReportePlataforma, ReporteRechazos,
+  ReporteActivacion, ReporteCartera, ReporteConsumo, ReporteCuentas, ReporteEmpresasMes, ReportePlataforma,
+  ReporteRechazos, ReporteRiesgo,
 } from '../servicios/reportesServicio'
 import { Marco, useReporte } from './Reportes'
 
@@ -23,6 +24,10 @@ export const REPORTES_PLATAFORMA = [
   { ruta: '/admin/reportes/empresas', nombre: 'Comprobantes por empresa' },
   { ruta: '/admin/reportes/rechazos', nombre: 'Rechazos SUNAT por código' },
   { ruta: '/admin/reportes/cuentas', nombre: 'Cuentas nuevas' },
+  // e148
+  { ruta: '/admin/reportes/activacion', nombre: 'Avance de activación' },
+  { ruta: '/admin/reportes/riesgo', nombre: 'Empresas en riesgo' },
+  { ruta: '/admin/reportes/consumo', nombre: 'Consumo por cuenta y mes' },
 ]
 
 function diasPara(f: string | null) {
@@ -255,6 +260,164 @@ export function ReporteCuentasPagina() {
           </div>
         </>
       )}
+    </Marco>
+  )
+}
+
+
+// =============================================================================
+// e148 — AVANCE DE ACTIVACIÓN: en qué paso se quedó cada cuenta.
+// =============================================================================
+const PASOS = ['', 'Se registró', 'Confirmó el correo', 'Agregó su empresa', 'Se conectó al servicio',
+               'Emitió de prueba', 'Pasó a SUNAT real', 'Emite real']
+
+/** Qué hacer para que avance (lo que se le dice al llamar). */
+const SIGUIENTE = ['', 'Que confirme su correo (reenviar el enlace)', 'Que agregue su empresa (RUC)',
+                   'Que suba su certificado y la clave SOL', 'Que emita su primer comprobante de prueba',
+                   'Que pase a SUNAT real', 'Que emita su primer comprobante real', '']
+
+export function ReporteActivacionPagina() {
+  const r = useReporte<ReporteActivacion>('admin/activacion', true)
+  return (
+    <Marco titulo="Avance de activación" reporte="admin/activacion" r={r} conMoneda={false} horizontal
+           busqueda={{ texto: 'Titular o correo', tipos: [['negocio', 'Negocio'], ['profesional', 'Profesional (contadores)']], etiquetaTipo: 'Cuenta' }}
+           pie={<p className="nota pie-reporte">Las cuentas que se registraron en el periodo. «Días parada»: desde su último avance. Las que ya emiten real no cuentan como paradas.</p>}>
+      {d => {
+        const total = d.embudo[0]?.cuentas ?? 0
+        const paradas = d.filas.filter(f => f.paso < 7 && (f.diasParada ?? 0) >= 7).length
+        return (
+          <>
+            <div className="cifras-reporte">
+              <Cifra titulo="Cuentas registradas" valor={total} />
+              <Cifra titulo="Ya emiten real" valor={d.embudo[6]?.cuentas ?? 0}
+                     nota={total ? `${Math.round(((d.embudo[6]?.cuentas ?? 0) / total) * 100)} % del total` : undefined} />
+              <Cifra titulo="Paradas 7 días o más" valor={paradas} nota="para llamar" />
+            </div>
+            <div className="bloque">
+              <h2 className="subtitulo">Hasta dónde llegaron</h2>
+              <Barras cabeceras={['Paso', 'Cuentas']} formato={n => String(n)}
+                      filas={d.embudo.map(e => ({ etiqueta: `${e.paso}. ${PASOS[e.paso]}`, valor: e.cuentas,
+                                                  nota: total ? `${Math.round((e.cuentas / total) * 100)} %` : undefined }))} />
+            </div>
+            <div className="bloque sin-relleno">
+              <table className="tabla">
+                <thead><tr><th>Registro</th><th>Cuenta</th><th>Llegó hasta</th><th>Lo que falta</th>
+                  <th className="derecha">Días parada</th></tr></thead>
+                <tbody>
+                  {d.filas.map((f, i) => (
+                    <tr key={i}>
+                      <td className="secundario">{fecha(f.fecha)}</td>
+                      <td>{f.titular ?? '—'}<div className="secundario">{f.correo} · {f.tipo === 'profesional' ? 'Profesional' : 'Negocio'}
+                        {f.empresas > 0 && ` · ${f.empresas} empresa(s)`}</div></td>
+                      <td><span className={'etiqueta' + (f.paso === 7 ? ' acento' : '')}>{f.paso}. {PASOS[f.paso]}</span></td>
+                      <td className="secundario">{SIGUIENTE[f.paso]}</td>
+                      <td className={'derecha mono' + ((f.diasParada ?? 0) >= 7 ? ' texto-ojo' : '')}>{f.diasParada ?? ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )
+      }}
+    </Marco>
+  )
+}
+
+
+// =============================================================================
+// e148 — EMPRESAS EN RIESGO (hoy).
+// =============================================================================
+export function ReporteRiesgoPagina() {
+  const r = useReporte<ReporteRiesgo>('admin/riesgo', false)
+  return (
+    <Marco titulo="Empresas en riesgo" reporte="admin/riesgo" r={r} conFechas={false} conMoneda={false} horizontal
+           busqueda={{ texto: 'Empresa, RUC, titular o motivo', sunat: true }}
+           pie={<p className="nota pie-reporte">
+             Alto: en pausa, certificado vencido, comprobantes sin respuesta de SUNAT o con error, o 3 rechazos en 7 días.
+             Medio: certificado por vencer (30 días), algún rechazo, o en SUNAT real sin emitir hace 15 días.
+           </p>}>
+      {d => d.filas.length === 0 ? (
+        <Aviso tono="bien">Ninguna empresa en riesgo hoy.</Aviso>
+      ) : (
+        <>
+          <div className="cifras-reporte">
+            <Cifra titulo="Riesgo alto" valor={d.filas.filter(f => f.nivel === 'alto').length} />
+            <Cifra titulo="Riesgo medio" valor={d.filas.filter(f => f.nivel === 'medio').length} />
+            <Cifra titulo="En SUNAT real" valor={d.filas.filter(f => f.ambiente === 'real').length} nota="las que más importan" />
+          </div>
+          <div className="bloque sin-relleno">
+            <table className="tabla">
+              <thead><tr><th>Nivel</th><th>Empresa</th><th>Por qué</th><th>Titular</th><th>Último comprobante</th></tr></thead>
+              <tbody>
+                {d.filas.map(f => (
+                  <tr key={f.id}>
+                    <td><span className={'etiqueta' + (f.nivel === 'alto' ? ' peligro' : ' aviso')}>{f.nivel === 'alto' ? 'Alto' : 'Medio'}</span></td>
+                    <td>{f.empresa}<div className="secundario">RUC {f.ruc} · {f.ambiente === 'real' ? 'SUNAT real' : 'prueba'}</div></td>
+                    <td><ul className="lista-motivos">{f.motivos.map((m, i) => <li key={i}>{m}</li>)}</ul></td>
+                    <td>{f.titular ?? '—'}<div className="secundario">{f.correo}</div></td>
+                    <td className="secundario">{f.ultimo ? fecha(f.ultimo) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </Marco>
+  )
+}
+
+
+// =============================================================================
+// e148 — CONSUMO POR CUENTA Y MES (para el plan y el cobro).
+// =============================================================================
+export function ReporteConsumoPagina() {
+  const r = useReporte<ReporteConsumo>('admin/consumo', true)
+  return (
+    <Marco titulo="Consumo por cuenta y mes" reporte="admin/consumo" r={r} conMoneda={false} horizontal
+           busqueda={{ texto: 'Titular o correo', tipos: [['negocio', 'Negocio'], ['profesional', 'Profesional (contadores)']], etiquetaTipo: 'Cuenta' }}
+           pie={<p className="nota pie-reporte">Cuentan los comprobantes enviados a SUNAT (en camino, aceptados o anulados después). WhatsApp: los marcados como enviados.</p>}>
+      {d => {
+        const suma = (k: 'reales' | 'prueba' | 'whatsapp') => d.filas.reduce((s, f) => s + f[k], 0)
+        const porCuenta = new Map<string, number>()
+        for (const f of d.filas) porCuenta.set(f.titular ?? '—', (porCuenta.get(f.titular ?? '—') ?? 0) + f.reales)
+        return (
+          <>
+            <div className="cifras-reporte">
+              <Cifra titulo="Comprobantes reales" valor={suma('reales')} />
+              <Cifra titulo="De prueba" valor={suma('prueba')} />
+              <Cifra titulo="WhatsApp enviados" valor={suma('whatsapp')} />
+              <Cifra titulo="Cuentas con movimiento" valor={porCuenta.size} />
+            </div>
+            <div className="bloque">
+              <h2 className="subtitulo">Las 10 que más emiten (reales)</h2>
+              <Barras cabeceras={['Cuenta', 'Reales']} formato={n => String(n)}
+                      filas={[...porCuenta].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([etiqueta, valor]) => ({ etiqueta, valor }))} />
+            </div>
+            <div className="bloque sin-relleno">
+              <table className="tabla">
+                <thead><tr><th>Mes</th><th>Cuenta</th><th className="derecha">Empresas</th><th className="derecha">Reales</th>
+                  <th className="derecha">Prueba</th><th className="derecha">Notas</th><th className="derecha">Rechazados</th>
+                  <th className="derecha">WhatsApp</th></tr></thead>
+                <tbody>
+                  {d.filas.map((f, i) => (
+                    <tr key={i}>
+                      <td className="mono secundario">{f.mes}</td>
+                      <td>{f.titular ?? '—'}<div className="secundario">{f.correo} · {f.tipo === 'profesional' ? 'Profesional' : 'Negocio'}</div></td>
+                      <td className="derecha mono" title="con movimiento / de la cuenta">{f.empresas} / {f.empresasCuenta}</td>
+                      <td className="derecha mono">{f.reales}</td><td className="derecha mono secundario">{f.prueba}</td>
+                      <td className="derecha mono">{f.notas}</td>
+                      <td className={'derecha mono' + (f.rechazados > 0 ? ' texto-ojo' : '')}>{f.rechazados}</td>
+                      <td className="derecha mono">{f.whatsapp}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )
+      }}
     </Marco>
   )
 }

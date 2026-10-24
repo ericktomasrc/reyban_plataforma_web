@@ -8,6 +8,7 @@ import { api } from '../../../nucleo/api/cliente'
 export type NombreReporte = 'mi-dia' | 'ventas' | 'clientes' | 'productos' | 'vendedores' | 'sucursales'
   | 'igv' | 'registro' | 'problemas' | 'anulados' | 'personas-notas'
   | 'cartera' | 'admin/plataforma' | 'admin/empresas' | 'admin/rechazos' | 'admin/cuentas'
+  | 'admin/activacion' | 'admin/riesgo' | 'admin/consumo'
 
 /** 036: los del super administrador viven en /api/admin/reportes. */
 function ruta(reporte: NombreReporte) {
@@ -157,6 +158,26 @@ export interface ReporteRechazos extends Periodo {
 export interface ReporteCuentas extends Periodo {
   porDia: { fecha: string; negocio: number; profesional: number }[]
   filas: { fecha: string; tipo: string; titular: string | null; correo: string | null; empresas: number }[]
+}
+
+/** e148: en qué paso se quedó cada cuenta registrada en el periodo (1 a 7). */
+export interface ReporteActivacion extends Periodo {
+  embudo: { paso: number; cuentas: number }[]
+  filas: { fecha: string; tipo: string; titular: string | null; correo: string | null; empresas: number;
+           paso: number; ultimo: string; diasParada: number | null }[]
+}
+
+/** e148: empresas que pueden dejar de facturar (hoy). */
+export interface ReporteRiesgo extends Periodo {
+  filas: { id: string; empresa: string; ruc: string | null; ambiente: string; titular: string | null; correo: string | null;
+           nivel: 'alto' | 'medio'; motivos: string[]; motivo: string; certificado: string | null; ultimo: string | null }[]
+}
+
+/** e148: lo que usa cada cuenta, mes a mes. */
+export interface ReporteConsumo extends Periodo {
+  filas: { mes: string; tipo: string; titular: string | null; correo: string | null; empresas: number;
+           empresasCuenta: number; reales: number; prueba: number; notas: number; rechazados: number;
+           whatsapp: number; total: number }[]
 }
 
 export const reportesServicio = {

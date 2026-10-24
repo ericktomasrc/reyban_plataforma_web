@@ -27,6 +27,7 @@ import {
   ReporteRegistroPagina,
 } from '../modulos/reportes/vistas/ReportesSunat'
 import {
+  ReporteActivacionPagina, ReporteConsumoPagina, ReporteRiesgoPagina,
   ReporteCarteraPagina, ReporteCertificadosPagina, ReporteCuentasPagina, ReporteEmpresasPagina,
   ReportePlataformaPagina, ReporteRechazosPagina,
 } from '../modulos/reportes/vistas/ReportesPlataforma'
@@ -321,6 +322,10 @@ export function Rutas() {
         <Route path="/admin/reportes/empresas" element={<Protegido soloSuperAdmin><ReporteEmpresasPagina /></Protegido>} />
         <Route path="/admin/reportes/rechazos" element={<Protegido soloSuperAdmin><ReporteRechazosPagina /></Protegido>} />
         <Route path="/admin/reportes/cuentas" element={<Protegido soloSuperAdmin><ReporteCuentasPagina /></Protegido>} />
+        {/* e148 */}
+        <Route path="/admin/reportes/activacion" element={<Protegido soloSuperAdmin><ReporteActivacionPagina /></Protegido>} />
+        <Route path="/admin/reportes/riesgo" element={<Protegido soloSuperAdmin><ReporteRiesgoPagina /></Protegido>} />
+        <Route path="/admin/reportes/consumo" element={<Protegido soloSuperAdmin><ReporteConsumoPagina /></Protegido>} />
 
         {/* 034: REPORTES › SUNAT y contabilidad */}
         <Route path="/reportes/igv" element={
