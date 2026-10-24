@@ -597,6 +597,16 @@ export interface PreviaNotaCredito {
   aTiempoDeBaja: boolean
   hayNotas: boolean
   afectacionUnica: boolean
+  /** 24 oct: el plazo para corregir (15 días hábiles del mes siguiente). Aviso, no bloquea. */
+  plazoCorreccion?: string
+  plazoVencido?: boolean
+  /** 24 oct: para los motivos 11, 12 y 13. */
+  tieneExportacion?: boolean
+  tieneIvap?: boolean
+  alCredito?: boolean
+  cuotas?: { numero: number; monto: number; vence: string }[]
+  /** 24 oct: los motivos que admite (en boletas no van 02, 04, 05, 08 ni 13). */
+  motivos?: { codigo: string; nombre: string }[]
   notas: NotaCreditoResumen[]
   lineas: {
     numero: number
@@ -619,6 +629,8 @@ export interface CalculoNotaCredito {
   igv?: number
   saldoDespues?: number
   serie?: string
+  /** 24 oct (13): lo que suman las cuotas nuevas. */
+  cuotas?: number
 }
 
 /** 031: lo que se manda para calcular o emitir. */
@@ -629,6 +641,28 @@ export interface PeticionNotaCredito {
   lineas?: { numero: number; cantidad: number }[]
   monto?: number
   linea?: number
+  /** 24 oct: motivo 03, cómo debió decir cada línea. */
+  correcciones?: { numero: number; descripcion: string }[]
+  /** 24 oct: motivo 10, el IGV del concepto (10, 20 o 30). */
+  afectacion?: string
+  /** 24 oct: motivo 13, las cuotas nuevas. */
+  cuotas?: { monto: number; vence: string }[]
+}
+
+/** 24 oct: una serie de facturas o boletas ya usada (para elegirla, como en SOL). */
+export interface SerieEmitida { tipo: string; serie: string; ultimo: number | null }
+
+/** 24 oct: GET /api/facturacion/documentos/para-nota?q= (Nueva nota desde el menú). */
+export interface ComprobanteParaNota {
+  id: string
+  tipo: string
+  numero: string
+  estado: string
+  fechaEmision: string
+  moneda: string
+  importeTotal: number
+  cliente: string
+  documentoCliente: string
 }
 
 /** 22 oct: GET .../{id}/nota-debito */
@@ -649,6 +683,8 @@ export interface PreviaNotaDebito {
   problema: string | null
   debitos: number
   creditos: number
+  /** 24 oct: los motivos que admite (10 y 11 solo con exportación o IVAP). */
+  motivos?: { codigo: string; nombre: string }[]
   notas: NotaCreditoResumen[]
   lineas: { numero: number; descripcion: string; importeTotal: number; tipoAfectacion: string; sePuede: boolean }[]
 }

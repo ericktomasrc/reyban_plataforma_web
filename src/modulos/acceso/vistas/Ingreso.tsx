@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Boton } from '../../../componentes/Boton'
+import { BotonGoogle } from '../../../componentes/BotonGoogle'
+import { MENSAJE_GOOGLE } from '../servicios/googleServicio'
 import { Campo } from '../../../componentes/Campo'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
@@ -14,6 +16,15 @@ export function Ingreso() {
   const [clave, setClave]   = useState('')
   const mensaje = useMensaje()
   const [enviando, setEnviando] = useState(false)
+
+  // 049: cuando Google no pudo hacer entrar, vuelve con /?google=motivo.
+  const [parametros, setParametros] = useSearchParams()
+  useEffect(() => {
+    const motivo = parametros.get('google')
+    if (!motivo) return
+    mensaje.error(MENSAJE_GOOGLE[motivo] ?? 'No se pudo entrar con Google.')
+    setParametros({}, { replace: true })
+  }, [parametros, setParametros, mensaje])
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
@@ -95,6 +106,9 @@ export function Ingreso() {
             <p className="enlace-olvido">
               <Link to="/recuperar-acceso">¿Olvidaste tu contraseña o no te llegó el correo?</Link>
             </p>
+
+            {/* 049 */}
+            <BotonGoogle separador="o" />
           </form>
 
           {/* EL REGISTRO LIBRE (016). Dos puertas, una por cuenta: quien llega

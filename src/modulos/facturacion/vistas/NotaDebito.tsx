@@ -17,12 +17,14 @@ import type { CalculoNotaDebito, PreviaNotaDebito } from '../tipos'
  * back con los mismos redondeos con que se emite.
  */
 
-type Motivo = '01' | '02' | '03'
+type Motivo = '01' | '02' | '03' | '10' | '11'   // 24 oct: el catálogo 10 entero
 
 const MOTIVOS: { codigo: Motivo; titulo: string; texto: string }[] = [
   { codigo: '01', titulo: 'Intereses por pago tardío', texto: 'El cliente pagó después del vencimiento.' },
   { codigo: '02', titulo: 'Subió el valor', texto: 'Un producto o servicio costó más de lo facturado.' },
   { codigo: '03', titulo: 'Penalidad u otro cargo', texto: 'Flete, penalidad del contrato u otro concepto.' },
+  { codigo: '10', titulo: 'Ajuste de exportación', texto: 'Un monto más sobre lo exportado.' },
+  { codigo: '11', titulo: 'Ajuste del IVAP', texto: 'Un monto más sobre lo afecto al IVAP (arroz pilado).' },
 ]
 
 const AFECTACIONES: [string, string][] = [
@@ -67,7 +69,7 @@ export function NotaDebito() {
     motivo,
     descripcion: descripcion.trim(),
     monto: Number(monto.replace(',', '.')) || undefined,
-    afectacion: motivo === '02' ? undefined : afectacion,
+    afectacion: motivo === '02' || motivo === '10' || motivo === '11' ? undefined : afectacion,
     linea: motivo === '02' ? linea : undefined,
   }), [motivo, descripcion, monto, afectacion, linea])
 
@@ -128,7 +130,7 @@ export function NotaDebito() {
           <div className="bloque">
             <h2 className="subtitulo">1. ¿Por qué cobras más?</h2>
             <div className="motivos-nota">
-              {MOTIVOS.map(m => (
+              {MOTIVOS.filter(m => !previa.motivos || previa.motivos.some(x => x.codigo === m.codigo)).map(m => (
                 <button key={m.codigo} type="button"
                         disabled={m.codigo === '02' && lineasPosibles.length === 0}
                         className={`opcion-cuenta${motivo === m.codigo ? ' elegida' : ''}`}
@@ -166,12 +168,12 @@ export function NotaDebito() {
 
               <div className="pareja">
                 <label className="campo">
-                  <span className="etiqueta">Monto{motivo === '02' || afectacion === '10' ? ' con IGV' : ''} ({previa.moneda})</span>
+                  <span className="etiqueta">Monto{motivo === '02' || motivo === '11' || (!['10', '11'].includes(motivo) && afectacion === '10') ? ' con IGV' : ''} ({previa.moneda})</span>
                   <input className="mono numero-nota" inputMode="decimal" value={monto} placeholder="0.00"
                          onChange={e => setMonto(e.target.value.replace(/[^\d.,]/g, ''))} />
                 </label>
 
-                {motivo !== '02' && (
+                {!['02', '10', '11'].includes(motivo) && (
                   <label className="campo">
                     <span className="etiqueta">IGV</span>
                     <select value={afectacion} onChange={e => setAfectacion(e.target.value)}>
@@ -181,7 +183,13 @@ export function NotaDebito() {
                 )}
               </div>
 
-              {motivo !== '02' && (
+              {['10', '11'].includes(motivo) && (
+                <p className="nota se-aplica">
+                  Se aplica: {motivo === '10' ? 'exportación (sin IGV)' : 'IVAP 4%'}, como las líneas del comprobante original.
+                </p>
+              )}
+
+              {['01', '03'].includes(motivo) && (
                 <p className="nota">
                   Los intereses moratorios y las penalidades normalmente no llevan IGV (no son una venta).
                   Si tienes dudas, confírmalo con tu contador.

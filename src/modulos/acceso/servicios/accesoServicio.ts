@@ -29,6 +29,10 @@ export const accesoServicio = {
   cambiarClave: (claveActual: string, claveNueva: string) =>
     api.crear<{ mensaje: string }>('/api/clave', { claveActual, claveNueva }),
 
+  /** 24 oct: crear la contraseña quien entra solo con Google (recién entrado). */
+  crearClave: (claveNueva: string) =>
+    api.crear<{ mensaje: string; configurarSegundoFactor: boolean }>('/api/clave/crear', { claveNueva }),
+
 
   // ---------------------------------------------------------------------
   // EL SEGUNDO FACTOR

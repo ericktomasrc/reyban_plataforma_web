@@ -152,6 +152,8 @@ export function NuevoComprobante() {
   const [tcPropuesto, setTcPropuesto] = useState<string>()
   // 033: si SUNAT no publicó ese día, de qué día es el propuesto.
   const [tcNota, setTcNota] = useState<string | null>(null)
+  // 24 oct: si la consulta falla, se dice (antes el campo quedaba vacío sin explicación).
+  const [tcFallo, setTcFallo] = useState<string | null>(null)
   const [cliente, setCliente] = useState<ClienteEnLista>()
   // 043: null = lo que diga el cliente; true/false = decidido para este comprobante.
   const [porWhatsapp, setPorWhatsapp] = useState<boolean | null>(null)
@@ -370,15 +372,19 @@ export function NuevoComprobante() {
     if (moneda === 'PEN' || !fechaEmision) return
     if (tipoCambio.trim() && tipoCambio !== tcPropuesto) return
     let vivo = true
+    setTcFallo(null)
     consultasServicio.tipoCambio(fechaEmision)
       .then(r => {
-        if (!vivo || !(r.venta > 0)) return
+        if (!vivo) return
+        if (!(r.venta > 0)) { setTcFallo('No se encontró el tipo de cambio de esa fecha: escríbelo a mano (el de venta que publica SUNAT).'); return }
         const v = Number(r.venta).toFixed(3)
         setTipoCambio(v)
         setTcPropuesto(v)
         setTcNota(r.nota ?? null)
       })
-      .catch(() => { /* se escribe a mano */ })
+      .catch(e => {
+        if (vivo) setTcFallo(`${e instanceof ErrorApi ? e.message : 'No se pudo traer el tipo de cambio.'}`.replace(/\s*$/, ''))
+      })
     return () => { vivo = false }
   }, [moneda, fechaEmision]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1049,8 +1055,9 @@ export function NuevoComprobante() {
             onChange={e => setTipoCambio(e.target.value)}
             inputMode="decimal"
             placeholder="3.745"
-            mal={!!tipoCambio.trim() && !(num(tipoCambio) > 0 && num(tipoCambio) < 100)}
-            pista={tcPropuesto && tipoCambio === tcPropuesto
+            autoComplete="off"
+            mal={(!!tipoCambio.trim() && !(num(tipoCambio) > 0 && num(tipoCambio) < 100)) || (!tipoCambio.trim() && !!tcFallo)}
+            pista={!tipoCambio.trim() && tcFallo ? tcFallo : tcPropuesto && tipoCambio === tcPropuesto
               ? (tcNota ? `${tcNota} Puedes corregirlo.` : 'Propuesto: el de venta que publica SUNAT para la fecha de emisión. Puedes corregirlo.')
               : 'Soles por dólar: el de venta que publica SUNAT para la fecha de emisión, con 3 decimales.'}
           />

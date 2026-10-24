@@ -34,6 +34,11 @@ export interface MiPerfil {
 
   /** Sesiones vivas, contando la de ahora. */
   sesionesAbiertas: number
+
+  /** 049: entra (también) con su cuenta de Google. */
+  conGoogle?: boolean
+  /** 049: nunca puso contraseña (se registró con Google o no usó su invitación). */
+  sinClave?: boolean
 }
 
 /** POST /api/perfil/codigos-recuperacion */

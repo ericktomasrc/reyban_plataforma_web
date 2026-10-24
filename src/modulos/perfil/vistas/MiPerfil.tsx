@@ -13,6 +13,7 @@ import { useSesion, useYo } from '../../../nucleo/sesion/SesionContexto'
 import { ConvertirCuenta } from '../../cartera/componentes/ConvertirCuenta'
 import { NOMBRE_NIVEL } from '../../cartera/servicios/carteraServicio'
 import { DialogoClave } from '../componentes/DialogoClave'
+import { DialogoCrearClave } from '../componentes/DialogoCrearClave'
 import { DialogoCodigosNuevos } from '../componentes/DialogoCodigosNuevos'
 import { DialogoCorreo } from '../componentes/DialogoCorreo'
 import { FormularioMiFicha } from '../componentes/FormularioMiFicha'
@@ -52,6 +53,8 @@ export function MiPerfil() {
   const [guardando, setGuardando] = useState(false)
 
   const [cambiandoClave, setCambiandoClave] = useState(false)
+  const [creandoClave, setCreandoClave] = useState(false)   // 24 oct
+  const [soloFactor, setSoloFactor] = useState(false)       // 24 oct
   const [pidiendoCodigos, setPidiendoCodigos] = useState(false)
   const [otroTelefono, setOtroTelefono]       = useState(false)
 
@@ -274,6 +277,18 @@ export function MiPerfil() {
           <div className="fila">
           <dt>Contraseña</dt>
           <dd>
+            {d.sinClave ? (
+              <>
+              <span className="secundario">
+                No tienes: entras con Google. Crea una para entrar también con tu correo y contraseña desde cualquier equipo
+                (te pedirá además el segundo factor).
+              </span>
+              <div className="acciones-linea">
+                <Boton estilo="plano" onClick={() => setCreandoClave(true)}>Crear contraseña</Boton>
+              </div>
+              </>
+            ) : (
+            <>
             <span className="secundario">
               {d.claveCambiadaEn
                 ? `Cambiada el ${fecha(d.claveCambiadaEn)}`
@@ -284,8 +299,19 @@ export function MiPerfil() {
                 Cambiarla
               </Boton>
             </div>
+            </>
+            )}
           </dd>
 
+          </div>
+
+          <div className="fila">
+          <dt>Google</dt>
+          <dd>
+            {d.conGoogle
+              ? <><span className="estado bueno">Enlazada</span> <span className="secundario">· puedes entrar con «Entrar con Google» (tu cuenta de Google pide su propia verificación).</span></>
+              : <span className="secundario">Sin enlazar. La primera vez que pulses «Entrar con Google» con este mismo correo, queda enlazada.</span>}
+          </dd>
           </div>
 
           <div className="fila">
@@ -304,7 +330,15 @@ export function MiPerfil() {
                 </div>
               </>
             ) : (
-              <span className="estado malo">Sin configurar</span>
+              <>
+                <span className="estado malo">Sin configurar</span>
+                {/* 24 oct: configurarlo aquí mismo (con contraseña lo pide al entrar igual). */}
+                {!d.sinClave && (
+                  <div className="acciones-linea">
+                    <Boton estilo="plano" onClick={() => setSoloFactor(true)}>Configurarlo ahora</Boton>
+                  </div>
+                )}
+              </>
             )}
           </dd>
 
@@ -374,6 +408,20 @@ export function MiPerfil() {
       </>}
 
       {confirmacion}
+
+      {soloFactor && (
+        <DialogoCrearClave soloFactor
+          onCerrar={() => setSoloFactor(false)}
+          onHecho={() => { setSoloFactor(false); mensaje.bien('Segundo factor activo.'); void perfil.recargar() }}
+        />
+      )}
+
+      {creandoClave && (
+        <DialogoCrearClave
+          onCerrar={() => setCreandoClave(false)}
+          onHecho={() => { setCreandoClave(false); mensaje.bien('Listo: ya puedes entrar con tu correo y contraseña.'); void perfil.recargar() }}
+        />
+      )}
 
       {cambiandoClave && (
         <DialogoClave

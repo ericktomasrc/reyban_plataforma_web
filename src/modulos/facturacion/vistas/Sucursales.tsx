@@ -13,7 +13,7 @@ import { SelectorUbigeo, buscarUbigeo, legible } from '../../../nucleo/ubigeo/Se
 import { sucursalesServicio } from '../servicios/facturacionServicio'
 import type { LocalSunat, Sucursal } from '../servicios/facturacionServicio'
 
-const NOMBRE_TIPO: Record<string, string> = { '01': 'Factura', '03': 'Boleta', '07': 'N. crédito', '08': 'N. débito' }
+const NOMBRE_TIPO: Record<string, string> = { '01': 'Factura', '03': 'Boleta', '07': 'N. crédito', '08': 'N. débito', '09': 'Guía', '31': 'Guía transp.' }
 
 /** La siguiente serie libre con ese prefijo: «F» + 3 → F002; «FC» + 2 → FC02. */
 function sugerir(usadas: string[], prefijo: string, cifras: number): string {
@@ -266,6 +266,8 @@ function seriesSugeridas(usadas: string[]): FilaSerie[] {
     { tipo: '07', titulo: 'Nota de crédito de boletas', serie: sugerir(usadas, 'BC', 2), marcada: false },
     { tipo: '08', titulo: 'Nota de débito de facturas', serie: sugerir(usadas, 'FD', 2), marcada: false },
     { tipo: '08', titulo: 'Nota de débito de boletas', serie: sugerir(usadas, 'BD', 2), marcada: false },
+    // 050: la guía de remisión del remitente (T + 3 números). La del transportista se crea sola con su primera guía.
+    { tipo: '09', titulo: 'Guía de remisión', serie: sugerir(usadas, 'T', 3), marcada: false },
   ]
 }
 
@@ -305,7 +307,7 @@ function DialogoSucursal({ sucursal, usadas, onCerrar, onListo }: {
   }
 
   const codigoFijo = !nueva && (sucursal!.esPrincipal || !sucursal!.puedeCambiarCodigo)
-  const visibles = filas.filter(f => f.tipo === '01' || f.tipo === '03' || notasPropias)
+  const visibles = filas.filter(f => f.tipo === '01' || f.tipo === '03' || f.tipo === '09' || notasPropias)
 
   async function guardar(confirmado = false) {
     setError(null)

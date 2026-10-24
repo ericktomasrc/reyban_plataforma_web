@@ -46,6 +46,14 @@ export const Permisos = {
     SucursalesGestionar:   'facturacion.sucursales_gestionar',   // 044
   },
 
+  // 050: guías de remisión.
+  Guias: {
+    Ver:        'guias.ver',
+    Emitir:     'guias.emitir',
+    Anular:     'guias.anular',
+    Transporte: 'guias.transporte',
+  },
+
   // 032: un permiso por reporte.
   Reportes: {
     MiDia:          'reportes.mi_dia',

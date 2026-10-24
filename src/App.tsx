@@ -5,6 +5,7 @@ import { CambiarClave } from './modulos/acceso/vistas/CambiarClave'
 import { Ingreso } from './modulos/acceso/vistas/Ingreso'
 import { Invitacion } from './modulos/acceso/vistas/Invitacion'
 import { Registro } from './modulos/acceso/vistas/Registro'
+import { RegistroGoogle } from './modulos/acceso/vistas/RegistroGoogle'
 import { RecuperarAcceso } from './modulos/acceso/vistas/RecuperarAcceso'
 import { Restablecer } from './modulos/acceso/vistas/Restablecer'
 import { RecuperarSegundoFactor } from './modulos/acceso/vistas/RecuperarSegundoFactor'
@@ -42,6 +43,8 @@ export default function App() {
 
             {/* El registro libre (016), también sin sesión. */}
             <Route path="/registro" element={<Registro />} />
+            {/* 049: crear la cuenta con Google (después de elegirla en Google). */}
+            <Route path="/registro/google/:token" element={<RegistroGoogle />} />
 
             {/* 038: recuperar el acceso por correo, también sin sesión. */}
             <Route path="/recuperar-acceso" element={<RecuperarAcceso />} />

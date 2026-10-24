@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
+import { SoloEnSol } from '../../../componentes/SoloEnSol'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { Si } from '../../../nucleo/autorizacion/Protegido'
@@ -313,6 +314,9 @@ export function Comprobantes() {
           </div>
         </div>
       )}
+
+      {/* 24 oct: lo que no se hace aquí sino en el portal de SUNAT. */}
+      <SoloEnSol temas={['comprobantes']} />
     </>
   )
 }

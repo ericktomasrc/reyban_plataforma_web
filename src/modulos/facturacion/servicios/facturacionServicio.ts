@@ -4,7 +4,7 @@ import type {
   Atrasados, CatalogosSunat, CodigoSunat, ClaveRevocada, ClienteEnLista, ComprobacionClave, ConfirmacionAlta,
   Conexion, DocumentoCompleto, Emitido, EstadoFacturacion, PaginaDocumentos, ProductoEnLista,
   PruebaConexion, CalculoNotaCredito, PeticionNotaCredito, PreviaNotaCredito,
-  CalculoNotaDebito, PeticionNotaDebito, PreviaNotaDebito,
+  CalculoNotaDebito, PeticionNotaDebito, PreviaNotaDebito, ComprobanteParaNota, SerieEmitida,
 } from '../tipos'
 
 // =============================================================================
@@ -320,6 +320,12 @@ export interface PreferenciasDetraccion {
  * un doble clic no hace dos notas.
  */
 export const notaCreditoServicio = {
+  /** 24 oct: «Nueva nota» desde el menú: buscar la factura o boleta por número o cliente. */
+  buscar: (q: string) =>
+    api.obtener<ComprobanteParaNota[]>(`/api/facturacion/documentos/para-nota?q=${encodeURIComponent(q)}`),
+  /** 24 oct: las series de facturas y boletas emitidas. */
+  series: () => api.obtener<SerieEmitida[]>('/api/facturacion/documentos/para-nota/series'),
+
   previa: (id: string) =>
     api.obtener<PreviaNotaCredito>(`/api/facturacion/documentos/${id}/nota-credito`),
 

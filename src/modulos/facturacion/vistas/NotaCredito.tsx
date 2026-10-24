@@ -17,9 +17,12 @@ import type { CalculoNotaCredito, PreviaNotaCredito } from '../tipos'
  * EL TOTAL LO CALCULA EL BACK («Simular»), con los mismos redondeos con los
  * que se va a emitir: la pantalla nunca enseña una cifra distinta de la que
  * sale. Un doble clic manda la misma clave y no hace dos notas.
+ *
+ * 24 oct: los 13 motivos del catálogo 09 (los manuales de SOL del contador).
+ * 03 corrige la descripción y 13 las cuotas: esas dos van en cero.
  */
 
-type Motivo = '01' | '02' | '06' | '07' | '04' | '05' | '09'
+type Motivo = '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12' | '13'
 
 const MOTIVOS: { codigo: Motivo; titulo: string; texto: string }[] = [
   { codigo: '01', titulo: 'Anular toda la venta', texto: 'La venta no se hizo o se emitió por error. Devuelve el total.' },
@@ -29,10 +32,19 @@ const MOTIVOS: { codigo: Motivo; titulo: string; texto: string }[] = [
   { codigo: '05', titulo: 'Hice un descuento después (a un producto)', texto: 'Un monto sobre un solo producto.' },
   { codigo: '02', titulo: 'Me equivoqué de RUC', texto: 'Anula todo. Luego emites una factura nueva al RUC correcto.' },
   { codigo: '09', titulo: 'Bajó el valor de un producto', texto: 'Disminución en el valor, con un monto.' },
+  { codigo: '03', titulo: 'Corregir la descripción', texto: 'Un producto salió mal escrito. No devuelve nada (va en cero).' },
+  { codigo: '08', titulo: 'Bonificación', texto: 'Un monto bonificado sobre un producto.' },
+  { codigo: '10', titulo: 'Otros conceptos', texto: 'Un monto por otro motivo; eliges si lleva IGV.' },
+  { codigo: '11', titulo: 'Ajuste de exportación', texto: 'Un monto sobre lo exportado.' },
+  { codigo: '12', titulo: 'Ajuste del IVAP', texto: 'Un monto sobre lo afecto al IVAP (arroz pilado).' },
+  { codigo: '13', titulo: 'Corregir las cuotas', texto: 'Cambia el monto pendiente o las fechas de pago. Va en cero.' },
 ]
 
 const TODO: Motivo[] = ['01', '02', '06']
+const CON_MONTO: Motivo[] = ['04', '05', '08', '09', '10', '11', '12']
+const CON_PRODUCTO: Motivo[] = ['05', '08', '09']
 
+type CuotaEditable = { monto: string; vence: string }
 function nuevaClave() {
   try { return crypto.randomUUID().replace(/-/g, '') }
   catch { return `${Date.now()}${Math.random().toString(16).slice(2)}` }
@@ -49,6 +61,9 @@ export function NotaCredito() {
   const [cantidades, setCantidades] = useState<Record<number, string>>({})
   const [monto, setMonto] = useState('')
   const [linea, setLinea] = useState<number>()
+  const [correcciones, setCorrecciones] = useState<Record<number, string>>({})   // 03
+  const [afectacion, setAfectacion] = useState('10')                            // 10
+  const [cuotas, setCuotas] = useState<CuotaEditable[]>([{ monto: '', vence: '' }])   // 13
   const [calculo, setCalculo] = useState<CalculoNotaCredito>()
   const [calculando, setCalculando] = useState(false)
   const [emitiendo, setEmitiendo] = useState(false)
@@ -73,9 +88,19 @@ export function NotaCredito() {
           .map(([n, c]) => ({ numero: Number(n), cantidad: Number(c.replace(',', '.')) }))
           .filter(x => x.cantidad > 0)
       : undefined,
-    monto: motivo && ['04', '05', '09'].includes(motivo) ? Number(monto.replace(',', '.')) || undefined : undefined,
-    linea: motivo === '05' || motivo === '09' ? linea : undefined,
-  }), [motivo, descripcion, cantidades, monto, linea])
+    monto: motivo && CON_MONTO.includes(motivo) ? Number(monto.replace(',', '.')) || undefined : undefined,
+    linea: motivo && CON_PRODUCTO.includes(motivo) ? linea : undefined,
+    correcciones: motivo === '03'
+      ? Object.entries(correcciones)
+          .map(([n, d]) => ({ numero: Number(n), descripcion: d.trim() }))
+          .filter(x => x.descripcion.length > 0)
+      : undefined,
+    afectacion: motivo === '10' ? afectacion : undefined,
+    cuotas: motivo === '13'
+      ? cuotas.map(c => ({ monto: Number(c.monto.replace(',', '.')) || 0, vence: c.vence }))
+          .filter(c => c.monto > 0 || c.vence)
+      : undefined,
+  }), [motivo, descripcion, cantidades, monto, linea, correcciones, afectacion, cuotas])
 
   // Calcular en el back, un momento después de que se deja de escribir.
   useEffect(() => {
@@ -109,9 +134,15 @@ export function NotaCredito() {
     }
   }
 
+  // Los que admite el comprobante (el back ya quita los de solo facturas).
+  const admitidos = previa.motivos?.map(m => m.codigo)
   const disponibles = MOTIVOS.filter(m =>
+    (admitidos ? admitidos.includes(m.codigo) : !['03', '08', '10', '11', '12', '13'].includes(m.codigo)) &&
     (m.codigo !== '02' || previa.tipo === '01') &&
-    (m.codigo !== '04' || previa.afectacionUnica))
+    (m.codigo !== '04' || previa.afectacionUnica) &&
+    (m.codigo !== '11' || previa.tieneExportacion) &&
+    (m.codigo !== '12' || previa.tieneIvap) &&
+    (m.codigo !== '13' || previa.alCredito))
 
   return (
     <>
@@ -128,6 +159,15 @@ export function NotaCredito() {
           {' '}· Total {previa.moneda} {previa.importeTotal.toFixed(2)}
           {previa.ambiente === 'beta' && <> <span className="etiqueta aviso">prueba</span></>}
         </p>
+
+        {/* 24 oct: el plazo para corregir, como hacen los sistemas comerciales: avisa, no bloquea. */}
+        {previa.puede && previa.plazoCorreccion && (
+          <p className={`nota se-aplica${previa.plazoVencido ? ' vencido' : ''}`}>
+            {previa.plazoVencido
+              ? <>Se aplica: plazo para corregir vencido el {fecha(previa.plazoCorreccion)} (15 días hábiles del mes siguiente a la emisión). La nota se emite igual; consúltalo con tu contador.</>
+              : <>Se aplica: comprobante del {fecha(previa.fechaEmision)}. Plazo para corregir: hasta el {fecha(previa.plazoCorreccion)} (15 días hábiles del mes siguiente). La nota se emite igual.</>}
+          </p>
+        )}
 
         {!previa.puede && <Aviso>{previa.problema}</Aviso>}
 
@@ -170,7 +210,69 @@ export function NotaCredito() {
             <div className="bloque">
               <h2 className="subtitulo">2. {motivo === '07' ? '¿Qué productos y cuántos?'
                 : TODO.includes(motivo) ? 'Se devuelve todo el comprobante'
+                : motivo === '03' ? '¿Cómo debió decir?'
+                : motivo === '13' ? 'Las cuotas nuevas'
                 : '¿De cuánto?'}</h2>
+
+              {motivo === '03' && (
+                <>
+                  <table className="tabla">
+                    <thead>
+                      <tr><th>Dice</th><th>Debe decir</th></tr>
+                    </thead>
+                    <tbody>
+                      {previa.lineas.map(l => (
+                        <tr key={l.numero}>
+                          <td>{l.descripcion}</td>
+                          <td>
+                            <input className="correccion-nota" maxLength={250} value={correcciones[l.numero] ?? ''}
+                                   placeholder="Déjalo vacío si está bien"
+                                   onChange={e => setCorrecciones(c => ({ ...c, [l.numero]: e.target.value }))} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="nota se-aplica">Se aplica: la nota lleva solo los productos corregidos, en cero. No cambia lo que el cliente debe.</p>
+                </>
+              )}
+
+              {motivo === '13' && (
+                <>
+                  {(previa.cuotas?.length ?? 0) > 0 && (
+                    <p className="secundario">
+                      Hoy: {previa.cuotas!.map(c => `cuota ${c.numero} de ${previa.moneda} ${c.monto.toFixed(2)} al ${fecha(c.vence)}`).join(' · ')}.
+                    </p>
+                  )}
+                  <div className="cuotas-nota">
+                    {cuotas.map((c, i) => (
+                      <div className="fila-cuota" key={i}>
+                        <span className="secundario">Cuota {i + 1}</span>
+                        <input className="mono numero-nota" inputMode="decimal" value={c.monto} placeholder="0.00" aria-label={`Monto de la cuota ${i + 1}`}
+                               onChange={e => setCuotas(q => q.map((x, j) => j === i ? { ...x, monto: e.target.value.replace(/[^\d.,]/g, '') } : x))} />
+                        <input type="date" value={c.vence} aria-label={`Vencimiento de la cuota ${i + 1}`}
+                               onChange={e => setCuotas(q => q.map((x, j) => j === i ? { ...x, vence: e.target.value } : x))} />
+                        {cuotas.length > 1 && (
+                          <Boton estilo="secundario" onClick={() => setCuotas(q => q.filter((_, j) => j !== i))}>Quitar</Boton>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Boton estilo="secundario" onClick={() => setCuotas(q => [...q, { monto: '', vence: '' }])}>Agregar cuota</Boton>
+                  <p className="nota se-aplica">Se aplica: la nota va en cero y lleva el nuevo monto pendiente (la suma de las cuotas). Cada cuota vence después de hoy.</p>
+                </>
+              )}
+
+              {motivo === '10' && (
+                <label className="campo">
+                  <span className="etiqueta">¿Lleva IGV?</span>
+                  <select value={afectacion} onChange={e => setAfectacion(e.target.value)}>
+                    <option value="10">Sí, gravado (18%)</option>
+                    <option value="20">Exonerado</option>
+                    <option value="30">Inafecto</option>
+                  </select>
+                </label>
+              )}
 
               {(motivo === '07' || TODO.includes(motivo)) && (
                 <table className="tabla">
@@ -204,7 +306,7 @@ export function NotaCredito() {
                 </table>
               )}
 
-              {(motivo === '05' || motivo === '09') && (
+              {CON_PRODUCTO.includes(motivo) && (
                 <label className="campo">
                   <span className="etiqueta">¿A qué producto?</span>
                   <select value={linea ?? ''} onChange={e => setLinea(e.target.value ? Number(e.target.value) : undefined)}>
@@ -216,9 +318,9 @@ export function NotaCredito() {
                 </label>
               )}
 
-              {(motivo === '04' || motivo === '05' || motivo === '09') && (
+              {CON_MONTO.includes(motivo) && (
                 <label className="campo">
-                  <span className="etiqueta">Monto con IGV ({previa.moneda})</span>
+                  <span className="etiqueta">Monto{motivo === '11' ? '' : ' con IGV'} ({previa.moneda})</span>
                   <input className="mono numero-nota" inputMode="decimal" value={monto} placeholder="0.00"
                          onChange={e => setMonto(e.target.value.replace(/[^\d.,]/g, ''))} />
                 </label>
@@ -235,7 +337,9 @@ export function NotaCredito() {
                 <div><span>Comprobante original</span><strong className="mono">{previa.importeTotal.toFixed(2)}</strong></div>
                 <div><span>Notas anteriores</span><strong className="mono">{anteriores.toFixed(2)}</strong></div>
                 <div><span>Esta nota</span><strong className="mono">{calculo?.total?.toFixed(2) ?? '—'}</strong></div>
-                <div><span>Queda después</span><strong className="mono">{calculo?.saldoDespues?.toFixed(2) ?? previa.saldo.toFixed(2)}</strong></div>
+                {motivo === '13'
+                  ? <div><span>Nuevo monto pendiente</span><strong className="mono">{calculo?.cuotas?.toFixed(2) ?? '—'}</strong></div>
+                  : <div><span>Queda después</span><strong className="mono">{calculo?.saldoDespues?.toFixed(2) ?? previa.saldo.toFixed(2)}</strong></div>}
               </div>
 
               {calculo?.problema && <Aviso>{calculo.problema}</Aviso>}

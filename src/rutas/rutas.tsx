@@ -18,6 +18,12 @@ import { NotaCredito } from '../modulos/facturacion/vistas/NotaCredito'
 import { ImportarProductos } from '../modulos/facturacion/vistas/ImportarProductos'
 import { Sucursales } from '../modulos/facturacion/vistas/Sucursales'
 import { NotaDebito } from '../modulos/facturacion/vistas/NotaDebito'
+import { NuevaNota } from '../modulos/facturacion/vistas/NuevaNota'
+import { Guias } from '../modulos/guias/vistas/Guias'
+import { NuevaGuia } from '../modulos/guias/vistas/NuevaGuia'
+import { VerGuia } from '../modulos/guias/vistas/VerGuia'
+import { TransporteGuardado } from '../modulos/guias/vistas/TransporteGuardado'
+import { ConfiguracionGuias } from '../modulos/guias/vistas/ConfiguracionGuias'
 import {
   InicioReportes, ReporteClientesPagina, ReporteMiDiaPagina, ReporteProductosPagina,
   ReporteSucursalesPagina, ReporteVendedoresPagina, ReporteVentasPagina,
@@ -243,6 +249,23 @@ export function Rutas() {
             </Protegido>
           }
         />
+        {/* 24 oct: «Nueva nota» desde el menú (como en SOL): buscar el comprobante. */}
+        <Route
+          path="/facturacion/notas/nueva-credito"
+          element={
+            <Protegido permiso={Permisos.Facturacion.NotasCredito} modulo={Modulos.Facturacion}>
+              <NuevaNota key="credito" tipo="credito" />
+            </Protegido>
+          }
+        />
+        <Route
+          path="/facturacion/notas/nueva-debito"
+          element={
+            <Protegido permiso={Permisos.Facturacion.NotasCredito} modulo={Modulos.Facturacion}>
+              <NuevaNota key="debito" tipo="debito" />
+            </Protegido>
+          }
+        />
         {/* 22 oct: nota de débito, desde el comprobante original. */}
         <Route
           path="/facturacion/comprobantes/:id/nota-debito"
@@ -286,6 +309,14 @@ export function Rutas() {
             </Protegido>
           }
         />
+
+        {/* 050: guías de remisión (09 remitente, 31 transportista) y el transporte guardado. */}
+        <Route path="/guias" element={<Protegido permiso={Permisos.Guias.Ver} modulo={Modulos.Facturacion}><Guias /></Protegido>} />
+        <Route path="/guias/nueva" element={<Protegido permiso={Permisos.Guias.Emitir} modulo={Modulos.Facturacion}><NuevaGuia key="09" tipo="09" /></Protegido>} />
+        <Route path="/guias/transportista" element={<Protegido permiso={Permisos.Guias.Emitir} modulo={Modulos.Facturacion}><NuevaGuia key="31" tipo="31" /></Protegido>} />
+        <Route path="/guias/transporte" element={<Protegido permiso={Permisos.Guias.Ver} modulo={Modulos.Facturacion}><TransporteGuardado /></Protegido>} />
+        <Route path="/guias/configuracion" element={<Protegido permiso={Permisos.Guias.Ver} modulo={Modulos.Facturacion}><ConfiguracionGuias /></Protegido>} />
+        <Route path="/guias/:id" element={<Protegido permiso={Permisos.Guias.Ver} modulo={Modulos.Facturacion}><VerGuia /></Protegido>} />
 
         {/* 044: sucursales (locales del mismo RUC), sus series y sus usuarios. */}
         <Route

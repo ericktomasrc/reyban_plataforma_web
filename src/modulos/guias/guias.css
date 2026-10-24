@@ -1,0 +1,75 @@
+/* 050 — Guías de remisión. */
+
+.filtros-guias { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--e3); margin: var(--e4) 0 var(--e3); }
+.filtros-guias .segmentado { margin-bottom: 0; }
+.chip.chip-peligro { border-color: #f2c4bd; color: var(--peligro); }
+.chip.chip-peligro.elegido { border-style: solid; }
+
+.fila-clic { cursor: pointer; }
+.fila-clic:hover td { background: var(--papel, #f7f9fa); }
+.tachado { text-decoration: line-through; color: var(--tinta-3); }
+tr.inactivo td { color: var(--tinta-3); }
+
+/* Rejillas del formulario: cuatro columnas que bajan a dos y a una. */
+.rejilla-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 var(--e3); }
+.rejilla-4 .ancho-2 { grid-column: span 2; }
+.rejilla-4 .ancho-3 { grid-column: span 3; }
+@media (max-width: 900px) {
+  .rejilla-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rejilla-4 .ancho-3 { grid-column: span 2; }
+}
+@media (max-width: 560px) {
+  .rejilla-4 { grid-template-columns: 1fr; }
+  .rejilla-4 .ancho-2, .rejilla-4 .ancho-3 { grid-column: auto; }
+}
+
+.guia-form .bloque { margin-bottom: var(--e4); }
+.guia-form .rotulo { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-3); margin: var(--e3) 0 var(--e2); }
+/* 24 oct: el rechazo de SUNAT en palabras. */
+.rechazo-sunat { display: grid; gap: var(--e2); flex: 1 1 420px; }
+.rechazo-sunat ul { margin: 0; padding-left: 1.2em; }
+.rechazo-sunat details summary { cursor: pointer; font-size: 12.5px; }
+.rechazo-sunat code { display: block; white-space: pre-wrap; word-break: break-word; font-size: 11.5px; margin-top: 4px; }
+.recorrido { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e4); margin-top: var(--e3); }
+/* 24 oct: partida y llegada, cada una en su recuadro (no se confunden los combos). */
+.recorrido > div { border: 1px solid var(--borde); border-radius: var(--radio-grande); padding: var(--e3) var(--e4) var(--e2); }
+.recorrido > div > .rotulo { margin-top: 0; padding-bottom: var(--e2); border-bottom: 1px solid var(--borde); color: var(--acento); }
+.recorrido .rejilla-direccion { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 900px) { .recorrido { grid-template-columns: 1fr; gap: var(--e3); } }
+
+.guia-form label.casilla { display: flex; gap: var(--e2); align-items: center; padding: var(--e2) 0; margin-bottom: var(--e3); }
+.conductor-guia { border-top: 1px dashed var(--borde); padding-top: var(--e3); margin-top: var(--e2); }
+
+.tabla-bienes input, .tabla-bienes select { width: 100%; min-height: 36px; border: 1px solid var(--borde); border-radius: 6px; padding: 0 8px; font: inherit; }
+.tabla-bienes input[readonly] { background: var(--hundido); border-color: transparent; }
+.tabla-bienes input.cantidad { max-width: 110px; text-align: right; }
+.tabla-bienes td { vertical-align: top; }
+.buscador-bien { flex: 1 1 280px; max-width: 420px; }
+
+.pie-guia { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--e3); }
+
+.tarjetas-guia { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e4); margin: var(--e4) 0; }
+.tarjetas-guia.dos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tarjetas-guia .bloque { margin: 0; }
+.tarjetas-guia .rotulo { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-3); margin: 0 0 var(--e2); }
+.tarjetas-guia p { margin: 0 0 var(--e1); font-size: 14px; }
+@media (max-width: 900px) { .tarjetas-guia, .tarjetas-guia.dos { grid-template-columns: 1fr; } }
+
+.lista-guias { list-style: none; padding: 0; margin: 0 0 var(--e3); display: grid; gap: var(--e2); }
+.lista-guias li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--e3); border: 1px solid var(--borde); border-radius: 8px; padding: var(--e2) var(--e3); font-size: 14px; }
+.acciones-guia { display: flex; flex-wrap: wrap; gap: var(--e2); align-items: center; }
+.guia-form .segmentado button { white-space: nowrap; }
+.encabezado-pagina > .acciones-guia { flex: none; }
+@media (max-width: 720px) { .encabezado-pagina > .acciones-guia { flex: 1 1 100%; } }
+@media (max-width: 560px) {
+  .guia-form .segmentado { display: flex; flex-wrap: wrap; }
+  .guia-form .segmentado button { white-space: normal; flex: 1 1 140px; }
+  .tabla.tabla-bienes { min-width: 0; display: block; }
+  .tabla-bienes tbody { display: block; }
+  .tabla-bienes thead { display: none; }
+  .tabla-bienes tr { display: grid; grid-template-columns: 1fr auto; gap: var(--e2); padding: var(--e2) 0; }
+  .tabla-bienes td { padding: 0 var(--e2); }
+  .tabla-bienes td { display: block; border: 0; }
+  .tabla-bienes td:first-child { grid-column: 1 / -1; }
+  .tabla-bienes tr { border-bottom: 1px solid var(--borde); }
+}

@@ -1049,6 +1049,33 @@ button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
 .cifras-nota > div { border: 1px solid var(--borde); border-radius: var(--radio-grande); padding: var(--e2) var(--e3); display: grid; gap: 2px; }
 .cifras-nota span { font-size: 12.5px; color: var(--tinta-2); }
 .cifras-nota strong { font-size: 18px; }
+/* 24 oct: «Se aplica: …» (plazos y reglas, en pequeño) y las cuotas del motivo 13. */
+.nota.se-aplica { margin: var(--e2) 0 0; }
+.nota.se-aplica.vencido { color: var(--aviso); }
+.cuotas-nota { display: grid; gap: var(--e2); margin: var(--e2) 0 var(--e3); }
+.cuotas-nota .fila-cuota { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e2); }
+.cuotas-nota .fila-cuota input[type="date"] { width: 160px; }
+.correccion-nota { width: 100%; min-width: 180px; }
+/* 24 oct: «Lo que se hace en SOL». */
+.solo-en-sol { margin: var(--e4) 0 0; border: 1px dashed var(--borde); border-radius: var(--radio-grande); padding: var(--e2) var(--e3); font-size: 13px; color: var(--tinta-2); }
+.solo-en-sol summary { cursor: pointer; font-weight: 600; color: var(--tinta); }
+.solo-en-sol ul { margin: var(--e2) 0 0; padding-left: 1.2em; display: grid; gap: 6px; }
+/* 24 oct: «¿Sale de una factura o boleta?» en Nueva guía. */
+.origen-guia { display: flex; flex-wrap: wrap; gap: var(--e2); align-items: center; }
+.origen-guia input { flex: 1 1 220px; max-width: 320px; }
+.resultados-origen { display: grid; gap: 4px; margin-top: var(--e2); justify-items: start; }
+.resultados-origen > button { text-align: left; }
+.buscador-comprobante { display: grid; gap: var(--e2); }
+/* Fuera de un .campo, las mismas cajas que el resto de la app. */
+.buscador-comprobante input, .buscador-comprobante select, .cuotas-nota input, input.correccion-nota {
+  font: inherit; padding: 9px 11px; border: 1px solid var(--borde); border-radius: var(--radio);
+  background: var(--superficie); color: var(--tinta);
+}
+.buscador-comprobante input:focus, .buscador-comprobante select:focus, .cuotas-nota input:focus, input.correccion-nota:focus {
+  outline: 2px solid var(--acento); outline-offset: -1px; border-color: var(--acento);
+}
+.buscador-comprobante .origen-guia select { width: auto; min-width: 170px; flex: 0 0 auto; }
+.buscador-comprobante .origen-guia .numero-comprobante { flex: 0 1 150px; width: 150px; }
 
 /* 032: reportes */
 :root { --serie-1: #2a78d6; --serie-2: #eb6834; --serie-3: #1baf7a; }
@@ -1268,3 +1295,10 @@ button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
 .etiqueta.peligro { background: var(--peligro-suave); color: var(--peligro); }
 .lista-motivos { margin: 0; padding-left: 18px; font-size: 13.5px; }
 .lista-motivos li + li { margin-top: 2px; }
+
+/* 049 — «Entrar con Google» (sin su logo: es su marca). */
+.boton-google { display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; }
+.boton-google-g {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--borde); font-weight: 700; font-size: 13px; color: var(--tinta-2); background: var(--superficie);
+}

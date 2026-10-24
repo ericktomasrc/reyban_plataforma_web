@@ -14,6 +14,7 @@ import { EstadoComprobante } from '../componentes/EstadoComprobante'
 import { nombreDetraccion } from '../componentes/PagoYDetraccion'
 import { PanelWhatsapp } from '../componentes/PanelWhatsapp'
 import { documentosServicio } from '../servicios/facturacionServicio'
+import { GuiasDelComprobante } from '../../guias/componentes/GuiasDelComprobante'
 import type { DocumentoCompleto } from '../tipos'
 
 const TIPOS: Record<string, string> = { '01': 'Factura', '03': 'Boleta de venta', '07': 'Nota de crédito', '08': 'Nota de débito' }
@@ -298,6 +299,9 @@ export function VerComprobante() {
           <p className="nota">Pasaron más de 7 días: esta nota de crédito ya no se puede dar de baja.</p>
         )}
       </div>
+
+      {/* --- 050: sus guías de remisión y «Hacer guía» ------------------------ */}
+      <GuiasDelComprobante documentoId={d.id} tipo={d.tipo} estado={d.estado} />
 
       {/* --- 031: sus notas de crédito y lo que queda ------------------------ */}
       {notas.length > 0 && (

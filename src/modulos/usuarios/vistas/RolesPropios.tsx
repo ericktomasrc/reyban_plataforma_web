@@ -24,6 +24,7 @@ import { rolesServicio, type PermisoAsignable, type RolCompleto } from '../servi
 
 const GRUPOS: { titulo: string; incluye: (codigo: string) => boolean }[] = [
   { titulo: 'Facturación', incluye: c => c.startsWith('facturacion.') },
+  { titulo: 'Guías de remisión', incluye: c => c.startsWith('guias.') },
   { titulo: 'Reportes · Mi negocio', incluye: c => ['reportes.mi_dia', 'reportes.tablero_ventas', 'reportes.ventas_cliente', 'reportes.ventas_producto', 'reportes.ventas_vendedor'].includes(c) },
   { titulo: 'Reportes · SUNAT y contabilidad', incluye: c => c.startsWith('reportes.') && !['reportes.mi_dia', 'reportes.tablero_ventas', 'reportes.ventas_cliente', 'reportes.ventas_producto', 'reportes.ventas_vendedor'].includes(c) },
   { titulo: 'Usuarios', incluye: c => c.startsWith('usuarios.') },

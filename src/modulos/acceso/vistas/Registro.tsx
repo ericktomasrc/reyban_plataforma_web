@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
+import { BotonGoogle } from '../../../componentes/BotonGoogle'
 import { Campo } from '../../../componentes/Campo'
 import { Captcha } from '../../../componentes/Captcha'
 import { Cargando } from '../../../componentes/Cargando'
@@ -139,6 +140,9 @@ export function Registro() {
         Gratis mientras dure el periodo de prueba. Te mandamos un correo para
         confirmar que es tuyo.
       </p>
+
+      {/* 049: en un paso, sin contraseña ni correo de confirmación. */}
+      <BotonGoogle texto="Crear mi cuenta con Google" despues="o con tu correo" />
 
       <form onSubmit={enviar} noValidate>
         <fieldset className="grupo-registro">

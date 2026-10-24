@@ -221,7 +221,18 @@ export function Disposicion() {
                   pestañas dentro. */}
               {facturacion && (
                 <>
-                  <NavLink to="/facturacion/comprobantes" className={activo}><Icono>▤</Icono>Comprobantes</NavLink>
+                  {/* 24 oct: «Comprobantes» se despliega, con las notas sueltas como en SOL. */}
+                  {puede(Permisos.Facturacion.NotasCredito) ? (
+                    <MenuDesplegable icono="▤" titulo="Comprobantes" inicio="/facturacion/comprobantes"
+                      prefijos={['/facturacion/comprobantes', '/facturacion/notas']}
+                      grupos={[{ titulo: '', items: [
+                        { ruta: '/facturacion/comprobantes', nombre: 'Comprobantes emitidos' },
+                        { ruta: '/facturacion/notas/nueva-credito', nombre: 'Nueva nota de crédito' },
+                        { ruta: '/facturacion/notas/nueva-debito', nombre: 'Nueva nota de débito' },
+                      ] }]} />
+                  ) : (
+                    <NavLink to="/facturacion/comprobantes" className={activo}><Icono>▤</Icono>Comprobantes</NavLink>
+                  )}
                   <NavLink to="/facturacion/clientes" className={activo}><Icono>☺</Icono>Clientes</NavLink>
                   <NavLink to="/facturacion/productos" className={activo}><Icono>◫</Icono>Productos</NavLink>
                   {/* 044: los locales del mismo RUC. */}
@@ -229,6 +240,16 @@ export function Disposicion() {
                     <NavLink to="/facturacion/sucursales" className={activo}><Icono>⌖</Icono>Sucursales</NavLink>
                   )}
                 </>
+              )}
+
+              {/* 050: guías de remisión, con su transporte guardado y su configuración. */}
+              {facturacion && puede(Permisos.Guias.Ver) && (
+                <MenuDesplegable icono="⛟" titulo="Guías de remisión" inicio="/guias" prefijos={['/guias']}
+                  grupos={[{ titulo: '', items: [
+                    { ruta: '/guias', nombre: 'Guías emitidas' },
+                    { ruta: '/guias/transporte', nombre: 'Transporte guardado' },
+                    { ruta: '/guias/configuracion', nombre: 'Configuración de guías' },
+                  ] }]} />
               )}
 
               {/* 036: Reportes se abre y se cierra (la flecha). */}
@@ -324,9 +345,16 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/facturacion/comprobantes/nuevo')) return 'Nuevo comprobante'
   if (ruta.startsWith('/facturacion/comprobantes/')) return 'Comprobante'
   if (ruta.startsWith('/facturacion/comprobantes')) return 'Comprobantes'
+  if (ruta.startsWith('/facturacion/notas/nueva-credito')) return 'Nueva nota de crédito'
+  if (ruta.startsWith('/facturacion/notas/nueva-debito')) return 'Nueva nota de débito'
   if (ruta.startsWith('/facturacion/clientes')) return 'Clientes'
   if (ruta.startsWith('/facturacion/productos')) return 'Productos'
   if (ruta.startsWith('/facturacion/sucursales')) return 'Sucursales'
+  if (ruta.startsWith('/guias/nueva')) return 'Nueva guía'
+  if (ruta.startsWith('/guias/transportista')) return 'Guía del transportista'
+  if (ruta.startsWith('/guias/transporte')) return 'Transporte guardado'
+  if (ruta.startsWith('/guias/configuracion')) return 'Configuración de guías'
+  if (ruta.startsWith('/guias')) return 'Guías de remisión'
   if (ruta.startsWith('/reportes')) return 'Reportes'
   if (ruta.startsWith('/mi-cartera')) return 'Reportes de la cartera'
   if (ruta.startsWith('/admin/reportes')) return 'Reportes de la plataforma'
