@@ -1243,7 +1243,9 @@ button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
 .tabla-accesos td { padding: 8px; border-top: 1px solid var(--borde); vertical-align: top; }
 
 /* 047: «← volver» arriba de Roles y Cargos. */
-.enlace-volver { display: inline-block; font-size: 14px; margin-bottom: var(--e3); color: var(--acento); text-decoration: none; }
+/* Bloque y no inline-block: así se alinea con el resto de la página (el ancho
+   máximo de .contenido > * no centra a un inline-block). */
+.enlace-volver { display: block; width: 100%; font-size: 14px; margin-bottom: var(--e3); color: var(--acento); text-decoration: none; }
 .enlace-volver:hover { text-decoration: underline; }
 
 /* 047: Mi equipo, el acceso de cada empresa dentro de la lista. */
