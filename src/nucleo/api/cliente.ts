@@ -20,6 +20,34 @@ import { ErrorApi } from './errores'
 
 type Metodo = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
+// =============================================================================
+// 046 — LA SUCURSAL ELEGIDA ARRIBA («Sucursal: Todas ▾»)
+//
+// Viaja en la cabecera X-Sucursal de TODAS las llamadas, y la base recorta con
+// ella (comprobantes, reportes, Inicio, descargas). No es seguridad: si alguien
+// manda una sucursal que no le toca, la base la ignora y usa la suya. Se
+// recuerda en esta pestaña (sessionStorage), no en el equipo.
+// =============================================================================
+const CLAVE_SUCURSAL = 'reyban.sucursalVista'
+
+let sucursalVista: string | null = (() => {
+  try { return sessionStorage.getItem(CLAVE_SUCURSAL) } catch { return null }
+})()
+
+/** La elegida arriba; null = «Todas» (o la de por defecto de quien no ve todas). */
+export function fijarSucursalVista(id: string | null) {
+  sucursalVista = id
+  try {
+    if (id) sessionStorage.setItem(CLAVE_SUCURSAL, id)
+    else sessionStorage.removeItem(CLAVE_SUCURSAL)
+  } catch { /* sin almacenamiento: vale para esta página */ }
+}
+
+function cabeceras(extra?: Record<string, string>): Record<string, string> | undefined {
+  if (!sucursalVista) return extra
+  return { ...(extra ?? {}), 'X-Sucursal': sucursalVista }
+}
+
 async function llamar<T>(metodo: Metodo, ruta: string, cuerpo?: unknown): Promise<T> {
   let respuesta: Response
 
@@ -31,7 +59,7 @@ async function llamar<T>(metodo: Metodo, ruta: string, cuerpo?: unknown): Promis
     respuesta = await fetch(ruta, {
       method: metodo,
       credentials: 'include',
-      headers: cuerpo !== undefined && !formulario ? { 'Content-Type': 'application/json' } : undefined,
+      headers: cabeceras(cuerpo !== undefined && !formulario ? { 'Content-Type': 'application/json' } : undefined),
       body: formulario ? cuerpo : cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
     })
   } catch {
@@ -51,6 +79,7 @@ async function llamar<T>(metodo: Metodo, ruta: string, cuerpo?: unknown): Promis
       respuesta.status,
       datos?.error ?? `Error ${respuesta.status}`,
       datos?.codigo,
+      typeof datos?.campo === 'string' ? datos.campo : undefined,
     )
   }
 
@@ -87,7 +116,7 @@ async function descargar(ruta: string): Promise<void> {
   let respuesta: Response
 
   try {
-    respuesta = await fetch(ruta, { method: 'GET', credentials: 'include' })
+    respuesta = await fetch(ruta, { method: 'GET', credentials: 'include', headers: cabeceras() })
   } catch {
     throw new ErrorApi(0, 'No se pudo conectar con el servidor. ¿Está corriendo la API?')
   }
@@ -126,7 +155,7 @@ async function descargar(ruta: string): Promise<void> {
 async function archivo(ruta: string): Promise<Blob> {
   let respuesta: Response
   try {
-    respuesta = await fetch(ruta, { method: 'GET', credentials: 'include' })
+    respuesta = await fetch(ruta, { method: 'GET', credentials: 'include', headers: cabeceras() })
   } catch {
     throw new ErrorApi(0, 'No se pudo conectar con el servidor. ¿Está corriendo la API?')
   }

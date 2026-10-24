@@ -1,4 +1,6 @@
 import { api } from '../../../nucleo/api/cliente'
+import type { FichaParaEnviar } from '../../usuarios/componentes/CamposFicha'
+import type { TipoAlcance } from '../../usuarios/tipos'
 
 // =============================================================================
 // LA CARTERA (fase 3, migración 018)
@@ -52,6 +54,63 @@ export interface DatosColaborador {
   nivel: Nivel
   veTodas: boolean
   empresas: string[]
+  /** 046: la ficha (con ella, el nombre sale de nombres y apellidos). */
+  ficha?: FichaParaEnviar
+}
+
+// --- 046: MI EQUIPO ----------------------------------------------------------
+
+/** Lo que tiene una persona del equipo en UNA empresa de la cartera. */
+export interface AccesoEquipo {
+  empresaId: string
+  empresa: string
+  rolId: string
+  rol: string
+  notas: boolean
+  alcance: TipoAlcance
+  defecto: string | null
+  sucursales: string[]
+}
+
+/** GET /api/cartera/equipo — una persona del estudio con su ficha y sus accesos. */
+export interface PersonaEquipo {
+  id: string
+  nombre: string
+  correo: string
+  alias: string | null
+  nivel: Nivel
+  veTodas: boolean
+  activo: boolean
+  pendiente: boolean
+  fichaIncompleta: boolean
+  tipoDocumento: '1' | '4' | '7' | null
+  numeroDocumento: string | null
+  nombres: string | null
+  apellidoPaterno: string | null
+  apellidoMaterno: string | null
+  celular: string | null
+  fechaNacimiento: string | null
+  direccion: string | null
+  ubigeo: string | null
+  cargo: string | null
+  fechaIngreso: string | null
+  accesos: AccesoEquipo[]
+}
+
+/** GET /api/cartera/equipo/empresas — para el diálogo de acceso. */
+export interface EmpresaEquipo {
+  id: string
+  nombre: string
+  sucursales: { id: string; codigo: string; nombre: string }[]
+  roles: { id: string; nombre: string; descripcion: string | null; deSistema: boolean }[]
+}
+
+export interface DatosAccesoEquipo {
+  rol: string
+  alcance: TipoAlcance
+  sucursales: string[]
+  sucursalDefecto: string | null
+  notas: boolean
 }
 
 export const carteraServicio = {
@@ -75,6 +134,20 @@ export const carteraServicio = {
   quitar: (id: string) => api.borrar<{ mensaje: string }>(`/api/cartera/colaboradores/${id}`),
 
   convertir: () => api.crear<{ mensaje: string }>('/api/cartera/convertir'),
+
+  // --- 046: Mi equipo ---------------------------------------------------------
+  equipo: () => api.obtener<PersonaEquipo[]>('/api/cartera/equipo'),
+
+  equipoEmpresas: () => api.obtener<EmpresaEquipo[]>('/api/cartera/equipo/empresas'),
+
+  guardarFicha: (id: string, ficha: FichaParaEnviar) =>
+    api.cambiar<{ mensaje: string }>(`/api/cartera/equipo/${id}/ficha`, ficha),
+
+  guardarAcceso: (id: string, empresaId: string, d: DatosAccesoEquipo) =>
+    api.cambiar<{ mensaje: string }>(`/api/cartera/equipo/${id}/accesos/${empresaId}`, d),
+
+  quitarAcceso: (id: string, empresaId: string) =>
+    api.borrar<{ mensaje: string }>(`/api/cartera/equipo/${id}/accesos/${empresaId}`),
 }
 
 export const NOMBRE_NIVEL: Record<Nivel, string> = {

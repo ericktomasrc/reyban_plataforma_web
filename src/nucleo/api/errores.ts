@@ -12,11 +12,15 @@ export class ErrorApi extends Error {
   readonly codigoHttp: number
   readonly codigo?: string
 
-  constructor(codigoHttp: number, mensaje: string, codigo?: string) {
+  /** 046: el campo del formulario al que se refiere el error, si la API lo dice. */
+  readonly campo?: string
+
+  constructor(codigoHttp: number, mensaje: string, codigo?: string, campo?: string) {
     super(mensaje)
     this.name = 'ErrorApi'
     this.codigoHttp = codigoHttp
     this.codigo = codigo
+    this.campo = campo
   }
 
   /** No hay sesión, o dejó de valer. */

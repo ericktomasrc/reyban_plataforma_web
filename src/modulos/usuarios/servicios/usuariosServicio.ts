@@ -1,7 +1,8 @@
 import { api } from '../../../nucleo/api/cliente'
 import type {
-  EnlaceEnviado, RolDisponible, UsuarioEditado, UsuarioEnLista, UsuarioInvitado,
+  DatosAcceso, DelEstudio, EnlaceEnviado, OpcionesPersonal, RolDisponible, UsuarioEditado, UsuarioEnLista, UsuarioInvitado,
 } from '../tipos'
+import type { FichaParaEnviar } from '../componentes/CamposFicha'
 
 // =============================================================================
 // LA CAPA DE SERVICIO DEL MÓDULO DE USUARIOS
@@ -55,6 +56,28 @@ export const usuariosServicio = {
    */
   cambiarRoles: (id: string, roles: string[]) =>
     api.cambiar<{ mensaje: string }>(`/api/usuarios/${id}/roles`, { roles }),
+
+  // --- 046: Personal de la empresa ------------------------------------------
+
+  /** GET /api/usuarios/opciones — roles, alcances y sucursales que puedo dar. */
+  opciones: () =>
+    api.obtener<OpcionesPersonal>('/api/usuarios/opciones'),
+
+  /** GET /api/usuarios/estudio — los de Mi equipo que también entran (solo lectura). */
+  estudio: () =>
+    api.obtener<DelEstudio[]>('/api/usuarios/estudio'),
+
+  /** POST /api/usuarios con la ficha y el acceso. Le llega el enlace por correo. */
+  crearConFicha: (correo: string, ficha: FichaParaEnviar, acceso: DatosAcceso) =>
+    api.crear<UsuarioInvitado>('/api/usuarios', { correo, ficha, acceso }),
+
+  /** PUT /api/usuarios/{id} con la ficha (el nombre sale de nombres y apellidos). */
+  editarConFicha: (id: string, correo: string, ficha: FichaParaEnviar) =>
+    api.cambiar<UsuarioEditado>(`/api/usuarios/${id}`, { correo, ficha }),
+
+  /** PUT /api/usuarios/{id}/acceso — rol, alcance, sucursales y casillas. */
+  cambiarAcceso: (id: string, acceso: DatosAcceso) =>
+    api.cambiar<{ mensaje: string }>(`/api/usuarios/${id}/acceso`, acceso),
 
   /** POST .../desactivar — cierra además sus sesiones abiertas, al instante. */
   desactivar: (id: string) =>

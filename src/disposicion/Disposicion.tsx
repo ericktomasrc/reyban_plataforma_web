@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Boton } from '../componentes/Boton'
 import { BarraSuplantacion } from './BarraSuplantacion'
 import { SelectorEmpresa } from './SelectorEmpresa'
+import { SelectorSucursal } from './SelectorSucursal'
 import { NOMBRE_NIVEL } from '../modulos/cartera/servicios/carteraServicio'
 import { Permisos } from '../nucleo/autorizacion/permisos'
 import { useSesion, useYo } from '../nucleo/sesion/SesionContexto'
@@ -34,7 +35,7 @@ import { MenuDesplegable } from './MenuDesplegable'
  */
 export function Disposicion() {
   const { salir, puede } = useSesion()
-  const { usuario, empresa, cuenta, menu, roles } = useYo()
+  const { usuario, empresa, cuenta, menu, roles, alcance } = useYo()
   const ruta = useLocation()
   const [menuAbierto, setMenuAbierto] = useState(false)
   // 030: modo prueba / real. La franja la ven todos; nadie la cambia desde aquí.
@@ -86,6 +87,9 @@ export function Disposicion() {
 
         {cartera && <SelectorEmpresa />}
 
+        {/* 046: la sucursal elegida (si la empresa tiene más de una). */}
+        {empresa && <SelectorSucursal />}
+
         <span className="hueco" />
 
         {/* EL NOMBRE ES EL ENLACE A «MI CUENTA», que es donde la gente lo
@@ -129,7 +133,7 @@ export function Disposicion() {
               <span className="titulo-seccion">Mi estudio</span>
               <NavLink to="/empresas" className={activo}><Icono>▦</Icono>Mis empresas</NavLink>
               {cuenta?.nivel !== 'colaborador' && (
-                <NavLink to="/colaboradores" className={activo}><Icono>◎</Icono>Colaboradores</NavLink>
+                <NavLink to="/colaboradores" className={activo}><Icono>◎</Icono>Mi equipo</NavLink>
               )}
               {/* 036: los reportes de toda la cartera. */}
               <MenuDesplegable icono="▥" titulo="Reportes de la cartera" inicio="/mi-cartera/reportes"
@@ -176,7 +180,7 @@ export function Disposicion() {
               ))}
 
               {puede(Permisos.Usuarios.Ver) && (
-                <NavLink to="/usuarios" className={activo}><Icono>◍</Icono>Usuarios</NavLink>
+                <NavLink to="/usuarios" className={activo}><Icono>◍</Icono>Personal de la empresa</NavLink>
               )}
               {puede(Permisos.Usuarios.BitacoraVer) && (
                 <NavLink to="/auditoria" className={activo}><Icono>◷</Icono>Auditoría</NavLink>
@@ -232,7 +236,8 @@ export function Disposicion() {
               <span>{pagina}</span>
             </div>
           )}
-          <Outlet />
+          {/* 046: al cambiar de sucursal arriba, la pantalla se vuelve a cargar. */}
+          <Outlet key={alcance?.vista ?? 'todas'} />
         </main>
       </div>
     </div>
@@ -256,11 +261,11 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/mi-cartera')) return 'Reportes de la cartera'
   if (ruta.startsWith('/admin/reportes')) return 'Reportes de la plataforma'
   if (ruta.startsWith('/usuarios/roles')) return 'Roles'
-  if (ruta.startsWith('/usuarios')) return 'Usuarios'
+  if (ruta.startsWith('/usuarios')) return 'Personal de la empresa'
   if (ruta.startsWith('/auditoria')) return 'Auditoría'
   if (ruta.startsWith('/configurar')) return 'Configuración'
   if (ruta.startsWith('/empresas')) return 'Mis empresas'
-  if (ruta.startsWith('/colaboradores')) return 'Colaboradores'
+  if (ruta.startsWith('/colaboradores')) return 'Mi equipo'
   if (ruta.startsWith('/perfil')) return 'Mi cuenta'
   if (ruta.startsWith('/admin/empresas')) return 'Empresas'
   if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'

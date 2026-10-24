@@ -558,7 +558,7 @@ export const sucursalesServicio = {
     api.obtener<ListaSucursales>('/api/facturacion/sucursales'),
 
   mias: () =>
-    api.obtener<{ principalId: string; sucursales: SucursalMia[] }>('/api/facturacion/sucursales/mias'),
+    api.obtener<{ principalId: string; defectoId?: string | null; sucursales: SucursalMia[] }>('/api/facturacion/sucursales/mias'),
 
   localesSunat: () =>
     api.obtener<{ cargado: boolean; ruc: string | null; locales: LocalSunat[] }>('/api/facturacion/sucursales/locales-sunat'),

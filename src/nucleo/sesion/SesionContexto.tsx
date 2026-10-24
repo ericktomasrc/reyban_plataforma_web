@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ErrorApi } from '../api/errores'
+import { fijarSucursalVista } from '../api/cliente'
 import { accesoServicio } from '../../modulos/acceso/servicios/accesoServicio'
 import type { Yo } from './tipos'
 
@@ -45,7 +46,10 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
 
   const refrescar = useCallback(async () => {
     try {
-      setEstado({ fase: 'dentro', yo: await accesoServicio.yo() })
+      const yo = await accesoServicio.yo()
+      // 046: la sucursal que de verdad quedó (la base corrige una que no le toca).
+      fijarSucursalVista(yo.alcance?.vista ?? null)
+      setEstado({ fase: 'dentro', yo })
     } catch (e) {
       // Un 401 aquí es lo normal al abrir la página sin haber entrado. No es
       // un fallo que haya que enseñar: simplemente no hay sesión.
@@ -62,6 +66,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     } catch {
       // Si la sesión ya no valía, el resultado es el mismo: fuera.
     }
+    fijarSucursalVista(null)
     setEstado({ fase: 'fuera' })
   }, [])
 

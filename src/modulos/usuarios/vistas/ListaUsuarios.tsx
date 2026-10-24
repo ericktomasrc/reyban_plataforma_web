@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
@@ -11,15 +11,28 @@ import { useCargar } from '../../../nucleo/hooks/useCargar'
 import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion, useYo } from '../../../nucleo/sesion/SesionContexto'
-import { DialogoEditarUsuario } from '../componentes/DialogoEditarUsuario'
-import { DialogoRoles } from '../componentes/DialogoRoles'
-import { PanelInvitar } from '../componentes/PanelInvitar'
+import { DialogoFicha } from '../componentes/DialogoFicha'
+import { NOMBRE_DOCUMENTO } from '../componentes/CamposFicha'
 import { usuariosServicio } from '../servicios/usuariosServicio'
 import { recuperacion2faServicio } from '../../acceso/servicios/recuperacion2faServicio'
 import type { RecuperacionEnCurso } from '../../acceso/servicios/recuperacion2faServicio'
+import { NOMBRE_ALCANCE } from '../tipos'
 import type { UsuarioEnLista } from '../tipos'
 
+const NIVEL: Record<string, string> = { dueno: 'Dueño', colaborador_admin: 'Colaborador administrador', colaborador: 'Colaborador' }
+
 /**
+ * 046 — PERSONAL DE LA EMPRESA (antes «Usuarios»; maqueta aprobada, pantalla 1).
+ *
+ * Cada persona con su ficha, su rol (qué puede hacer), su alcance (qué ve) y
+ * sus sucursales. «Agregar personal» y «Editar» abren la misma ficha
+ * (DialogoFicha). Las fichas de antes salen como «Ficha incompleta»: no se
+ * bloquea a nadie, se completa al editar.
+ *
+ * El jefe de sucursal con «Agrega personal» ve aquí solo al personal de sus
+ * sucursales (lo recorta la API). En una Cuenta Profesional, debajo, «Además
+ * entran desde tu estudio» (solo lectura).
+ *
  * La gente de una empresa y lo que puede hacer cada uno.
  *
  * ESTA PANTALLA ES DEL ADMINISTRADOR DE LA EMPRESA. El super administrador no
@@ -39,18 +52,28 @@ export function ListaUsuarios() {
   const { pedir, dialogo: confirmacion } = useConfirmar()
 
   const usuarios = useCargar<UsuarioEnLista[]>(() => usuariosServicio.listar())
-  const catalogo = useCargar(() => usuariosServicio.roles())
+  const opciones = useCargar(() => usuariosServicio.opciones())
+  const estudio = useCargar(() => usuariosServicio.estudio())
 
   // 039: quién está recuperando su segundo factor (solo los de mi empresa).
   const recuperaciones = useCargar<RecuperacionEnCurso[]>(() => recuperacion2faServicio.enCurso())
 
-  const [editandoRoles, setEditandoRoles] = useState<UsuarioEnLista>()
-  const [editando, setEditando]           = useState<UsuarioEnLista>()
+  // 046: la ficha abierta (null = agregar).
+  const [ficha, setFicha]                 = useState<UsuarioEnLista | null | undefined>(undefined)
   const [menu, setMenu]                   = useState<string | null>(null)
+  const [filtro, setFiltro]               = useState<string>('todos')
 
   const mensaje = useMensaje()
 
-  const roles = catalogo.datos ?? []
+  const sucursales = opciones.datos?.sucursales ?? []
+  const nombreSucursal = useMemo(() => new Map(sucursales.map(s => [s.id, s.nombre])), [sucursales])
+  const variasSucursales = (opciones.datos?.totalSucursales ?? 0) > 1
+
+  const todos = usuarios.datos ?? []
+  const visibles = todos.filter(u =>
+    filtro === 'todos' ? true
+      : filtro === 'incompleta' ? !!u.fichaIncompleta
+      : (u.sucursales ?? []).length === 0 || (u.sucursales ?? []).includes(filtro))
 
   async function desactivar(u: UsuarioEnLista) {
     const seguro = await pedir({
@@ -179,7 +202,7 @@ export function ListaUsuarios() {
   if (yo.esSuperAdmin) {
     return (
       <>
-        <h1 className="titulo-pagina">Usuarios</h1>
+        <h1 className="titulo-pagina">Personal de la empresa</h1>
         <div className="bloque">
           <Vacio>
             Esta pantalla gestiona la gente de una empresa, y tú no perteneces a
@@ -195,34 +218,67 @@ export function ListaUsuarios() {
 
   return (
     <>
-      <div className="bienvenida-cabecera">
-        <h1 className="titulo-pagina titulo-serif">Usuarios</h1>
-        <p className="bajada-pagina">
-          Las personas que trabajan en {empresa?.nombre ?? 'tu empresa'} y lo que puede hacer cada una.
-          {/* 035: los roles propios. */}
-          {puede(Permisos.Usuarios.RolesGestionar) && (
-            <> <Link to="/usuarios/roles">Roles y permisos</Link></>
-          )}
-        </p>
+      <div className="cabecera-bandeja">
+        <div>
+          <h1 className="titulo-pagina titulo-serif">Personal de la empresa</h1>
+          <p className="bajada-pagina">
+            {opciones.datos?.restringido
+              ? 'Solo ves y agregas personal de tus sucursales.'
+              : <>Las personas que trabajan en {empresa?.nombre ?? 'tu empresa'}: qué pueden hacer (rol), qué pueden ver
+                  (alcance) y en qué sucursal.</>}
+            {/* 035: los roles propios. */}
+            {puede(Permisos.Usuarios.RolesGestionar) && (
+              <> <Link to="/usuarios/roles">Roles y permisos</Link></>
+            )}
+          </p>
+        </div>
+        {puede(Permisos.Usuarios.Crear) && opciones.datos && (
+          <Boton onClick={() => setFicha(null)}>Agregar personal</Boton>
+        )}
       </div>
 
       {usuarios.error && <Aviso>{usuarios.error}</Aviso>}
+      {opciones.error && <Aviso>{opciones.error}</Aviso>}
 
-      <div className="colaboradores">
+      {todos.length > 1 && (
+        <div className="filtros-personal" role="group" aria-label="Filtrar">
+          <button type="button" className={filtro === 'todos' ? 'elegido' : undefined} onClick={() => setFiltro('todos')}>
+            Todos ({todos.length})
+          </button>
+          {variasSucursales && sucursales.map(s => {
+            // Sin sucursales marcadas = trabaja en todas: cuenta en cada una.
+            const n = todos.filter(u => (u.sucursales ?? []).length === 0 || (u.sucursales ?? []).includes(s.id)).length
+            return (
+              <button key={s.id} type="button" className={filtro === s.id ? 'elegido' : undefined} onClick={() => setFiltro(s.id)}>
+                {s.nombre} ({n})
+              </button>
+            )
+          })}
+          {todos.some(u => u.fichaIncompleta) && (
+            <button type="button" className={'ojo' + (filtro === 'incompleta' ? ' elegido' : '')} onClick={() => setFiltro('incompleta')}>
+              Ficha incompleta ({todos.filter(u => u.fichaIncompleta).length})
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="bloque sin-relleno lista-usuarios">
-        {usuarios.datos && usuarios.datos.length > 0 ? (
+        {visibles.length > 0 ? (
+          <div className="tabla-envoltura">
           <table className="tabla">
             <thead>
               <tr>
                 <th>Persona</th>
-                <th>Roles</th>
+                <th>Cargo · rol</th>
+                <th>Alcance</th>
+                {variasSucursales && <th>Sucursales</th>}
                 <th>Estado</th>
                 <th aria-label="Acciones" />
               </tr>
             </thead>
 
             <tbody>
-              {usuarios.datos.map(u => {
+              {visibles.map(u => {
                 const soyYo     = u.id === yo.id
                 const bloqueado = esFutura(u.bloqueadoHasta)
                 const recupera  = recuperaciones.datos?.find(r => r.usuarioId === u.id)
@@ -234,20 +290,33 @@ export function ListaUsuarios() {
                         {u.nombre}
                         {soyYo && <span className="etiqueta marca-yo">tú</span>}
                       </div>
-                      <div className="secundario">{u.correo}</div>
+                      {u.fichaIncompleta
+                        ? <div className="ficha-incompleta">Ficha incompleta{!u.numeroDocumento ? ' · falta el documento' : ''}</div>
+                        : <div className="secundario">{NOMBRE_DOCUMENTO[u.tipoDocumento ?? '1']} {u.numeroDocumento} · {u.correo}</div>}
+                      {u.fichaIncompleta && <div className="secundario">{u.correo}</div>}
                     </td>
 
                     <td>
-                      {u.roles.length > 0 ? (
-                        <div className="etiquetas">
-                          {u.roles.map(r => (
-                            <span key={r.rolId} className="etiqueta acento">{r.nombre}</span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="vacio">Sin rol</span>
-                      )}
+                      {u.cargo && <div>{u.cargo}</div>}
+                      <div className={u.cargo ? 'secundario' : undefined}>
+                        {u.roles.length > 0 ? u.roles.map(r => r.nombre).join(' · ') : <span className="vacio">Sin rol</span>}
+                        {u.notas && ' · notas de crédito'}
+                        {u.personal && ' · puede agregar personal'}
+                      </div>
                     </td>
+
+                    <td>{NOMBRE_ALCANCE[u.alcance ?? 'empresa']}</td>
+
+                    {variasSucursales && (
+                      <td>
+                        {(u.sucursales ?? []).length === 0
+                          ? 'Todas'
+                          : (u.sucursales ?? []).map(id => nombreSucursal.get(id) ?? '(desactivada)').join(', ')}
+                        {u.sucursalDefecto && (u.sucursales ?? []).length !== 1 && nombreSucursal.get(u.sucursalDefecto) && (
+                          <div className="secundario">por defecto: {nombreSucursal.get(u.sucursalDefecto)}</div>
+                        )}
+                      </td>
+                    )}
 
                     <td>
                       {!u.activo ? (
@@ -291,24 +360,31 @@ export function ListaUsuarios() {
                           «Editar» queda a la vista (es lo más buscado); lo
                           demás va en «⋯» para que la tabla quepa junto al
                           panel de invitar. */}
-                      {soyYo ? null : u.activo ? (
+                      {soyYo ? (
+                        <Si puede={Permisos.Usuarios.Editar}>
+                          {opciones.datos && (
+                            <Boton estilo="secundario" onClick={() => setFicha(u)}>
+                              {u.fichaIncompleta ? 'Completar ficha' : 'Mi ficha'}
+                            </Boton>
+                          )}
+                        </Si>
+                      ) : u.activo ? (
                         <>
                           <Si puede={Permisos.Usuarios.Editar}>
-                            <Boton estilo="secundario" onClick={() => setEditando(u)}>Editar</Boton>
+                            {opciones.datos && (
+                              <Boton estilo="secundario" onClick={() => setFicha(u)}>
+                                {u.fichaIncompleta ? 'Completar ficha' : 'Editar'}
+                              </Boton>
+                            )}
                           </Si>
 
-                          {(puede(Permisos.Usuarios.RolesGestionar) || puede(Permisos.Usuarios.Editar)
+                          {(puede(Permisos.Usuarios.Editar)
                             || puede(Permisos.Usuarios.Desactivar) || puede(Permisos.Usuarios.SesionesRevocar)) && (
                             <div className="menu-fila">
                               <Boton estilo="secundario" aria-label={`Más acciones de ${u.nombre}`}
                                      aria-expanded={menu === u.id} onClick={() => setMenu(m => m === u.id ? null : u.id)}>⋯</Boton>
                               {menu === u.id && (
                                 <div className="menu-fila-lista" role="menu">
-                                  {puede(Permisos.Usuarios.RolesGestionar) && (
-                                    <button type="button" role="menuitem" onClick={() => { setMenu(null); setEditandoRoles(u) }}>
-                                      Cambiar rol
-                                    </button>
-                                  )}
                                   {puede(Permisos.Usuarios.Editar) && (
                                     <button type="button" role="menuitem" onClick={() => { setMenu(null); void enviarEnlace(u) }}>
                                       {u.ultimoIngresoEn === null ? 'Reenviar la invitación' : 'Enviar enlace de acceso'}
@@ -351,45 +427,55 @@ export function ListaUsuarios() {
               })}
             </tbody>
           </table>
+          </div>
         ) : (
           <div className="relleno">
-            <Vacio>Todavía no hay nadie más en la empresa.</Vacio>
+            <Vacio>{filtro === 'todos' ? 'Todavía no hay nadie más en la empresa.' : 'Nadie con ese filtro.'}</Vacio>
           </div>
         )}
       </div>
 
-      {puede(Permisos.Usuarios.Crear) && (
-        <PanelInvitar empresa={empresa?.nombre ?? 'tu empresa'} onCreado={() => void usuarios.recargar()} />
-      )}
+      <div className="bloque">
+        <strong>Alcance: qué puede ver cada uno</strong>
+        <p className="nota">
+          <strong>Toda la empresa</strong> — todo (la central). <strong>Su sucursal</strong> — solo lo de sus
+          sucursales. <strong>Solo lo suyo</strong> — solo los comprobantes que él emitió.
+        </p>
       </div>
+
+      {/* 046: la gente de la Cuenta Profesional que también entra (solo lectura). */}
+      {estudio.datos && estudio.datos.length > 0 && (
+        <div className="bloque bloque-estudio">
+          <strong>Además entran desde tu estudio</strong>
+          <p className="nota">Son de Mi equipo (Cuenta Profesional): sus datos y su acceso se cambian allí.</p>
+          <table className="tabla">
+            <thead><tr><th>Persona</th><th>Nivel</th><th>Rol</th><th>Alcance</th></tr></thead>
+            <tbody>
+              {estudio.datos.map((p, i) => (
+                <tr key={i}>
+                  <td>{p.nombre}</td>
+                  <td>{NIVEL[p.nivel] ?? p.nivel}</td>
+                  <td>{p.rol}</td>
+                  <td>{NOMBRE_ALCANCE[p.alcance] ?? p.alcance}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {confirmacion}
 
-      {editando && (
-        <DialogoEditarUsuario
-          usuario={editando}
-          onCerrar={() => setEditando(undefined)}
-          onGuardado={r => {
-            setEditando(undefined)
-
-            // Si el correo cambió y el aviso a la dirección antigua no salió,
-            // eso no es un error del arreglo —ya está hecho— pero quien lo
-            // hizo tiene que saberlo: el dueño de la cuenta no se enteró.
-            if (r.correoCambiado && !r.avisoAlAnterior) mensaje.ojo(r.mensaje)
-            else                                        mensaje.bien(r.mensaje)
-
-            void usuarios.recargar()
-          }}
-        />
-      )}
-
-      {editandoRoles && (
-        <DialogoRoles
-          usuario={editandoRoles}
-          roles={roles}
-          onCerrar={() => setEditandoRoles(undefined)}
-          onGuardado={() => {
-            setEditandoRoles(undefined)
+      {ficha !== undefined && opciones.datos && (
+        <DialogoFicha
+          usuario={ficha}
+          opciones={opciones.datos}
+          empresa={empresa?.nombre ?? 'tu empresa'}
+          onCerrar={() => setFicha(undefined)}
+          onListo={(m, tono) => {
+            setFicha(undefined)
+            if (tono === 'ojo') mensaje.ojo(m)
+            else mensaje.bien(m)
             void usuarios.recargar()
           }}
         />

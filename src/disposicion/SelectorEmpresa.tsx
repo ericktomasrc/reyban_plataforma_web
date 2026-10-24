@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ErrorApi } from '../nucleo/api/errores'
+import { fijarSucursalVista } from '../nucleo/api/cliente'
 import { useMensaje } from '../nucleo/mensajes/ProveedorMensajes'
 import { useSesion, useYo } from '../nucleo/sesion/SesionContexto'
 import { carteraServicio, estadoDe, textoEstado } from '../modulos/cartera/servicios/carteraServicio'
@@ -53,6 +54,8 @@ export function SelectorEmpresa() {
     if (e.abierta) return
     try {
       await carteraServicio.abrir(e.id)
+      // 046: en la otra empresa se entra con su sucursal de por defecto.
+      fijarSucursalVista(null)
       await refrescar()
       navegar('/')
     } catch (err) {

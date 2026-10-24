@@ -39,6 +39,8 @@ interface Props {
   onCambio: (v: UbicacionFiscal) => void
   /** El error del servidor para la dirección, si lo hubo. */
   error?: string
+  /** 046: sin asterisco (en la ficha de una persona la dirección es opcional). */
+  opcional?: boolean
 }
 
 /**
@@ -52,7 +54,7 @@ interface Props {
  * Si la empresa trae un ubigeo que no está en la lista (uno antiguo o mal
  * escrito), abre vacío y lo dice.
  */
-export function SelectorUbigeo({ ubigeo, onCambio, error }: Props) {
+export function SelectorUbigeo({ ubigeo, onCambio, error, opcional }: Props) {
   const id = useId()
   const inicial = buscarUbigeo(ubigeo)
   const [departamento, setDepartamento] = useState(inicial?.departamento ?? '')
@@ -93,8 +95,8 @@ export function SelectorUbigeo({ ubigeo, onCambio, error }: Props) {
     <>
       <div className="rejilla-direccion">
         <div className="campo">
-          <label htmlFor={`${id}-dep`}>Departamento<Asterisco /></label>
-          <select id={`${id}-dep`} aria-required value={departamento}
+          <label htmlFor={`${id}-dep`}>Departamento{!opcional && <Asterisco />}</label>
+          <select id={`${id}-dep`} aria-required={!opcional} value={departamento}
                   onChange={e => elegirDepartamento(e.target.value)}>
             <option value="">Elige…</option>
             {Object.keys(UBIGEO).map(d => <option key={d} value={d}>{legible(d)}</option>)}
@@ -102,8 +104,8 @@ export function SelectorUbigeo({ ubigeo, onCambio, error }: Props) {
         </div>
 
         <div className="campo">
-          <label htmlFor={`${id}-pro`}>Provincia<Asterisco /></label>
-          <select id={`${id}-pro`} aria-required value={provincia} disabled={!departamento}
+          <label htmlFor={`${id}-pro`}>Provincia{!opcional && <Asterisco />}</label>
+          <select id={`${id}-pro`} aria-required={!opcional} value={provincia} disabled={!departamento}
                   onChange={e => elegirProvincia(e.target.value)}>
             <option value="">{departamento ? 'Elige…' : 'Primero el departamento'}</option>
             {provincias.map(p => <option key={p} value={p}>{legible(p)}</option>)}
@@ -111,8 +113,8 @@ export function SelectorUbigeo({ ubigeo, onCambio, error }: Props) {
         </div>
 
         <div className="campo">
-          <label htmlFor={`${id}-dis`}>Distrito<Asterisco /></label>
-          <select id={`${id}-dis`} aria-required value={elegido ? elegido.ubigeo : ''} disabled={!provincia}
+          <label htmlFor={`${id}-dis`}>Distrito{!opcional && <Asterisco />}</label>
+          <select id={`${id}-dis`} aria-required={!opcional} value={elegido ? elegido.ubigeo : ''} disabled={!provincia}
                   aria-invalid={!!error || desconocido || undefined}
                   onChange={e => elegirDistrito(e.target.value)}>
             <option value="">{provincia ? 'Elige…' : 'Primero la provincia'}</option>

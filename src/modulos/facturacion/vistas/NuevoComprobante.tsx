@@ -21,15 +21,14 @@ import {
 import type { DatosDocumento, SerieEmpresa, SucursalMia } from '../servicios/facturacionServicio'
 import { sucursalesServicio } from '../servicios/facturacionServicio'
 
-/** 044: la sucursal con la que se emitió la última vez en este equipo. */
-const CLAVE_SUCURSAL = 'reyban.sucursal'
-
-/** 044: con qué sucursal abre la pantalla: la de la última vez, o la primera que tenga series. */
-function sucursalInicial(mias: SucursalMia[], series: SerieEmpresa[]): string {
+/**
+ * 046: con qué sucursal abre la pantalla. Con una elegida arriba, la API ya
+ * manda solo esa. Con «Todas», la de por defecto de la persona; si no tiene,
+ * la primera que tenga series.
+ */
+function sucursalInicial(mias: SucursalMia[], series: SerieEmpresa[], defecto?: string | null): string {
   if (mias.length === 0) return ''
-  let guardada: string | null = null
-  try { guardada = localStorage.getItem(CLAVE_SUCURSAL) } catch { /* sin almacenamiento */ }
-  if (guardada && mias.some(m => m.id === guardada)) return guardada
+  if (defecto && mias.some(m => m.id === defecto)) return defecto
   return (mias.find(m => series.some(s => s.sucursalId === m.id)) ?? mias[0]).id
 }
 import type { CatalogosSunat, ClienteEnLista, ProductoEnLista } from '../tipos'
@@ -207,11 +206,16 @@ export function NuevoComprobante() {
           ss = await documentosServicio.series()
           // 044: las sucursales en las que trabajo (el selector sale si son dos o más).
           let mias: SucursalMia[] = []
-          try { mias = (await sucursalesServicio.mias()).sucursales } catch { /* como antes, sin sucursales */ }
+          let defecto: string | null = null
+          try {
+            const r = await sucursalesServicio.mias()
+            mias = r.sucursales
+            defecto = r.defectoId ?? null
+          } catch { /* como antes, sin sucursales */ }
           if (vivo) {
             setSeries(ss)
             setSucursales(mias)
-            const suc = sucursalInicial(mias, ss)
+            const suc = sucursalInicial(mias, ss, defecto)
             setSucursalId(suc)
             const primera = ss.find(s => s.tipo === '01' && (!suc || !s.sucursalId || s.sucursalId === suc))
             if (!id && primera) setSerie(primera.serie)
@@ -864,17 +868,19 @@ export function NuevoComprobante() {
         {/* 044: DESDE QUÉ SUCURSAL. Solo si trabajas en más de una. */}
         {sucursales.length > 1 && (
           <label className="campo selector-sucursal">
-            <span className="etiqueta">Sucursal<Asterisco /></span>
+            <span className="etiqueta">Emitir desde<Asterisco /></span>
             <select value={sucursalId} onChange={e => {
               const v = e.target.value
               setSucursalId(v)
-              try { localStorage.setItem(CLAVE_SUCURSAL, v) } catch { /* sin almacenamiento */ }
               setSerie((series ?? []).find(s => s.tipo === tipo && (!s.sucursalId || s.sucursalId === v))?.serie
                 ?? (tipo === '01' ? 'F001' : 'B001'))
             }}>
               {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre} ({s.codigo})</option>)}
             </select>
-            <span className="pista">Sale en el XML (código de establecimiento) y su dirección en el PDF.</span>
+            <span className="pista">
+              Un comprobante siempre sale de un local: viene elegida tu sucursal por defecto. Sale en el XML (código de
+              establecimiento) y su dirección en el PDF.
+            </span>
           </label>
         )}
         <div className="pareja">

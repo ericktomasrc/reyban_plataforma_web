@@ -1181,3 +1181,63 @@ button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
   .reporte .tabla .secundario { font-size: 7.5pt; color: #6b7480; }
   .reporte .tabla .fila-total td { background: #e6f0ee !important; border-top: 1.5px solid #1f6f6a; border-bottom: 0; color: #1f6f6a; }
 }
+
+/* =============================================================================
+   046 — PERSONAL, SELECTOR DE SUCURSAL Y MI EQUIPO
+   ============================================================================= */
+.selector-sucursal .selector-menu { width: 300px; }
+.selector-pie .secundario { font-size: 12.5px; }
+.sucursal-fija {
+  font-size: 14px; border: 1px solid var(--borde); background: var(--papel); color: var(--tinta);
+  border-radius: var(--radio-grande); padding: 7px 14px; white-space: nowrap;
+}
+
+/* La ficha: datos personales y acceso al sistema. Diálogo más ancho (maqueta: 800). */
+.dialogo:has(.ficha-seccion) { width: min(820px, calc(100vw - var(--e5) * 2)); }
+.ficha-seccion { display: flex; flex-direction: column; gap: var(--e3); margin-bottom: var(--e4); }
+.ficha-seccion h3 { margin: 0; font-size: 12.5px; letter-spacing: .06em; color: var(--tinta-2); text-transform: uppercase; }
+.ficha-seccion.acceso { padding: var(--e4); border: 1px solid #bfdcd9; background: var(--acento-suave); border-radius: var(--radio-grande); }
+.ficha-seccion.acceso h3 { color: var(--acento); }
+.terna { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e3); }
+.terna > .campo { margin-bottom: 0; }
+.ficha-seccion .pareja > .campo { margin-bottom: 0; }
+.campo select { width: 100%; }
+.opciones-alcance { display: flex; flex-direction: column; gap: var(--e2); font-size: 14px; }
+.opciones-alcance label, .casillas-acceso label { display: flex; gap: var(--e2); align-items: flex-start; cursor: pointer; }
+.casillas-acceso { display: flex; flex-direction: column; gap: var(--e2); font-size: 14px; }
+.nota-ley { font-size: 12px; color: var(--tinta-3); margin: 0; }
+.rotulo { font-size: 13px; font-weight: 500; color: var(--tinta-2); }
+.columna-personal { white-space: nowrap; }
+@media (max-width: 720px) {
+  .terna { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* La tabla del personal. */
+.filtros-personal { display: flex; flex-wrap: wrap; gap: var(--e2); margin-bottom: var(--e3); }
+.filtros-personal button {
+  font: inherit; font-size: 13px; cursor: pointer; border-radius: 999px; padding: 6px 12px;
+  border: 1px solid var(--borde); background: var(--superficie); color: var(--tinta);
+}
+.filtros-personal button.elegido { background: var(--acento); border-color: var(--acento); color: #fff; }
+.filtros-personal button.ojo { background: var(--aviso-suave); color: var(--aviso); border-color: #f0d3a0; }
+.filtros-personal button.ojo.elegido { background: var(--aviso); color: #fff; }
+.ficha-incompleta { color: var(--aviso); font-size: 13px; }
+.bloque-estudio { margin-top: var(--e4); }
+.bloque-estudio table { margin-top: var(--e2); }
+
+/* Acciones en texto (Sucursales): «Editar · + Series · Desactivar · Eliminar». */
+.acciones-texto { white-space: nowrap; text-align: right; }
+.acciones-texto .enlace { font-size: 13.5px; }
+.acciones-texto .separa { color: var(--tinta-3); margin: 0 6px; }
+.enlace.peligro { color: var(--peligro); }
+.enlace-apagado { color: var(--tinta-3); font-size: 13.5px; cursor: help; }
+.pie-sucursales { display: flex; justify-content: space-between; align-items: center; gap: var(--e4); flex-wrap: wrap; }
+
+/* Mi equipo: el acento azul de «Mi estudio». */
+.mi-equipo { --acento: #3b4fa0; --acento-fuerte: #2b3a78; --acento-suave: #e8ebf7; }
+.mi-equipo .ficha-seccion.acceso { border-color: #c7cdea; }
+.marca-estudio { font-size: 12px; letter-spacing: .06em; color: var(--acento); font-weight: 600; }
+.accesos-empresa { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
+.tabla-accesos { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tabla-accesos th { text-align: left; font-size: 12px; color: var(--tinta-2); font-weight: 500; padding: 6px 8px; }
+.tabla-accesos td { padding: 8px; border-top: 1px solid var(--borde); vertical-align: top; }

@@ -79,8 +79,37 @@ export interface Suplantacion {
   desde: string
 }
 
+/** 046: una sucursal que se puede elegir arriba. */
+export interface SucursalArriba {
+  id: string
+  codigo: string
+  nombre: string
+}
+
+/**
+ * 046: qué ve y desde qué sucursal. Lo calcula la base en cada petición.
+ *
+ *   empresa   todo (puede elegir «Todas»)
+ *   sucursal  lo de sus sucursales (elige entre las suyas)
+ *   propio    solo lo que emitió
+ */
+export interface Alcance {
+  tipo: 'empresa' | 'sucursal' | 'propio'
+  /** La elegida arriba; null = «Todas». */
+  vista: string | null
+  /** Con la que entra y la que viene elegida al emitir. */
+  defecto: string | null
+  /** Sucursales activas de la empresa (con una sola no hay selector). */
+  total: number
+  /** Las que puede elegir arriba. */
+  sucursales: SucursalArriba[]
+}
+
 export interface Yo {
   usuario: Usuario
+
+  /** 046. Nulo para el super administrador y sin empresa abierta. */
+  alcance?: Alcance | null
 
   /**
    * Nulo para el super administrador —vive fuera de las empresas— y para quien

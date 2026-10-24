@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
@@ -10,7 +11,7 @@ import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { SelectorUbigeo, buscarUbigeo, legible } from '../../../nucleo/ubigeo/SelectorUbigeo'
 import { sucursalesServicio } from '../servicios/facturacionServicio'
-import type { LocalSunat, Sucursal, UsuarioSucursales } from '../servicios/facturacionServicio'
+import type { LocalSunat, Sucursal } from '../servicios/facturacionServicio'
 
 const NOMBRE_TIPO: Record<string, string> = { '01': 'Factura', '03': 'Boleta', '07': 'N. crédito', '08': 'N. débito' }
 
@@ -31,8 +32,12 @@ function lugarDe(ubigeo: string | null): string | null {
  * 23 OCT (044) — CONFIGURACIÓN › SUCURSALES (maqueta aprobada el 22 oct).
  *
  * Los locales del MISMO RUC, como figuran en la ficha RUC (establecimientos
- * anexos). Cada uno con su código SUNAT, su dirección, sus series y sus
- * usuarios. La 0000 (domicilio fiscal) existe siempre.
+ * anexos). Cada uno con su código SUNAT, su dirección, sus series y cuánta
+ * gente trabaja en él. La 0000 (domicilio fiscal) existe siempre.
+ *
+ * 046: quién trabaja en cada sucursal ya no se elige aquí: está en la ficha de
+ * cada persona (Personal de la empresa). Los botones son texto; «Eliminar» va
+ * en rojo si se puede y en gris con ⓘ (y el motivo) si no.
  *
  * ELIMINAR solo si nunca tuvo movimiento; con el mínimo movimiento, el botón
  * dice por qué no y queda DESACTIVAR: deja de emitir y todo lo suyo se queda.
@@ -44,7 +49,6 @@ export function Sucursales() {
   const [editando, setEditando] = useState<Sucursal | 'nueva' | null>(null)
   const [series, setSeries] = useState<Sucursal | null>(null)
   const [ocupada, setOcupada] = useState<string | null>(null)
-  const [verUsuarios, setVerUsuarios] = useState(0)
 
   const sucursales = lista.datos?.sucursales ?? []
   const gestiona = !!lista.datos?.puedeGestionar
@@ -105,7 +109,6 @@ export function Sucursales() {
     try {
       mensaje.bien((await sucursalesServicio.eliminar(s.id)).mensaje)
       await lista.recargar()
-      setVerUsuarios(v => v + 1)
     } catch (e) {
       mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo eliminar.')
     } finally {
@@ -137,7 +140,7 @@ export function Sucursales() {
               <thead>
                 <tr>
                   <th>Código SUNAT</th><th>Sucursal</th><th>Dirección</th><th>Series</th>
-                  <th className="derecha">Usuarios</th>{gestiona && <th />}
+                  <th>Personal</th>{gestiona && <th />}
                 </tr>
               </thead>
               <tbody>
@@ -147,7 +150,10 @@ export function Sucursales() {
                     <td>
                       <div className="principal">{s.nombre}</div>
                       <div className="secundario">
-                        {s.esPrincipal ? 'Domicilio fiscal' : s.activo ? 'Local anexo' : <span className="estado malo">Desactivada · no emite</span>}
+                        {s.esPrincipal ? 'Domicilio fiscal'
+                          : !s.activo ? <span className="estado malo">Desactivada · no emite</span>
+                          : s.documentos === 0 ? 'Local anexo · nunca emitió'
+                          : `Local anexo · ${s.documentos} comprobante${s.documentos === 1 ? '' : 's'}`}
                       </div>
                     </td>
                     <td>
@@ -161,27 +167,35 @@ export function Sucursales() {
                           ))}</div>
                         : <span className="vacio">—</span>}
                     </td>
-                    <td className="derecha">{s.usuarios || (s.esPrincipal || s.activo ? '' : '0')}</td>
+                    <td className="columna-personal">
+                      <Link to="/usuarios">{s.usuarios} {s.usuarios === 1 ? 'persona' : 'personas'}</Link>
+                    </td>
                     {gestiona && (
-                      <td className="acciones-bandeja">
-                        <div className="botonera">
-                          <Boton estilo="plano" onClick={() => setEditando(s)} disabled={ocupada !== null}>Editar</Boton>
-                          {s.activo && (
-                            <Boton estilo="plano" onClick={() => setSeries(s)} disabled={ocupada !== null}>+ Series</Boton>
-                          )}
-                          {!s.esPrincipal && (s.activo
-                            ? <Boton estilo="plano" onClick={() => void desactivar(s)} ocupado={ocupada === s.id}>Desactivar</Boton>
-                            : <Boton estilo="plano" onClick={() => void reactivar(s)} ocupado={ocupada === s.id}>Reactivar</Boton>)}
-                          {!s.esPrincipal && (
-                            <Boton estilo="plano" className="peligro" disabled={!s.puedeEliminar || ocupada !== null}
-                                   title={s.puedeEliminar ? 'Nunca emitió: se puede eliminar' : s.motivoNoEliminar ?? undefined}
-                                   onClick={() => void eliminar(s)}>
-                              Eliminar
-                            </Boton>
-                          )}
-                        </div>
-                        {!s.esPrincipal && !s.puedeEliminar && s.motivoNoEliminar && (
-                          <div className="secundario">{s.motivoNoEliminar}</div>
+                      <td className="acciones-texto">
+                        <button type="button" className="enlace" onClick={() => setEditando(s)} disabled={ocupada !== null}>Editar</button>
+                        {s.activo && (
+                          <>
+                            <span className="separa" aria-hidden="true">·</span>
+                            <button type="button" className="enlace" onClick={() => setSeries(s)} disabled={ocupada !== null}>+ Series</button>
+                          </>
+                        )}
+                        {!s.esPrincipal && (
+                          <>
+                            <span className="separa" aria-hidden="true">·</span>
+                            {s.activo
+                              ? <button type="button" className="enlace" onClick={() => void desactivar(s)} disabled={ocupada !== null}>
+                                  {ocupada === s.id ? 'Desactivando…' : 'Desactivar'}
+                                </button>
+                              : <button type="button" className="enlace" onClick={() => void reactivar(s)} disabled={ocupada !== null}>
+                                  {ocupada === s.id ? 'Reactivando…' : 'Reactivar'}
+                                </button>}
+                            <span className="separa" aria-hidden="true">·</span>
+                            {s.puedeEliminar
+                              ? <button type="button" className="enlace peligro" title="Nunca emitió: se puede eliminar"
+                                        onClick={() => void eliminar(s)} disabled={ocupada !== null}>Eliminar</button>
+                              : <span className="enlace-apagado" tabIndex={0} title={s.motivoNoEliminar ?? 'No se puede eliminar'}
+                                      aria-label={`Eliminar no disponible: ${s.motivoNoEliminar ?? ''}`}>Eliminar ⓘ</span>}
+                          </>
                         )}
                       </td>
                     )}
@@ -208,9 +222,12 @@ export function Sucursales() {
         </div>
       )}
 
-      {gestiona && sucursales.filter(s => s.activo).length > 1 && (
-        <UsuariosPorSucursal sucursales={sucursales.filter(s => s.activo)} todas={sucursales} recargar={verUsuarios}
-                             alCambiar={() => void lista.recargar()} />
+      {/* 046: quién emite en cada sucursal se elige en la ficha de cada persona. */}
+      {lista.datos && sucursales.length > 1 && (
+        <div className="bloque pie-sucursales">
+          <span className="nota">Quién emite en cada sucursal se elige en la ficha de cada persona.</span>
+          <Link to="/usuarios"><strong>Ir a Personal de la empresa →</strong></Link>
+        </div>
       )}
 
       {editando && (
@@ -474,133 +491,6 @@ function DialogoSeries({ sucursal, usadas, onCerrar, onListo }: {
           </label>
         ))}
       </div>
-      {error && <Aviso>{error}</Aviso>}
-    </Dialogo>
-  )
-}
-
-
-// =============================================================================
-// USUARIOS POR SUCURSAL
-// =============================================================================
-
-function UsuariosPorSucursal({ sucursales, todas, recargar, alCambiar }: {
-  sucursales: Sucursal[]
-  /** También las desactivadas, para nombrarlas. */
-  todas: Sucursal[]
-  recargar: number
-  alCambiar: () => void
-}) {
-  const mensaje = useMensaje()
-  const usuarios = useCargar(() => sucursalesServicio.usuarios())
-  const [editando, setEditando] = useState<UsuarioSucursales | null>(null)
-  const nombres = useMemo(() => new Map(todas.map(s => [s.id, s.activo ? `${s.nombre} (${s.codigo})` : `${s.nombre} (desactivada)`])), [todas])
-
-  useEffect(() => { if (recargar > 0) void usuarios.recargar() }, [recargar]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <>
-      <div className="bloque sin-relleno">
-        <div className="relleno">
-          <h2 className="subtitulo">Usuarios por sucursal</h2>
-          <p className="nota">Al emitir, cada usuario solo ve las series de sus sucursales. Sin sucursales asignadas, trabaja en todas.</p>
-        </div>
-        {usuarios.error && <Aviso>{usuarios.error}</Aviso>}
-        {usuarios.datos && (
-          <table className="tabla">
-            <thead><tr><th>Usuario</th><th>Sucursales</th><th /></tr></thead>
-            <tbody>
-              {usuarios.datos.map(u => (
-                <tr key={u.id}>
-                  <td>
-                    <div className="principal">{u.nombre}</div>
-                    <div className="secundario">{u.correo}</div>
-                  </td>
-                  <td>
-                    {u.todas ? <span className="etiqueta acento">Todas</span>
-                      : <div className="etiquetas">{u.sucursales.map(id => (
-                          <span key={id} className="etiqueta">{nombres.get(id) ?? 'eliminada'}</span>
-                        ))}</div>}
-                  </td>
-                  <td className="acciones-bandeja">
-                    <Boton estilo="plano" onClick={() => setEditando(u)}>Editar</Boton>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {editando && (
-        <DialogoUsuario usuario={editando} sucursales={sucursales}
-          onCerrar={() => setEditando(null)}
-          onListo={async m => { setEditando(null); mensaje.bien(m); await usuarios.recargar(); alCambiar() }} />
-      )}
-    </>
-  )
-}
-
-function DialogoUsuario({ usuario, sucursales, onCerrar, onListo }: {
-  usuario: UsuarioSucursales
-  sucursales: Sucursal[]
-  onCerrar: () => void
-  onListo: (mensaje: string) => Promise<void>
-}) {
-  const [todas, setTodas] = useState(usuario.todas)
-  const [marcadas, setMarcadas] = useState<string[]>(usuario.sucursales.filter(id => sucursales.some(s => s.id === id)))
-  const [error, setError] = useState<string | null>(null)
-  const [guardando, setGuardando] = useState(false)
-
-  const series = sucursales.filter(s => marcadas.includes(s.id)).flatMap(s => s.series.filter(x => x.tipo === '01' || x.tipo === '03').map(x => x.serie))
-
-  async function guardar() {
-    if (!todas && marcadas.length === 0) { setError('Marca al menos una sucursal, o elige «Todas».'); return }
-    setGuardando(true); setError(null)
-    try {
-      await onListo((await sucursalesServicio.asignar(usuario.id, todas ? [] : marcadas)).mensaje)
-    } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : 'No se pudo guardar.')
-    } finally {
-      setGuardando(false)
-    }
-  }
-
-  return (
-    <Dialogo
-      titulo={`Editar a ${usuario.nombre}`}
-      abierto
-      onCerrar={onCerrar}
-      acciones={
-        <>
-          <Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
-          <Boton onClick={() => void guardar()} ocupado={guardando} textoOcupado="Guardando…">Guardar</Boton>
-        </>
-      }
-    >
-      <p><strong>¿En qué sucursales trabaja?</strong></p>
-      <div className="opciones-en-linea">
-        <label className="casilla"><input type="radio" checked={todas} onChange={() => setTodas(true)} /> Todas</label>
-        <label className="casilla"><input type="radio" checked={!todas} onChange={() => setTodas(false)} /> Solo algunas</label>
-      </div>
-      {!todas && (
-        <div className="lista-casillas">
-          {sucursales.map(s => (
-            <label key={s.id} className="casilla">
-              <input type="checkbox" checked={marcadas.includes(s.id)}
-                     onChange={e => setMarcadas(m => e.target.checked ? [...m, s.id] : m.filter(x => x !== s.id))} />
-              {' '}{s.nombre} ({s.codigo})
-            </label>
-          ))}
-        </div>
-      )}
-      <p className="nota">
-        {todas
-          ? `Al emitir, ${usuario.nombre} ve las series de todas las sucursales.`
-          : marcadas.length > 0
-            ? `Al emitir, ${usuario.nombre} solo ve ${series.length > 0 ? `las series ${series.join(', ')}` : 'las series de esas sucursales'}.`
-            : ''}
-      </p>
       {error && <Aviso>{error}</Aviso>}
     </Dialogo>
   )
