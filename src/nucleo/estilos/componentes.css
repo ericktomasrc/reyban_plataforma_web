@@ -1241,3 +1241,16 @@ button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
 .tabla-accesos { width: 100%; border-collapse: collapse; font-size: 14px; }
 .tabla-accesos th { text-align: left; font-size: 12px; color: var(--tinta-2); font-weight: 500; padding: 6px 8px; }
 .tabla-accesos td { padding: 8px; border-top: 1px solid var(--borde); vertical-align: top; }
+
+/* 047: «← volver» arriba de Roles y Cargos. */
+.enlace-volver { display: inline-block; font-size: 14px; margin-bottom: var(--e3); color: var(--acento); text-decoration: none; }
+.enlace-volver:hover { text-decoration: underline; }
+
+/* 047: Mi equipo, el acceso de cada empresa dentro de la lista. */
+.empresas-acceso { display: flex; flex-direction: column; gap: var(--e2); }
+.empresa-acceso { border: 1px solid var(--borde); border-radius: var(--radio-grande); background: var(--superficie); }
+.empresa-acceso > label.cabeza { display: flex; gap: var(--e2); align-items: center; padding: 10px 12px; cursor: pointer; font-weight: 500; }
+.empresa-acceso.marcada { border-color: var(--acento); }
+.empresa-acceso .detalle { padding: 4px 12px 12px 34px; display: flex; flex-direction: column; gap: var(--e3); }
+.empresa-acceso .detalle .fila { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--e3); align-items: start; }
+@media (max-width: 720px) { .empresa-acceso .detalle .fila { grid-template-columns: minmax(0, 1fr); } }

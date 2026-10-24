@@ -38,6 +38,7 @@ import { Colaboradores } from '../modulos/cartera/vistas/Colaboradores'
 import { MiPerfil } from '../modulos/perfil/vistas/MiPerfil'
 import { ListaUsuarios } from '../modulos/usuarios/vistas/ListaUsuarios'
 import { RolesPropios } from '../modulos/usuarios/vistas/RolesPropios'
+import { Cargos } from '../modulos/usuarios/vistas/Cargos'
 
 /**
  * El mapa de rutas de la aplicación, en un solo sitio.
@@ -76,6 +77,18 @@ export function Rutas() {
             puede ver y hacer lo decide la base (funciones de la 018). */}
         <Route path="/empresas" element={<MisEmpresas />} />
         <Route path="/colaboradores" element={<Colaboradores />} />
+        {/* 047: los cargos del estudio (Mi equipo). */}
+        <Route path="/colaboradores/cargos" element={<Cargos deEstudio />} />
+
+        {/* 047: los cargos de la empresa. */}
+        <Route
+          path="/usuarios/cargos"
+          element={
+            <Protegido permiso={Permisos.Usuarios.Ver}>
+              <Cargos />
+            </Protegido>
+          }
+        />
 
         {/* 035: roles propios de la empresa. */}
         <Route

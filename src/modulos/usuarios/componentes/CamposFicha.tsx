@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { Asterisco, Campo } from '../../../componentes/Campo'
 import { SelectorUbigeo } from '../../../nucleo/ubigeo/SelectorUbigeo'
 
@@ -84,9 +85,11 @@ export function problemaFicha(f: DatosFicha): [string, keyof DatosFicha] | null 
 
 export const NOMBRE_DOCUMENTO: Record<string, string> = { '1': 'DNI', '4': 'CE', '7': 'Pasaporte' }
 
-export function CamposFicha({ valor, onCambio, campoMal, aviso, children }: {
+export function CamposFicha({ valor, onCambio, campoMal, aviso, children, cargos }: {
   valor: DatosFicha
   onCambio: (f: DatosFicha) => void
+  /** 047: los cargos de la maestra, para sugerir mientras se escribe (si no está, se crea solo). */
+  cargos?: string[]
   /** El campo que la API o la revisión marcó. */
   campoMal?: string | null
   /** Debajo del número: «ya está en tu personal», por ejemplo. */
@@ -94,6 +97,7 @@ export function CamposFicha({ valor, onCambio, campoMal, aviso, children }: {
   /** El correo (va en la segunda fila, junto al celular). */
   children?: React.ReactNode
 }) {
+  const listaCargos = useId()
   const poner = (k: keyof DatosFicha) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     onCambio({ ...valor, [k]: e.target.value })
 
@@ -141,7 +145,12 @@ export function CamposFicha({ valor, onCambio, campoMal, aviso, children }: {
 
       <div className="pareja">
         <Campo etiqueta="Cargo" value={valor.cargo} onChange={poner('cargo')} maxLength={80} placeholder="Cajero"
-               mal={campoMal === 'cargo'} />
+               mal={campoMal === 'cargo'} list={listaCargos} autoComplete="off"
+               pista={valor.cargo.trim() && cargos && !cargos.some(c => c.toLowerCase() === valor.cargo.trim().toLowerCase())
+                 ? `«${valor.cargo.trim()}» es nuevo: se agrega a los cargos al guardar.` : undefined} />
+        <datalist id={listaCargos}>
+          {(cargos ?? []).map(c => <option key={c} value={c} />)}
+        </datalist>
         <Campo etiqueta="Fecha de ingreso" type="date" value={valor.fechaIngreso} onChange={poner('fechaIngreso')}
                mal={campoMal === 'fechaIngreso'} />
       </div>

@@ -56,6 +56,8 @@ export interface DatosColaborador {
   empresas: string[]
   /** 046: la ficha (con ella, el nombre sale de nombres y apellidos). */
   ficha?: FichaParaEnviar
+  /** 047: el acceso de cada empresa, configurado antes de enviar. */
+  accesos?: { empresaId: string; acceso: DatosAccesoEquipo }[]
 }
 
 // --- 046: MI EQUIPO ----------------------------------------------------------

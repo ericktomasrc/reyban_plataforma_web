@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Asterisco, Campo } from '../../../componentes/Campo'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { usuariosServicio } from '../servicios/usuariosServicio'
+import { nombresDeCargos } from '../servicios/cargosServicio'
 import { EXPLICA_ALCANCE, NOMBRE_ALCANCE } from '../tipos'
 import type { DatosAcceso, OpcionesPersonal, TipoAlcance, UsuarioEnLista } from '../tipos'
 import { CamposFicha, FICHA_VACIA, fichaDe, paraEnviar, problemaFicha } from './CamposFicha'
@@ -46,7 +47,10 @@ export function DialogoFicha({ usuario, opciones, empresa, onCerrar, onListo }: 
   const unaSucursal = opciones.totalSucursales <= 1
   const [acceso, setAcceso] = useState<DatosAcceso>(() => ({
     rol: rolInicial,
-    alcance: usuario?.alcance ?? (opciones.alcances.includes('sucursal') && !unaSucursal ? 'sucursal' : opciones.alcances[0] ?? 'propio'),
+    // 047: con un solo local no se ofrece «su sucursal»: lo de antes pasa a toda la empresa.
+    alcance: usuario?.alcance && opciones.alcances.includes(usuario.alcance) ? usuario.alcance
+      : usuario?.alcance === 'sucursal' && opciones.alcances.includes('empresa') ? 'empresa'
+      : (opciones.alcances.includes('sucursal') && !unaSucursal ? 'sucursal' : opciones.alcances[0] ?? 'propio'),
     sucursales: usuario?.sucursales ?? (opciones.sucursales.length === 1 ? [opciones.sucursales[0].id] : []),
     sucursalDefecto: usuario?.sucursalDefecto ?? null,
     notas: usuario?.notas ?? false,
@@ -54,6 +58,9 @@ export function DialogoFicha({ usuario, opciones, empresa, onCerrar, onListo }: 
   }))
 
   const [error, setError] = useState<{ texto: string; campo?: string | null; tono?: 'ojo' } | null>(null)
+  // 047: los cargos de la empresa, para sugerir.
+  const [cargos, setCargos] = useState<string[]>([])
+  useEffect(() => { void nombresDeCargos(false).then(setCargos) }, [])
   const [guardando, setGuardando] = useState(false)
 
   const rol = opciones.roles.find(r => r.id === acceso.rol)
@@ -136,7 +143,7 @@ export function DialogoFicha({ usuario, opciones, empresa, onCerrar, onListo }: 
     >
       <section className="ficha-seccion">
         <h3>1 · Datos personales</h3>
-        <CamposFicha valor={ficha} onCambio={setFicha} campoMal={error?.campo}>
+        <CamposFicha valor={ficha} onCambio={setFicha} campoMal={error?.campo} cargos={cargos}>
           <Campo etiqueta="Correo (con este entra)" obligatorio type="email" value={correo}
                  onChange={e => setCorreo(e.target.value)} mal={error?.campo === 'correo'} />
         </CamposFicha>

@@ -129,12 +129,14 @@ export function RolesPropios() {
 
   return (
     <>
+      {/* 047: volver a Personal. */}
+      <Link to="/usuarios" className="enlace-volver">← Personal de la empresa</Link>
+
       <div className="bienvenida-cabecera">
         <h1 className="titulo-pagina titulo-serif">Roles de {empresa?.nombre ?? 'tu empresa'}</h1>
         <p className="bajada-pagina">
           Qué puede hacer y ver cada persona. Puedes ajustar los roles de la plataforma para tu empresa: el cambio
           vale solo para {empresa?.nombre ?? 'tu empresa'}.
-          {' '}<Link to="/usuarios">Volver a Usuarios</Link>
         </p>
       </div>
 

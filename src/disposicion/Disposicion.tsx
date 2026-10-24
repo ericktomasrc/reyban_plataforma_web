@@ -62,7 +62,7 @@ export function Disposicion() {
   const otrosModulos = menu.filter(m => m.codigo !== 'facturacion')
 
   const pagina = nombreDePagina(ruta.pathname)
-  const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/perfil'].includes(ruta.pathname)
+  const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil'].includes(ruta.pathname)
     && !ruta.pathname.startsWith('/admin')
 
   return (
@@ -132,8 +132,13 @@ export function Disposicion() {
             <nav className="seccion-lateral">
               <span className="titulo-seccion">Mi estudio</span>
               <NavLink to="/empresas" className={activo}><Icono>▦</Icono>Mis empresas</NavLink>
+              {/* 047: Mi equipo se despliega: el equipo y los cargos del estudio. */}
               {cuenta?.nivel !== 'colaborador' && (
-                <NavLink to="/colaboradores" className={activo}><Icono>◎</Icono>Mi equipo</NavLink>
+                <MenuDesplegable icono="◎" titulo="Mi equipo" inicio="/colaboradores" prefijos={['/colaboradores']}
+                  grupos={[{ titulo: '', items: [
+                    { ruta: '/colaboradores', nombre: 'Mi equipo' },
+                    { ruta: '/colaboradores/cargos', nombre: 'Cargos del estudio' },
+                  ] }]} />
               )}
               {/* 036: los reportes de toda la cartera. */}
               <MenuDesplegable icono="▥" titulo="Reportes de la cartera" inicio="/mi-cartera/reportes"
@@ -179,8 +184,14 @@ export function Disposicion() {
                 <NavLink key={m.codigo} to={m.ruta} className={activo}><Icono>•</Icono>{m.nombre}</NavLink>
               ))}
 
+              {/* 047: Personal se despliega: la gente, los roles y los cargos. */}
               {puede(Permisos.Usuarios.Ver) && (
-                <NavLink to="/usuarios" className={activo}><Icono>◍</Icono>Personal de la empresa</NavLink>
+                <MenuDesplegable icono="◍" titulo="Personal" inicio="/usuarios" prefijos={['/usuarios']}
+                  grupos={[{ titulo: '', items: [
+                    { ruta: '/usuarios', nombre: 'Personal de la empresa' },
+                    ...(puede(Permisos.Usuarios.RolesGestionar) ? [{ ruta: '/usuarios/roles', nombre: 'Roles y permisos' }] : []),
+                    { ruta: '/usuarios/cargos', nombre: 'Cargos' },
+                  ] }]} />
               )}
               {puede(Permisos.Usuarios.BitacoraVer) && (
                 <NavLink to="/auditoria" className={activo}><Icono>◷</Icono>Auditoría</NavLink>
@@ -260,7 +271,9 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/reportes')) return 'Reportes'
   if (ruta.startsWith('/mi-cartera')) return 'Reportes de la cartera'
   if (ruta.startsWith('/admin/reportes')) return 'Reportes de la plataforma'
-  if (ruta.startsWith('/usuarios/roles')) return 'Roles'
+  if (ruta.startsWith('/usuarios/roles')) return 'Roles y permisos'
+  if (ruta.startsWith('/usuarios/cargos')) return 'Cargos'
+  if (ruta.startsWith('/colaboradores/cargos')) return 'Cargos del estudio'
   if (ruta.startsWith('/usuarios')) return 'Personal de la empresa'
   if (ruta.startsWith('/auditoria')) return 'Auditoría'
   if (ruta.startsWith('/configurar')) return 'Configuración'
