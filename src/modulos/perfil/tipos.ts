@@ -47,3 +47,28 @@ export interface SesionesCerradas {
   cerradas: number
   mensaje: string
 }
+
+/** 048: GET /api/perfil/ficha */
+export interface MiFicha {
+  tipoDocumento: string | null
+  numeroDocumento: string | null
+  nombres: string | null
+  apellidoPaterno: string | null
+  apellidoMaterno: string | null
+  celular: string | null
+  fechaNacimiento: string | null
+  direccion: string | null
+  ubigeo: string | null
+  /** Los pone quien da el trabajo: aquí solo se leen. */
+  cargo: string | null
+  fechaIngreso: string | null
+  fichaPlazo: string | null
+  fichaConfirmadaEn: string | null
+}
+
+/** 048: POST /api/perfil/correo */
+export interface CambioCorreo {
+  enviado: boolean
+  mensaje: string
+  enlaceDePrueba: string | null
+}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
@@ -14,6 +14,8 @@ import { ConvertirCuenta } from '../../cartera/componentes/ConvertirCuenta'
 import { NOMBRE_NIVEL } from '../../cartera/servicios/carteraServicio'
 import { DialogoClave } from '../componentes/DialogoClave'
 import { DialogoCodigosNuevos } from '../componentes/DialogoCodigosNuevos'
+import { DialogoCorreo } from '../componentes/DialogoCorreo'
+import { FormularioMiFicha } from '../componentes/FormularioMiFicha'
 import { DialogoOtroTelefono } from '../componentes/DialogoOtroTelefono'
 import { perfilServicio } from '../servicios/perfilServicio'
 import type { MiPerfil as Datos } from '../tipos'
@@ -25,23 +27,22 @@ import type { MiPerfil as Datos } from '../tipos'
  * permiso sirve para decidir qué puedes hacerle a OTRO. Nadie tiene que
  * autorizarte a mirar tu propia cuenta.
  *
- * Tres bloques, en orden de lo que la gente viene a buscar:
+ * 048: DOS PESTAÑAS, como en todo sistema de gestión.
  *
- *   1. Quién soy — y el nombre, que se cambia aquí mismo.
- *   2. Cómo entro — contraseña y segundo factor, lo delicado.
- *   3. Mis sesiones — el botón de «cierra todo lo demás».
- *   4. Mi cuenta Negocio o Profesional — y, para el dueño de una Cuenta
- *      Negocio, «Convertir en Cuenta Profesional» (el inicio enlaza aquí con
- *      /perfil#convertir).
- *
- * El correo no se cambia desde aquí. Está explicado en el bloque 1, en la
- * pantalla, porque quien busque ese campo merece saber por qué no está en vez
- * de pensar que falta.
+ *   Mis datos   mi ficha (documento, nombres, apellidos…: de ahí sale mi
+ *               nombre), dónde trabajo y mi tipo de cuenta (y «Convertir en
+ *               Cuenta Profesional»: el inicio enlaza con /perfil#convertir).
+ *   Seguridad   correo (lo cambio yo, con contraseña y código), contraseña,
+ *               segundo factor, códigos y mis sesiones.  /perfil?pestana=seguridad
  */
 export function MiPerfil() {
   const { refrescar } = useSesion()
-  const { cuenta } = useYo()
+  const { cuenta, ficha } = useYo()
   const ruta = useLocation()
+  const [parametros] = useSearchParams()
+  const seguridad = parametros.get('pestana') === 'seguridad'
+  const [cambiandoCorreo, setCambiandoCorreo] = useState(false)
+  const [guardandoFicha, setGuardandoFicha] = useState(false)
   const { pedir, dialogo: confirmacion } = useConfirmar()
   const mensaje = useMensaje()
 
@@ -126,45 +127,72 @@ export function MiPerfil() {
 
   return (
     <>
-      <h1 className="titulo-pagina">Mi cuenta</h1>
+      <div className="encabezado-pagina">
+        <h1 className="titulo-pagina">Mi cuenta</h1>
+        <nav className="pestanas" aria-label="Mi cuenta">
+          <Link to="/perfil" className={!seguridad ? 'activa' : undefined}>Mis datos</Link>
+          <Link to="/perfil?pestana=seguridad" className={seguridad ? 'activa' : undefined}>Seguridad</Link>
+        </nav>
+      </div>
 
       {perfil.error && <Aviso>{perfil.error}</Aviso>}
 
+      {!seguridad && <>
       {/* ===================================================================
-          1. QUIÉN SOY
+          MIS DATOS — la ficha (048). El super administrador no tiene ficha:
+          solo su nombre.
           =================================================================== */}
-      <div className="bloque">
-        <h2 className="subtitulo">Quién soy</h2>
-
-        <form onSubmit={guardarNombre}>
-          <Campo
-            etiqueta="Nombre"
-            value={valor}
-            onChange={e => setNombre(e.target.value)}
-            pista="Es lo que ven los demás en la bitácora y en la lista de usuarios."
-          />
-
-          {cambioPendiente && (
-            <Boton type="submit" ocupado={guardando} textoOcupado="Guardando…">
-              Guardar el nombre
-            </Boton>
+      {d.esSuperAdmin ? (
+        <div className="bloque">
+          <h2 className="subtitulo">Quién soy</h2>
+          <form onSubmit={guardarNombre}>
+            <Campo
+              etiqueta="Nombre"
+              value={valor}
+              onChange={e => setNombre(e.target.value)}
+              pista="Es lo que ven los demás en la bitácora y en la lista de usuarios."
+            />
+            {cambioPendiente && (
+              <Boton type="submit" ocupado={guardando} textoOcupado="Guardando…">
+                Guardar el nombre
+              </Boton>
+            )}
+          </form>
+        </div>
+      ) : (
+        <div className="bloque">
+          <h2 className="subtitulo">Mis datos</h2>
+          {ficha?.incompleta && (
+            <Aviso tono="ojo">
+              {ficha.exigida
+                ? 'Completa tu documento, nombres y apellidos: sin ellos no puedes emitir, anular ni hacer notas.'
+                : <>Completa tu documento, nombres y apellidos{ficha.plazo ? <> antes del <strong>{fecha(ficha.plazo)}</strong></> : null}: después no podrás emitir ni anular sin ellos.</>}
+            </Aviso>
           )}
-        </form>
+          <FormularioMiFicha
+            id="mi-ficha-perfil"
+            onOcupado={setGuardandoFicha}
+            onGuardado={m => { mensaje.bien(m); void perfil.recargar() }}
+          />
+          <div style={{ marginTop: 12 }}>
+            <Boton type="submit" form="mi-ficha-perfil" ocupado={guardandoFicha} textoOcupado="Guardando…" ancho={false}>
+              Guardar mis datos
+            </Boton>
+          </div>
+        </div>
+      )}
 
+      <div className="bloque">
+        <h2 className="subtitulo">Dónde trabajo</h2>
         <dl className="datos">
           <div className="fila">
-          <dt>Correo</dt>
-          <dd>
-            {d.correo}
-            {/* Quien busque aquí el campo del correo merece saber por qué no
-                está, en vez de pensar que se olvidó. */}
-            <div className="secundario">
-              {d.esSuperAdmin
-                ? 'Para cambiarlo hay que hacerlo en la base de datos: eres el único que no tiene administrador por encima.'
-                : 'Para cambiarlo, pídeselo al administrador de tu empresa. Se avisa a esta dirección cuando cambia.'}
-            </div>
-          </dd>
-
+            <dt>Correo</dt>
+            <dd>
+              {d.correo}
+              <div className="secundario">
+                Con él entras. <Link to="/perfil?pestana=seguridad">Cambiarlo en Seguridad</Link>
+              </div>
+            </dd>
           </div>
 
           <div className="fila">
@@ -176,7 +204,6 @@ export function MiPerfil() {
                 ? <>{d.empresa.razonSocial} <span className="secundario">· RUC {d.empresa.ruc}</span></>
                 : '—'}
           </dd>
-
           </div>
 
           <div className="fila">
@@ -192,7 +219,6 @@ export function MiPerfil() {
               <span className="vacio">Sin rol</span>
             )}
           </dd>
-
           </div>
 
           <div className="fila">
@@ -203,12 +229,48 @@ export function MiPerfil() {
       </div>
 
       {/* ===================================================================
+          4. MI CUENTA (016, 018): Negocio o Profesional
+          =================================================================== */}
+      {!d.esSuperAdmin && cuenta?.titularNombre && (
+        <div className="bloque">
+          <h2 className="subtitulo">Tipo de cuenta</h2>
+          <dl className="datos">
+            <div className="fila">
+              <dt>Cuenta</dt>
+              <dd>
+                <span className="etiqueta acento">{cuenta.tipo === 'profesional' ? 'Cuenta Profesional' : 'Cuenta Negocio'}</span>
+                {cuenta.nivel && <span className="secundario"> · {NOMBRE_NIVEL[cuenta.nivel]}</span>}
+              </dd>
+            </div>
+            <div className="fila"><dt>Titular</dt><dd>{cuenta.titularNombre}</dd></div>
+          </dl>
+        </div>
+      )}
+
+      {convierte && <ConvertirCuenta />}
+      </>}
+
+      {seguridad && <>
+      {/* ===================================================================
           2. CÓMO ENTRO
           =================================================================== */}
       <div className="bloque">
         <h2 className="subtitulo">Cómo entro</h2>
 
         <dl className="datos">
+          <div className="fila">
+          <dt>Correo</dt>
+          <dd>
+            {d.correo}
+            <div className="secundario">Con él entras y te llegan los avisos.</div>
+            <div className="acciones-linea">
+              <Boton estilo="plano" onClick={() => setCambiandoCorreo(true)}>
+                Cambiarlo
+              </Boton>
+            </div>
+          </dd>
+          </div>
+
           <div className="fila">
           <dt>Contraseña</dt>
           <dd>
@@ -309,26 +371,7 @@ export function MiPerfil() {
         </Boton>
       </div>
 
-      {/* ===================================================================
-          4. MI CUENTA (016, 018): Negocio o Profesional
-          =================================================================== */}
-      {!d.esSuperAdmin && cuenta?.titularNombre && (
-        <div className="bloque">
-          <h2 className="subtitulo">Tipo de cuenta</h2>
-          <dl className="datos">
-            <div className="fila">
-              <dt>Cuenta</dt>
-              <dd>
-                <span className="etiqueta acento">{cuenta.tipo === 'profesional' ? 'Cuenta Profesional' : 'Cuenta Negocio'}</span>
-                {cuenta.nivel && <span className="secundario"> · {NOMBRE_NIVEL[cuenta.nivel]}</span>}
-              </dd>
-            </div>
-            <div className="fila"><dt>Titular</dt><dd>{cuenta.titularNombre}</dd></div>
-          </dl>
-        </div>
-      )}
-
-      {convierte && <ConvertirCuenta />}
+      </>}
 
       {confirmacion}
 
@@ -354,6 +397,8 @@ export function MiPerfil() {
           }}
         />
       )}
+
+      {cambiandoCorreo && <DialogoCorreo actual={d.correo} onCerrar={() => setCambiandoCorreo(false)} />}
 
       {pidiendoCodigos && (
         <DialogoCodigosNuevos

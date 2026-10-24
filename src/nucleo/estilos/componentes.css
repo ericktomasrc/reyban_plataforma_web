@@ -1254,3 +1254,10 @@ button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
 .empresa-acceso .detalle { padding: 4px 12px 12px 34px; display: flex; flex-direction: column; gap: var(--e3); }
 .empresa-acceso .detalle .fila { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--e3); align-items: start; }
 @media (max-width: 720px) { .empresa-acceso .detalle .fila { grid-template-columns: minmax(0, 1fr); } }
+
+
+/* 048 — «Tus datos» al entrar por primera vez. */
+.tarjeta-acceso.tarjeta-ficha { max-width: 760px; }
+.tarjeta-ficha .paso-de { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-3); margin: 0; }
+.acciones-tus-datos { display: flex; justify-content: flex-end; gap: var(--e3); margin: var(--e4) 0 var(--e3); }
+.terna > .pista { font-size: 12.5px; color: var(--tinta-3); }

@@ -67,6 +67,8 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
       // Si la sesión ya no valía, el resultado es el mismo: fuera.
     }
     fijarSucursalVista(null)
+    // 048: «Tus datos — Ahora no» vale hasta salir; al volver a entrar se pregunta otra vez.
+    try { sessionStorage.removeItem('reyban.tusDatosLuego') } catch { /* nada */ }
     setEstado({ fase: 'fuera' })
   }, [])
 

@@ -105,8 +105,28 @@ export interface Alcance {
   sucursales: SucursalArriba[]
 }
 
+/**
+ * 048: LA FICHA DE QUIEN ENTRÓ. Nula para el super administrador y en «ver como».
+ *
+ * Cada comprobante queda firmado por una persona identificada: emitir, anular,
+ * hacer notas y agregar una empresa piden documento, nombres y apellidos.
+ */
+export interface FichaYo {
+  /** Le faltan documento, nombres o apellidos. */
+  incompleta: boolean
+  /** Hasta cuándo puede emitir así (los que ya existían: 15 días de aviso). */
+  plazo: string | null
+  /** Incompleta y sin plazo: emitir, anular y notas piden completarla. */
+  exigida: boolean
+  /** Lo invitaron y aún no revisó sus datos: el paso «Tus datos» al entrar. */
+  pedirAhora: boolean
+}
+
 export interface Yo {
   usuario: Usuario
+
+  /** 048. */
+  ficha?: FichaYo | null
 
   /** 046. Nulo para el super administrador y sin empresa abierta. */
   alcance?: Alcance | null

@@ -85,8 +85,10 @@ export function problemaFicha(f: DatosFicha): [string, keyof DatosFicha] | null 
 
 export const NOMBRE_DOCUMENTO: Record<string, string> = { '1': 'DNI', '4': 'CE', '7': 'Pasaporte' }
 
-export function CamposFicha({ valor, onCambio, campoMal, aviso, children, cargos }: {
+export function CamposFicha({ valor, onCambio, campoMal, aviso, children, cargos, sinTrabajo }: {
   valor: DatosFicha
+  /** 048: la propia persona no se pone el cargo ni la fecha de ingreso (Mi cuenta, «Tus datos»). */
+  sinTrabajo?: boolean
   onCambio: (f: DatosFicha) => void
   /** 047: los cargos de la maestra, para sugerir mientras se escribe (si no está, se crea solo). */
   cargos?: string[]
@@ -143,7 +145,7 @@ export function CamposFicha({ valor, onCambio, campoMal, aviso, children, cargos
       <SelectorUbigeo opcional ubigeo={valor.ubigeo} onCambio={u => onCambio({ ...valor, ubigeo: u.ubigeo })}
                       error={campoMal === 'ubigeo' ? 'Elige el distrito de la lista.' : undefined} />
 
-      <div className="pareja">
+      {!sinTrabajo && <div className="pareja">
         <Campo etiqueta="Cargo" value={valor.cargo} onChange={poner('cargo')} maxLength={80} placeholder="Cajero"
                mal={campoMal === 'cargo'} list={listaCargos} autoComplete="off"
                pista={valor.cargo.trim() && cargos && !cargos.some(c => c.toLowerCase() === valor.cargo.trim().toLowerCase())
@@ -153,7 +155,7 @@ export function CamposFicha({ valor, onCambio, campoMal, aviso, children, cargos
         </datalist>
         <Campo etiqueta="Fecha de ingreso" type="date" value={valor.fechaIngreso} onChange={poner('fechaIngreso')}
                mal={campoMal === 'fechaIngreso'} />
-      </div>
+      </div>}
     </>
   )
 }

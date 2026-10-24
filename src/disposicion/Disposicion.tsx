@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { EVENTO_FICHA_INCOMPLETA } from '../nucleo/api/cliente'
+import { fecha } from '../nucleo/formato/fechas'
+import { useMensaje } from '../nucleo/mensajes/ProveedorMensajes'
+import { DialogoMiFicha } from '../modulos/perfil/componentes/DialogoMiFicha'
 import { Boton } from '../componentes/Boton'
 import { BarraSuplantacion } from './BarraSuplantacion'
 import { SelectorEmpresa } from './SelectorEmpresa'
@@ -35,9 +39,32 @@ import { MenuDesplegable } from './MenuDesplegable'
  */
 export function Disposicion() {
   const { salir, puede } = useSesion()
-  const { usuario, empresa, cuenta, menu, roles, alcance } = useYo()
+  const { usuario, empresa, cuenta, menu, roles, alcance, ficha } = useYo()
   const ruta = useLocation()
   const [menuAbierto, setMenuAbierto] = useState(false)
+  const mensaje = useMensaje()
+
+  // 048: EL MENÚ DEL NOMBRE (Mi cuenta · Seguridad · Salir).
+  const [menuNombre, setMenuNombre] = useState(false)
+  const nombreRef = useRef<HTMLDivElement>(null)
+  useEffect(() => { setMenuNombre(false) }, [ruta.pathname, ruta.search])
+  useEffect(() => {
+    if (!menuNombre) return
+    const fuera = (e: MouseEvent) => { if (!nombreRef.current?.contains(e.target as Node)) setMenuNombre(false) }
+    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuNombre(false) }
+    document.addEventListener('mousedown', fuera)
+    document.addEventListener('keydown', tecla)
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', tecla) }
+  }, [menuNombre])
+
+  // 048: «COMPLETA TUS DATOS». Desde la franja, o solo cuando la API dice
+  // «ficha_incompleta» al emitir, anular, hacer una nota o agregar empresa.
+  const [pidiendoFicha, setPidiendoFicha] = useState(false)
+  useEffect(() => {
+    const abrir = () => setPidiendoFicha(true)
+    window.addEventListener(EVENTO_FICHA_INCOMPLETA, abrir)
+    return () => window.removeEventListener(EVENTO_FICHA_INCOMPLETA, abrir)
+  }, [])
   // 030: modo prueba / real. La franja la ven todos; nadie la cambia desde aquí.
   const conexion = useConexionSunat()
 
@@ -95,7 +122,9 @@ export function Disposicion() {
         {/* EL NOMBRE ES EL ENLACE A «MI CUENTA», que es donde la gente lo
             busca: en toda aplicación con cabecera, pulsar tu propio nombre
             lleva a tus datos. */}
-        <Link to="/perfil" className="quien">
+        <div className="quien-envoltura" ref={nombreRef}>
+        <button type="button" className="quien" aria-haspopup="menu" aria-expanded={menuNombre}
+                onClick={() => setMenuNombre(a => !a)}>
           <div className="nombre">
             {usuario.nombre}
 
@@ -119,11 +148,40 @@ export function Disposicion() {
               ? <>{empresa.nombre} · </>
               : usuario.esSuperAdmin ? <>Administración de la plataforma · </> : null}
             <span className="alias">@{usuario.alias}</span>
+            <span className="flecha-quien" aria-hidden="true"> ▾</span>
           </div>
-        </Link>
-
-        <Boton estilo="plano" onClick={() => void salir()}>Salir</Boton>
+        </button>
+        {menuNombre && (
+          <div className="menu-quien" role="menu">
+            <Link to="/perfil" role="menuitem">Mi cuenta</Link>
+            <Link to="/perfil?pestana=seguridad" role="menuitem">Seguridad</Link>
+            <hr />
+            <button type="button" role="menuitem" onClick={() => void salir()}>Salir</button>
+          </div>
+        )}
+        </div>
       </header>
+
+      {/* 048: LA FICHA. Mientras corre el plazo, un aviso; vencido, lo que pide. */}
+      {ficha?.incompleta && (
+        <div className={'franja-ficha' + (ficha.exigida ? ' exigida' : '')} role="status">
+          <span>
+            {ficha.exigida
+              ? 'Completa tus datos para emitir, anular o hacer notas. Mientras tanto puedes mirar todo.'
+              : ficha.plazo
+                ? <>Completa tus datos antes del <strong>{fecha(ficha.plazo)}</strong>: después no podrás emitir ni anular sin ellos.</>
+                : 'Completa tus datos: documento, nombres y apellidos.'}
+          </span>
+          <Boton estilo="secundario" onClick={() => setPidiendoFicha(true)}>Completar ahora</Boton>
+        </div>
+      )}
+      {pidiendoFicha && (
+        <DialogoMiFicha
+          ficha={ficha}
+          onCerrar={() => setPidiendoFicha(false)}
+          onGuardado={m => { setPidiendoFicha(false); mensaje.bien(m + ' Ya puedes seguir.') }}
+        />
+      )}
 
       <div className="cuerpo">
         <aside className="lateral" aria-label="Menú">

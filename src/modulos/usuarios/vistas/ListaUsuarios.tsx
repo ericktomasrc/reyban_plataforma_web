@@ -328,6 +328,10 @@ export function ListaUsuarios() {
                         >
                           Bloqueado
                         </span>
+                      ) : u.invitacionVencida && !soyYo ? (
+                        <span className="estado malo" title="Nunca entró y su enlace ya venció. Usa «Reenviar la invitación».">
+                          Invitación vencida
+                        </span>
                       ) : u.ultimoIngresoEn === null && !soyYo ? (
                         <span className="estado aviso" title="Todavía no entró: no ha usado su enlace.">
                           Invitación enviada

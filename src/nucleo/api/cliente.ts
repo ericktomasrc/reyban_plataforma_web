@@ -20,6 +20,9 @@ import { ErrorApi } from './errores'
 
 type Metodo = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
+/** 048: lo lanza `llamar` cuando la API pide completar la ficha. */
+export const EVENTO_FICHA_INCOMPLETA = 'reyban:ficha-incompleta'
+
 // =============================================================================
 // 046 — LA SUCURSAL ELEGIDA ARRIBA («Sucursal: Todas ▾»)
 //
@@ -75,6 +78,11 @@ async function llamar<T>(metodo: Metodo, ruta: string, cuerpo?: unknown): Promis
   const datos = texto ? intentarJson(texto) : null
 
   if (!respuesta.ok) {
+    // 048: emitir, anular, notas o agregar empresa con la ficha incompleta. La
+    // cabecera escucha y abre «Completa tus datos» (el mensaje sale encima).
+    if (respuesta.status === 409 && datos?.codigo === 'ficha_incompleta') {
+      window.dispatchEvent(new CustomEvent(EVENTO_FICHA_INCOMPLETA))
+    }
     throw new ErrorApi(
       respuesta.status,
       datos?.error ?? `Error ${respuesta.status}`,

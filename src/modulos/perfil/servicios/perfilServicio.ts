@@ -1,5 +1,6 @@
 import { api } from '../../../nucleo/api/cliente'
-import type { CodigosNuevos, MiPerfil, SesionesCerradas } from '../tipos'
+import type { FichaParaEnviar } from '../../usuarios/componentes/CamposFicha'
+import type { CambioCorreo, CodigosNuevos, MiFicha, MiPerfil, SesionesCerradas } from '../tipos'
 
 // =============================================================================
 // LA CAPA DE SERVICIO DE «MI PERFIL»
@@ -19,13 +20,8 @@ export const perfilServicio = {
     api.obtener<MiPerfil>('/api/perfil'),
 
   /**
-   * PUT /api/perfil — solo el nombre.
-   *
-   * El correo no se cambia desde aquí a propósito: hacerlo bien exige mandar un
-   * código a la dirección nueva y no creerse el cambio hasta que vuelva. Sin
-   * eso, quien encuentre una sesión abierta se queda con la cuenta cambiando el
-   * correo al suyo. Mientras no exista esa pantalla, lo cambia el administrador
-   * de la empresa, que avisa a la dirección anterior.
+   * PUT /api/perfil — solo el nombre (el super administrador, que no tiene
+   * ficha; los demás lo cambian con su ficha).
    */
   cambiarNombre: (nombre: string) =>
     api.cambiar<{ nombre: string; mensaje: string }>('/api/perfil', { nombre }),
@@ -40,6 +36,28 @@ export const perfilServicio = {
    */
   codigosNuevos: (clave: string, codigo: string) =>
     api.crear<CodigosNuevos>('/api/perfil/codigos-recuperacion', { clave, codigo }),
+
+  /** 048: GET /api/perfil/ficha — mis datos personales. */
+  ficha: () =>
+    api.obtener<MiFicha>('/api/perfil/ficha'),
+
+  /**
+   * 048: PUT /api/perfil/ficha — completarlos o corregirlos. El cargo y la
+   * fecha de ingreso no se tocan: los pone quien da el trabajo.
+   */
+  guardarFicha: (ficha: FichaParaEnviar) =>
+    api.cambiar<{ mensaje: string; nombre: string }>('/api/perfil/ficha', ficha),
+
+  /**
+   * 048: POST /api/perfil/correo — pedir el cambio. Con contraseña y código
+   * del teléfono; vale cuando se abre el enlace que llega al correo NUEVO.
+   */
+  cambiarCorreo: (nuevo: string, clave: string, codigo: string) =>
+    api.crear<CambioCorreo>('/api/perfil/correo', { nuevo, clave, codigo }),
+
+  /** 048: POST /api/correo/confirmar — el enlace (sin sesión). */
+  confirmarCorreo: (token: string) =>
+    api.crear<{ mensaje: string; nuevo: string }>('/api/correo/confirmar', { token }),
 
   /** DELETE /api/perfil/sesiones — todas menos esta. */
   cerrarOtrasSesiones: () =>

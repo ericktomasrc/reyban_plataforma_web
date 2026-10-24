@@ -84,6 +84,8 @@ export interface PersonaEquipo {
   veTodas: boolean
   activo: boolean
   pendiente: boolean
+  /** 048: nunca entró y su enlace ya venció. */
+  invitacionVencida?: boolean
   fichaIncompleta: boolean
   tipoDocumento: '1' | '4' | '7' | null
   numeroDocumento: string | null
@@ -139,6 +141,9 @@ export const carteraServicio = {
 
   // --- 046: Mi equipo ---------------------------------------------------------
   equipo: () => api.obtener<PersonaEquipo[]>('/api/cartera/equipo'),
+  /** 048: un enlace nuevo de invitación (los anteriores dejan de valer). */
+  reinvitar: (id: string) =>
+    api.crear<{ mensaje: string; enviado: boolean; enlaceDePrueba: string | null }>(`/api/cartera/equipo/${id}/invitacion`),
 
   equipoEmpresas: () => api.obtener<EmpresaEquipo[]>('/api/cartera/equipo/empresas'),
 

@@ -228,6 +228,34 @@
   .cabecera .selector-empresa { order: 5; width: 100%; }
   .cabecera .selector-boton { width: 100%; max-width: none; }
 }
+/* =============================================================================
+   048 — EL MENÚ DEL NOMBRE (Mi cuenta · Seguridad · Salir) Y LA FRANJA DE LA FICHA
+   ============================================================================= */
+.quien-envoltura { position: relative; }
+.cabecera button.quien { background: none; border: 0; font: inherit; cursor: pointer; }
+.cabecera .quien .flecha-quien { color: var(--tinta-3); font-size: 11px; }
+.menu-quien {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 30;
+  min-width: 190px; padding: 6px;
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); box-shadow: var(--sombra);
+  display: flex; flex-direction: column;
+}
+.menu-quien a, .menu-quien button {
+  text-align: left; padding: 8px 10px; border-radius: var(--radio);
+  color: var(--tinta); text-decoration: none; font: inherit; font-size: 14px;
+  background: none; border: 0; cursor: pointer;
+}
+.menu-quien a:hover, .menu-quien button:hover { background: var(--hundido); }
+.menu-quien hr { border: 0; border-top: 1px solid var(--borde); margin: 4px 0; }
+
+.franja-ficha {
+  display: flex; align-items: center; justify-content: center; gap: var(--e4); flex-wrap: wrap;
+  padding: 8px var(--e4); font-size: 14px;
+  background: var(--aviso-suave, #fff5e0); color: var(--tinta);
+  border-bottom: 1px solid var(--borde);
+}
+.franja-ficha.exigida { background: var(--peligro-suave, #fdecec); }
 
 /* 038: el logo ocupa lo mismo que el menú de la izquierda y lleva su misma
    raya; «Trabajando en» empieza justo después, alineado y sin montarse. */

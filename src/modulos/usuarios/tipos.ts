@@ -12,6 +12,9 @@ export interface UsuarioEnLista {
 
   ultimoIngresoEn: string | null
 
+  /** 048: nunca entró y su enlace ya venció (o se anuló): hay que reenviarla. */
+  invitacionVencida?: boolean
+
   /** Con fecha futura, la cuenta está bloqueada por intentos fallidos. */
   bloqueadoHasta: string | null
 

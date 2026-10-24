@@ -87,6 +87,24 @@ export function Colaboradores() {
     }
   }
 
+  // 048: un enlace nuevo; el anterior deja de valer.
+  const reinvitar = async (c: PersonaEquipo) => {
+    const seguro = await pedir({
+      titulo: 'Reenviar la invitación',
+      confirmar: 'Reenviar',
+      mensaje: <p>Le llega a <strong>{c.correo}</strong> un enlace nuevo, válido 3 días. El anterior deja de servir.</p>,
+    })
+    if (!seguro) return
+    try {
+      const r = await carteraServicio.reinvitar(c.id)
+      if (r.enviado) mensaje.bien(r.mensaje)
+      else mensaje.error(r.mensaje + (r.enlaceDePrueba ? ` Enlace de prueba: ${r.enlaceDePrueba}` : ''))
+      await cargar()
+    } catch (err) {
+      mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudo reenviar la invitación.')
+    }
+  }
+
   return (
     <div className="mi-equipo">
       <div className="cabecera-bandeja">
@@ -124,10 +142,18 @@ export function Colaboradores() {
                     <div className="secundario">{NOMBRE_NIVEL[c.nivel]}</div>
                   </td>
                   <td><ResumenAccesos persona={c} empresas={empresas} /></td>
-                  <td className={!c.activo ? 'secundario' : c.pendiente && c.nivel !== 'dueno' ? 'texto-ojo' : 'texto-bien'}>
-                    {!c.activo ? 'Quitado' : c.pendiente && c.nivel !== 'dueno' ? 'Invitación enviada' : 'Activo'}
+                  <td className={!c.activo ? 'secundario' : c.invitacionVencida && c.nivel !== 'dueno' ? 'texto-mal'
+                                 : c.pendiente && c.nivel !== 'dueno' ? 'texto-ojo' : 'texto-bien'}>
+                    {!c.activo ? 'Quitado'
+                      : c.invitacionVencida && c.nivel !== 'dueno' ? 'Invitación vencida'
+                      : c.pendiente && c.nivel !== 'dueno' ? 'Invitación enviada' : 'Activo'}
                   </td>
                   <td className="acciones">
+                    {c.activo && c.pendiente && c.nivel !== 'dueno' && editable(c) && (
+                      <Boton estilo={c.invitacionVencida ? 'secundario' : 'plano'} onClick={() => void reinvitar(c)}>
+                        Reenviar la invitación
+                      </Boton>
+                    )}
                     {editable(c) && (
                       <Boton estilo="secundario" onClick={() => setAbierta(c)}>
                         {c.fichaIncompleta ? 'Completar ficha' : 'Editar'}
