@@ -252,6 +252,19 @@ export function Disposicion() {
                   ] }]} />
               )}
 
+              {/* 052: inventario por sucursal. */}
+              {facturacion && puede(Permisos.Inventario.Ver) && (
+                <MenuDesplegable icono="▦" titulo="Inventario" inicio="/inventario" prefijos={['/inventario']}
+                  grupos={[{ titulo: '', items: [
+                    { ruta: '/inventario', nombre: 'Stock', exacto: true },
+                    { ruta: '/inventario/ingresos', nombre: 'Ingresos por compra' },
+                    { ruta: '/inventario/traslados', nombre: 'Traslados' },
+                    { ruta: '/inventario/ajustes', nombre: 'Ajustes y conteos' },
+                    { ruta: '/inventario/proveedores', nombre: 'Proveedores y categorías' },
+                    { ruta: '/inventario/configuracion', nombre: 'Configuración' },
+                  ] }]} />
+              )}
+
               {/* 036: Reportes se abre y se cierra (la flecha). */}
               {facturacion && reportes.length > 0 && (
                 <MenuDesplegable icono="▥" titulo="Reportes" inicio="/reportes" prefijos={['/reportes']}
@@ -355,6 +368,15 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/guias/transporte')) return 'Transporte guardado'
   if (ruta.startsWith('/guias/configuracion')) return 'Configuración de guías'
   if (ruta.startsWith('/guias')) return 'Guías de remisión'
+  if (ruta.startsWith('/inventario/kardex')) return 'Kardex'
+  if (ruta.startsWith('/inventario/ingresos/nuevo')) return 'Ingreso por compra'
+  if (ruta.startsWith('/inventario/ingresos')) return 'Ingresos por compra'
+  if (ruta.startsWith('/inventario/operaciones')) return 'Inventario'
+  if (ruta.startsWith('/inventario/ajustes')) return 'Ajustes y conteos'
+  if (ruta.startsWith('/inventario/traslados')) return 'Traslados'
+  if (ruta.startsWith('/inventario/proveedores')) return 'Proveedores y categorías'
+  if (ruta.startsWith('/inventario/configuracion')) return 'Configuración del inventario'
+  if (ruta.startsWith('/inventario')) return 'Stock'
   if (ruta.startsWith('/reportes')) return 'Reportes'
   if (ruta.startsWith('/mi-cartera')) return 'Reportes de la cartera'
   if (ruta.startsWith('/admin/reportes')) return 'Reportes de la plataforma'

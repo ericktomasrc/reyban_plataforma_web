@@ -51,6 +51,9 @@ export interface DatosProducto {
   precioUnitario: number
   incluyeIgv: boolean
   codigoSunat?: string | null
+  // 052: inventario
+  controlaStock?: boolean
+  categoriaId?: string | null
 }
 
 
@@ -130,7 +133,8 @@ export const consultasServicio = {
 
 export const productosServicio = {
   /** 24 oct: la lista de la pantalla «Productos», paginada y con filtros. */
-  pagina: (f: { q?: string; unidad?: string; afectacion?: string; estado?: string; orden?: string; pagina?: number; porPagina?: number }) =>
+  pagina: (f: { q?: string; unidad?: string; afectacion?: string; estado?: string; orden?: string; pagina?: number; porPagina?: number;
+                categoriaId?: string; stock?: string }) =>
     api.obtener<PaginaDe<ProductoEnLista>>(`/api/facturacion/productos/pagina?${parametros(f)}`),
 
   listar: (q?: string, incluirInactivos = false) =>
@@ -310,6 +314,8 @@ export interface DatosDocumento {
 
   /** 043: mandarlo por WhatsApp al emitirlo. */
   whatsapp?: boolean
+  /** 052: «se entrega después (con guía)». null = el modo de la empresa. */
+  entregaDespues?: boolean | null
 }
 
 /** 21 oct: una serie de la empresa, con el número que sigue («F002-00000010»). */

@@ -151,8 +151,10 @@ export function revisarPago(
  * El bloque «Forma de pago y detracción» de la pantalla de emisión.
  */
 export function PagoYDetraccion({
-  moneda, total, totalSoles, tipoCambio, fechaEmision, pago, onPago, det, onDet,
+  moneda, total, totalSoles, tipoCambio, fechaEmision, pago, onPago, det, onDet, paso,
 }: {
+  /** e161: el número de sección en la pantalla de emisión. */
+  paso?: number
   moneda: string
   total: number
   /** El total en soles (en dólares, con el tipo de cambio). 0 si todavía no se sabe. */
@@ -186,8 +188,10 @@ export function PagoYDetraccion({
   const sugerirDetraccion = !det.activa && totalSoles > UMBRAL_DETRACCION
 
   return (
-    <div className="bloque">
-      <h2 className="subtitulo">Forma de pago y detracción</h2>
+    <div className={paso ? 'bloque nc-tarjeta' : 'bloque'}>
+      {paso
+        ? <h2 className="nc-titulo"><span className="nc-paso">{paso}</span>Forma de pago y detracción</h2>
+        : <h2 className="subtitulo">Forma de pago y detracción</h2>}
 
       {/* --- Contado o crédito ---------------------------------------------- */}
       <div className="campo">

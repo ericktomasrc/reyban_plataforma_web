@@ -303,6 +303,39 @@ export function VerComprobante() {
       {/* --- 050: sus guías de remisión y «Hacer guía» ------------------------ */}
       <GuiasDelComprobante documentoId={d.id} tipo={d.tipo} estado={d.estado} />
 
+      {/* 052: lo que hizo el inventario con este comprobante. */}
+      {d.inventario && (
+        <div className="bloque">
+          <h2 className="subtitulo">Inventario</h2>
+          {d.inventario.modo === 'reserva' ? (
+            <>
+              <p className="parrafo">
+                {d.inventario.aplicado ? 'Reservado' : 'Ya no reserva'} en <strong>{d.inventario.sucursal}</strong>: «se entrega después (con guía)».
+                La mercadería sale del almacén con cada guía de remisión.
+              </p>
+              <table className="tabla">
+                <thead><tr><th>Producto</th><th>Reservado</th><th>Salió con guía</th><th>Liberado</th><th>Falta despachar</th></tr></thead>
+                <tbody>
+                  {d.inventario.reservas.map(r => (
+                    <tr key={r.productoId}>
+                      <td>{r.descripcion}</td>
+                      <td className="mono">{r.reservada.toLocaleString('es-PE')}</td>
+                      <td className="mono">{r.despachada.toLocaleString('es-PE')}</td>
+                      <td className="mono">{r.liberada.toLocaleString('es-PE')}</td>
+                      <td className="mono"><strong>{r.pendiente.toLocaleString('es-PE')}</strong></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : d.inventario.modo === 'nota' ? (
+            <p className="parrafo">{d.inventario.aplicado ? 'La mercadería devuelta entró' : 'La devolución se aplica cuando SUNAT acepte la nota'} en <strong>{d.inventario.sucursal}</strong>.</p>
+          ) : (
+            <p className="parrafo">{d.inventario.aplicado ? 'Salió del stock de' : 'Ya no descuenta de'} <strong>{d.inventario.sucursal}</strong> (venta directa).</p>
+          )}
+        </div>
+      )}
+
       {/* --- 031: sus notas de crédito y lo que queda ------------------------ */}
       {notas.length > 0 && (
         <div className="bloque">

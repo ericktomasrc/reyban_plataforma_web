@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Boton } from '../../../componentes/Boton'
 import { Asterisco, Campo } from '../../../componentes/Campo'
 import { Dialogo } from '../../../componentes/Dialogo'
@@ -7,6 +7,7 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { productosServicio } from '../servicios/facturacionServicio'
 import { BuscadorCodigoSunat } from './BuscadorCodigoSunat'
 import type { CatalogosSunat, ProductoEnLista } from '../tipos'
+import { inventarioServicio, type Categoria, type MinimoEnSucursal } from '../../inventario/servicios/inventarioServicio'
 
 interface Props {
   producto?: ProductoEnLista
@@ -25,6 +26,31 @@ export function DialogoProducto({ producto, catalogos, onCerrar, onGuardado }: P
   const [precio, setPrecio]   = useState(String(producto?.precioUnitario ?? ''))
   const [conIgv, setConIgv]   = useState(producto?.incluyeIgv ?? true)
   const [codSunat, setCodSunat] = useState(producto?.codigoSunat ?? '')
+
+  // 052: inventario. Marcado de fábrica en los bienes; un servicio nunca.
+  const [controla, setControla] = useState(producto?.controlaStock ?? (producto?.unidadMedida ?? 'NIU') !== 'ZZ')
+  const [categoriaId, setCategoriaId] = useState(producto?.categoriaId ?? '')
+  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [encendido, setEncendido] = useState(false)
+  const [minimos, setMinimos] = useState<MinimoEnSucursal[]>([])
+  const [minimosTexto, setMinimosTexto] = useState<Record<string, string>>({})
+  const esServicio = unidad === 'ZZ'
+
+  useEffect(() => {
+    let vivo = true
+    inventarioServicio.categorias().then(c => { if (vivo) setCategorias(c) }).catch(() => { /* sin categorías */ })
+    inventarioServicio.estado().then(e => { if (vivo) setEncendido(e.encendido) }).catch(() => { /* sin inventario */ })
+    if (producto) {
+      inventarioServicio.minimos(producto.id)
+        .then(m => {
+          if (!vivo) return
+          setMinimos(m)
+          setMinimosTexto(Object.fromEntries(m.map(x => [x.sucursalId, x.minimo === null ? '' : String(x.minimo)])))
+        })
+        .catch(() => { /* sin mínimos */ })
+    }
+    return () => { vivo = false }
+  }, [producto])
 
   const mensaje = useMensaje()
   const [guardando, setGuardando] = useState(false)
@@ -66,11 +92,19 @@ export function DialogoProducto({ producto, catalogos, onCerrar, onGuardado }: P
       precioUnitario: valor,
       incluyeIgv: conIgv,
       codigoSunat: codSunat.trim() || null,
+      controlaStock: esServicio ? false : controla,   // 052
+      categoriaId: categoriaId || null,
     }
 
     try {
       if (editando) {
         const r = await productosServicio.editar(producto.id, datos)
+        // 052: el mínimo por sucursal (solo si cambió).
+        const cambios = minimos
+          .map(m => ({ sucursalId: m.sucursalId, minimo: (minimosTexto[m.sucursalId] ?? '').trim() === '' ? null : Number(minimosTexto[m.sucursalId].replace(',', '.')) }))
+          .filter(m => m.minimo === null || Number.isFinite(m.minimo))
+        if (encendido && controla && cambios.some(c => c.minimo !== (minimos.find(m => m.sucursalId === c.sucursalId)?.minimo ?? null)))
+          await inventarioServicio.guardarMinimos(producto.id, cambios)
         onGuardado(r.mensaje)
       } else {
         const r = await productosServicio.crear(datos)
@@ -183,6 +217,47 @@ export function DialogoProducto({ producto, catalogos, onCerrar, onGuardado }: P
             (catálogo 25) que nadie se sabe. Por eso no se escribe: se busca
             por lo que es el producto y se elige. Ver BuscadorCodigoSunat. */}
         <BuscadorCodigoSunat valor={codSunat} onCambiar={setCodSunat} descripcion={desc} />
+
+        {/* 052: inventario */}
+        {categorias.length > 0 && (
+          <label className="campo">
+            <span className="etiqueta">Categoría (opcional)</span>
+            <select value={categoriaId} onChange={e => setCategoriaId(e.target.value)}>
+              <option value="">Sin categoría</option>
+              {/* e161: las desactivadas no se ofrecen, salvo la que ya tiene el producto. */}
+              {categorias.filter(c => c.activo !== false || c.id === categoriaId).map(c => (
+                <option key={c.id} value={c.id}>{c.nombre}{c.activo === false ? ' (desactivada)' : ''}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        <label className={`casilla${esServicio ? ' deshabilitada' : ''}`}>
+          <input type="checkbox" checked={!esServicio && controla} disabled={esServicio} onChange={e => setControla(e.target.checked)} />
+          <span>
+            <strong>Controla stock</strong>
+            <em>{esServicio
+              ? 'Los servicios no tienen stock.'
+              : 'Marcado de fábrica en los productos que no son servicio. Desmárcalo si no quieres contarlo (por ejemplo, algo que pides a pedido).'}</em>
+          </span>
+        </label>
+        {editando && encendido && controla && !esServicio && minimos.length > 0 && (
+          <>
+            <span className="etiqueta">Stock mínimo por sucursal (opcional)</span>
+            <div className="pareja">
+              {minimos.map(m => (
+                <label key={m.sucursalId} className="campo">
+                  <span className="etiqueta">{m.codigo} {m.nombre}</span>
+                  <input className="mono" inputMode="decimal" value={minimosTexto[m.sucursalId] ?? ''} placeholder="sin mínimo"
+                         onChange={e => setMinimosTexto(x => ({ ...x, [m.sucursalId]: e.target.value }))} />
+                  <span className="pista">Hay {m.disponible.toLocaleString('es-PE', { maximumFractionDigits: 4 })} disponibles</span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+        {editando && producto.controlaStock && !controla && !esServicio && (
+          <p className="nota se-aplica">Se aplica: si desmarcas un producto que ya tiene movimientos, su kardex se guarda pero deja de contarse y de bloquear.</p>
+        )}
 
         <p className="nota">
           Desde el <strong>1 de enero de 2027</strong>, si lo pones tiene que ser

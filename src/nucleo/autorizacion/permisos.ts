@@ -54,6 +54,16 @@ export const Permisos = {
     Transporte: 'guias.transporte',
   },
 
+  // 052: inventario por sucursal.
+  Inventario: {
+    Ver:        'inventario.ver',
+    Ingresar:   'inventario.ingresar',
+    Ajustar:    'inventario.ajustar',
+    Trasladar:  'inventario.trasladar',
+    Contar:     'inventario.contar',
+    Configurar: 'inventario.configurar',
+  },
+
   // 032: un permiso por reporte.
   Reportes: {
     MiDia:          'reportes.mi_dia',

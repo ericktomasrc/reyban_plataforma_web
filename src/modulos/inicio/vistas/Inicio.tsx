@@ -15,6 +15,7 @@ import { FranjaReclamos } from '../../cartera/componentes/ResponderReclamo'
 import { pedidosServicio } from '../../cartera/servicios/pedidosServicio'
 import type { ReclamoSobreMia } from '../../cartera/servicios/pedidosServicio'
 import type { Resumen, UltimoComprobante } from '../servicios/inicioServicio'
+import { inventarioServicio, type AlertaInventario } from '../../inventario/servicios/inventarioServicio'
 
 /**
  * EL INICIO.
@@ -170,6 +171,7 @@ function Tablero() {
           )}
 
           <Avisos datos={datos} configura={configura} />
+          {puede('inventario.ver') && <AvisoInventario />}
 
           <div className="inicio-cuerpo">
             <section className="bloque inicio-ultimos">
@@ -267,6 +269,28 @@ function DeVuelta({ empresa, configura, onHecho }: { empresa: string; configura:
 
 
 /** Rechazos, errores de envío y certificado por vencer: lo que pide atención. */
+/** 052: productos bajo su mínimo o en negativo (si la empresa lleva inventario). */
+function AvisoInventario() {
+  const [alertas, setAlertas] = useState<AlertaInventario[]>([])
+  useEffect(() => {
+    let vivo = true
+    inventarioServicio.alertas().then(a => { if (vivo) setAlertas(a) }).catch(() => { /* sin inventario */ })
+    return () => { vivo = false }
+  }, [])
+  const bajos = alertas.reduce((n, a) => n + a.bajoMinimo, 0)
+  const negativos = alertas.reduce((n, a) => n + a.negativos, 0)
+  if (bajos === 0 && negativos === 0) return null
+  return (
+    <div className="aviso ojo fila-aviso">
+      <span>
+        {bajos > 0 && <><strong>{bajos} producto(s) bajo el mínimo</strong> ({alertas.filter(a => a.bajoMinimo > 0).map(a => `${a.codigo} ${a.nombre}`).join(', ')}). </>}
+        {negativos > 0 && <><strong>{negativos} en negativo</strong>. </>}
+      </span>
+      <Link to="/inventario" className="boton">Ver el stock</Link>
+    </div>
+  )
+}
+
 function Avisos({ datos, configura }: { datos: Resumen; configura: boolean }) {
   const dias = datos.certificadoHasta ? diasHasta(datos.certificadoHasta) : null
 

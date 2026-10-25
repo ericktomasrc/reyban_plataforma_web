@@ -1302,3 +1302,35 @@ button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
   display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
   border: 1px solid var(--borde); font-weight: 700; font-size: 13px; color: var(--tinta-2); background: var(--superficie);
 }
+
+/* =============================================================================
+   e161 — AJUSTES DE ALINEACIÓN QUE VALEN PARA TODAS LAS PANTALLAS
+   ============================================================================= */
+
+/* LAS PESTAÑAS SUELTAS (Ajustes y conteos, Proveedores…). `.segmentado` es
+   inline-flex y por eso no respeta el `margin-inline: auto` de la columna de
+   1100 px: en un monitor ancho quedaba pegado a la izquierda y la tarjeta de
+   debajo, centrada. Se lleva al mismo borde izquierdo que la columna. */
+.contenido > .segmentado {
+  display: flex; width: fit-content; box-sizing: border-box;
+  margin-left: max(0px, (100% - 1100px) / 2); margin-right: auto;
+  margin-bottom: var(--e4);
+}
+
+/* El título de un bloque que va primero no necesita el margen de arriba:
+   el bloque ya tiene el suyo, y sumados dejaban un hueco vacío. */
+.bloque > .subtitulo:first-child,
+.bloque > h2:first-child,
+.bloque > h3:first-child { margin-top: 0; }
+
+/* Las opciones en línea (Al contado / Al crédito, Sí / No): sin partir el
+   texto y con el punto centrado. */
+.opciones-en-linea { gap: var(--e2) var(--e3); }
+.opciones-en-linea > .casilla {
+  align-items: center; white-space: nowrap; gap: var(--e2);
+  padding: 10px 18px 10px 14px; border-radius: var(--radio-grande);
+}
+.opciones-en-linea > .casilla:has(input:checked) {
+  border-color: var(--acento); background: var(--acento-suave); box-shadow: inset 0 0 0 1px var(--acento);
+}
+.opciones-en-linea > .casilla input { margin: 0; }

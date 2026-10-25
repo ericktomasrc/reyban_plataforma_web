@@ -20,6 +20,8 @@ import {
 } from '../servicios/facturacionServicio'
 import type { DatosDocumento, SerieEmpresa, SucursalMia } from '../servicios/facturacionServicio'
 import { sucursalesServicio } from '../servicios/facturacionServicio'
+import { cantidad, inventarioServicio, type Disponible } from '../../inventario/servicios/inventarioServicio'
+import '../comprobante.css'
 
 /**
  * 046: con qué sucursal abre la pantalla. Con una elegida arriba, la API ya
@@ -73,6 +75,9 @@ const num = (s: string) => {
  * esta es la aproximación más cercana para una estimación de pantalla.
  */
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
+
+/** «1,122.89»: con separador de miles, para que un importe se lea de un vistazo. */
+const dinero = (n: number) => n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // =============================================================================
 // LA FECHA DE EMISIÓN
@@ -157,7 +162,14 @@ export function NuevoComprobante() {
   const [cliente, setCliente] = useState<ClienteEnLista>()
   // 043: null = lo que diga el cliente; true/false = decidido para este comprobante.
   const [porWhatsapp, setPorWhatsapp] = useState<boolean | null>(null)
-  const [lineas, setLineas] = useState<LineaEnEdicion[]>([vacia()])
+  // 24 oct (e161): arranca sin líneas; se agregan con el buscador o «Línea libre».
+  const [lineas, setLineas] = useState<LineaEnEdicion[]>([])
+  // A qué campo saltar después de agregar una línea (cantidad o descripción).
+  const [enfocar, setEnfocar] = useState<{ id: string }>()
+  // 052: inventario. Lo disponible de los productos elegidos en la sucursal de
+  // la serie, y «se entrega después» (null = el modo de la empresa).
+  const [disp, setDisp] = useState<Disponible>()
+  const [entregaDespues, setEntregaDespues] = useState<boolean | null>(null)
 
   const [ordenCompra, setOrdenCompra] = useState('')
 
@@ -191,6 +203,30 @@ export function NuevoComprobante() {
   // detrás de la ventana no habría formulario que arreglar—, y todo lo que es
   // consecuencia de pulsar «Guardar» o «Emitir» sale en ventana.
   const [errorCarga, setErrorCarga] = useState<string>()
+
+  // --- 052: lo disponible de los productos elegidos (en la sucursal de la serie)
+  const productosElegidos = [...new Set(lineas.map(l => l.productoId).filter((x): x is string => !!x))].sort().join(',')
+  useEffect(() => {
+    if (!productosElegidos) return
+    let vivo = true
+    const t = setTimeout(() => {
+      inventarioServicio.disponible(productosElegidos.split(','), { tipo, serie: serie.trim().toUpperCase() })
+        .then(r => { if (vivo) setDisp(r) })
+        .catch(() => { /* sin inventario: se emite como siempre (la base revisa igual) */ })
+    }, 300)
+    return () => { vivo = false; clearTimeout(t) }
+  }, [productosElegidos, tipo, serie])
+
+  // Lo que no alcanza: lo pedido por producto (todas sus líneas) contra lo disponible.
+  const faltan = useMemo(() => {
+    if (!productosElegidos || !disp?.encendido || !disp.productos) return []
+    const pedido = new Map<string, number>()
+    for (const l of lineas) if (l.productoId) pedido.set(l.productoId, (pedido.get(l.productoId) ?? 0) + num(l.cantidad))
+    return disp.productos
+      .filter(p => p.controla && (pedido.get(p.productoId) ?? 0) > p.disponible)
+      .map(p => ({ ...p, pedido: pedido.get(p.productoId) ?? 0, descripcion: lineas.find(l => l.productoId === p.productoId)?.descripcion ?? '' }))
+  }, [disp, lineas, productosElegidos])
+  const entregaEfectiva = entregaDespues ?? (disp?.modo === 'despacho')
 
   // --- Carga inicial --------------------------------------------------------
   useEffect(() => {
@@ -258,6 +294,7 @@ export function NuevoComprobante() {
           // de debajo del campo lo dice y Emitir no deja seguir.
           setFechaEmision(d.fechaEmision)
           setPorWhatsapp(d.whatsapp?.enviar ?? null)   // 043: como se guardó
+          setEntregaDespues(d.entregaDespues ?? null)   // 052
 
           // 040: como se guardó. Ya decidido: no se vuelve a proponer encima.
           setPago({
@@ -479,7 +516,43 @@ export function NuevoComprobante() {
   const cambiar = (clave: string, campo: keyof LineaEnEdicion, valor: string) =>
     setLineas(ls => ls.map(l => l.clave === clave ? { ...l, [campo]: valor } : l))
 
-  function ponerProducto(clave: string, p: ProductoEnLista) {
+  useEffect(() => {
+    if (!enfocar) return
+    const el = document.getElementById(enfocar.id) as HTMLInputElement | null
+    el?.focus(); el?.select()
+  }, [enfocar])
+
+  /** Una línea libre, para lo que no está en el catálogo (un flete, una instalación). */
+  function lineaLibre() {
+    const n = vacia()
+    setLineas(ls => [...ls, n])
+    setEnfocar({ id: `desc-${n.clave}` })
+  }
+
+  /** El tipo cambia la serie, el cliente por defecto y lo que es solo de facturas. */
+  function cambiarTipo(v: string) {
+    if (v === tipo) return
+    setTipo(v)
+    // La serie sigue al tipo: una factura empieza por F y una boleta por B.
+    // Dejar «F001» en una boleta es un rechazo seguro, y el mensaje de SUNAT
+    // no menciona la serie.
+    setSerie(seriesDeSucursal.find(s => s.tipo === v)?.serie ?? (v === '01' ? 'F001' : 'B001'))
+    // 17 oct: boleta sin cliente → «Público en general»; de vuelta a factura,
+    // ese cliente no sirve y se quita.
+    if (v === '03' && !cliente) void ponerPublicoGeneral()
+    // 040: crédito y detracción, solo en facturas.
+    if (v === '03') {
+      setPago(pagoInicial())
+      setDet(d => ({ ...d, activa: false }))
+    }
+    if (v === '01' && cliente?.tipoDocumento === '0') setCliente(undefined)
+  }
+
+  /**
+   * Agrega el producto elegido en el buscador. Si la última línea está vacía
+   * (una «Línea libre» sin escribir), la rellena en vez de dejarla colgando.
+   */
+  function agregarProducto(p: ProductoEnLista) {
     // ══════════════════════════════════════════════════════════════════════
     // MANDA LA DEL CLIENTE, Y SOLO SI NO TIENE, LA DEL PRODUCTO.
     //
@@ -510,15 +583,21 @@ export function NuevoComprobante() {
       ? p.precioUnitario / (1 + IGV)
       : p.precioUnitario
 
-    setLineas(ls => ls.map(l => l.clave === clave ? {
-      ...l,
+    const delProducto = {
       productoId: p.id,
       codigo: p.codigo,
       descripcion: p.descripcion,
       unidadMedida: p.unidadMedida,
       tipoAfectacion: afectacion,
       valorUnitario: sinIgv.toFixed(6),
-    } : l))
+    }
+    const ultima = lineas.at(-1)
+    const clave = ultima && !ultima.productoId && !ultima.descripcion.trim() && !ultima.valorUnitario.trim()
+      ? ultima.clave : crypto.randomUUID()
+    setLineas(ls => ls.some(l => l.clave === clave)
+      ? ls.map(l => l.clave === clave ? { ...l, ...delProducto } : l)
+      : [...ls, { ...vacia(), clave, ...delProducto }])
+    setEnfocar({ id: `cant-${clave}` })
   }
 
   const datos = (): DatosDocumento => ({
@@ -557,6 +636,9 @@ export function NuevoComprobante() {
 
     // 043
     whatsapp: !!cliente?.whatsapp && (porWhatsapp ?? !!cliente?.whatsappActivo),
+
+    // 052: «se entrega después (con guía)»; sin tocar, el modo de la empresa.
+    entregaDespues: disp?.encendido ? entregaDespues : null,
   })
 
   function revisar(): string | undefined {
@@ -640,6 +722,13 @@ export function NuevoComprobante() {
 
     if (boletaSinDni) {
       mensaje.error('Una boleta de más de S/ 700 tiene que llevar el DNI del cliente (norma de SUNAT).')
+      return
+    }
+
+    // 052: si la sucursal controla stock y no alcanza, se dice aquí.
+    if (faltan.length > 0 && disp?.bloquea) {
+      mensaje.error(`No alcanza: ${faltan.map(f => `«${f.descripcion}» pides ${cantidad(f.pedido)} y hay ${cantidad(f.disponible)}`).join('; ')}.`,
+        'Baja la cantidad, pide un traslado o emite desde la sucursal que tiene.')
       return
     }
 
@@ -855,13 +944,29 @@ export function NuevoComprobante() {
 
   const afectaciones = catalogos?.afectaciones ?? []
   const unidades = catalogos?.unidades ?? []
+  const simbolo = moneda === 'PEN' ? 'S/' : 'US$'
+  const nombreTipo = tipo === '01' ? 'Factura' : 'Boleta de venta'
+  // Lo que falta para poder emitir, en una frase, para la barra de abajo.
+  const pendiente = revisar() ?? (faltan.length > 0 && disp?.bloquea
+    ? `No alcanza el stock de ${faltan.length === 1 ? '1 producto' : `${faltan.length} productos`}: revisa las líneas en rojo.`
+    : undefined)
+  const hayEntrega = !!disp?.encendido
 
   return (
-    <>
-      <div className="encabezado-pagina">
-        <h1 className="titulo-pagina">
-          {borradorId ? 'Continuar el comprobante' : 'Nuevo comprobante'}
-        </h1>
+    <div className="nc">
+      {/* --- Encabezado ---------------------------------------------------- */}
+      <div className="nc-encabezado">
+        <div>
+          <h1 className="titulo-pagina">
+            {borradorId ? 'Continuar el comprobante' : 'Nuevo comprobante'}
+          </h1>
+          <p className="nc-bajada">
+            <span className="nc-pastilla">{nombreTipo}</span>
+            <span className="mono">{siguiente ?? serie.trim().toUpperCase()}</span>
+            {sucursalElegida && sucursales.length > 1 && <span>· desde {sucursalElegida.nombre}</span>}
+            {borradorId && estadoDoc === 'borrador' && <span className="nc-pastilla gris">Borrador guardado</span>}
+          </p>
+        </div>
         <Boton estilo="secundario" onClick={() => navegar('/facturacion/comprobantes')}>
           Volver
         </Boton>
@@ -869,111 +974,182 @@ export function NuevoComprobante() {
 
       {errorCarga && <Aviso>{errorCarga}</Aviso>}
 
-      {/* --- Cabecera ------------------------------------------------------ */}
-      <div className="bloque">
-        {/* 044: DESDE QUÉ SUCURSAL. Solo si trabajas en más de una. */}
-        {sucursales.length > 1 && (
-          <label className="campo selector-sucursal">
-            <span className="etiqueta">Emitir desde<Asterisco /></span>
-            <select value={sucursalId} onChange={e => {
-              const v = e.target.value
-              setSucursalId(v)
-              setSerie((series ?? []).find(s => s.tipo === tipo && (!s.sucursalId || s.sucursalId === v))?.serie
-                ?? (tipo === '01' ? 'F001' : 'B001'))
-            }}>
-              {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre} ({s.codigo})</option>)}
-            </select>
-            <span className="pista">
-              Un comprobante siempre sale de un local: viene elegida tu sucursal por defecto. Sale en el XML (código de
-              establecimiento) y su dirección en el PDF.
-            </span>
-          </label>
-        )}
-        <div className="pareja">
-          <label className="campo">
-            <span className="etiqueta">Tipo<Asterisco /></span>
-            <select
-              value={tipo}
-              onChange={e => {
-                setTipo(e.target.value)
-                // La serie sigue al tipo: una factura empieza por F y una
-                // boleta por B. Dejar «F001» en una boleta es un rechazo
-                // seguro, y el mensaje de SUNAT no menciona la serie.
-                setSerie(seriesDeSucursal.find(s => s.tipo === e.target.value)?.serie
-                  ?? (e.target.value === '01' ? 'F001' : 'B001'))
-                // 17 oct: boleta sin cliente → «Público en general»; de vuelta
-                // a factura, ese cliente no sirve y se quita.
-                if (e.target.value === '03' && !cliente) void ponerPublicoGeneral()
-                // 040: crédito y detracción, solo en facturas.
-                if (e.target.value === '03') {
-                  setPago(pagoInicial())
-                  setDet(d => ({ ...d, activa: false }))
-                }
-                if (e.target.value === '01' && cliente?.tipoDocumento === '0') setCliente(undefined)
-              }}
-            >
-              <option value="01">Factura</option>
-              <option value="03">Boleta de venta</option>
-            </select>
-          </label>
+      {/* --- 1 y 2: el comprobante y el cliente, lado a lado ------------------ */}
+      <div className="nc-dos">
+        <section className="bloque nc-tarjeta">
+          <h2 className="nc-titulo"><span className="nc-paso">1</span>Comprobante</h2>
 
-          {/* 21 OCT: LA SERIE Y EL NÚMERO, de la configuración de la empresa. */}
-          {seriesDelTipo.length > 0 ? (
-            <label className="campo">
-              <span className="etiqueta">Serie y número<Asterisco /></span>
-              <select value={serie} onChange={e => setSerie(e.target.value)}>
-                {!seriesDelTipo.some(s => s.serie === serie) && (
-                  <option value={serie}>{serie} (no está dada de alta)</option>
-                )}
-                {seriesDelTipo.map(s => (
-                  <option key={s.serie} value={s.serie}>{s.siguiente}</option>
+          <div className={sucursales.length > 1 ? 'pareja' : undefined}>
+            {/* 044: DESDE QUÉ SUCURSAL. Solo si trabajas en más de una. Sale en el
+                XML (código de establecimiento) y su dirección en el PDF. */}
+            {sucursales.length > 1 && (
+              <label className="campo">
+                <span className="etiqueta">Emitir desde<Asterisco /></span>
+                <select value={sucursalId} onChange={e => {
+                  const v = e.target.value
+                  setSucursalId(v)
+                  setSerie((series ?? []).find(s => s.tipo === tipo && (!s.sucursalId || s.sucursalId === v))?.serie
+                    ?? (tipo === '01' ? 'F001' : 'B001'))
+                }}>
+                  {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre} ({s.codigo})</option>)}
+                </select>
+              </label>
+            )}
+
+            <div className="campo">
+              <span className="etiqueta">Tipo<Asterisco /></span>
+              <div className="segmentado nc-tipo" role="radiogroup" aria-label="Tipo de comprobante">
+                {([['01', 'Factura'], ['03', 'Boleta']] as const).map(([v, t]) => (
+                  <button key={v} type="button" role="radio" aria-checked={tipo === v}
+                          className={tipo === v ? 'elegido' : undefined} onClick={() => cambiarTipo(v)}>
+                    {t}
+                  </button>
                 ))}
-              </select>
-              <span className="pista">
-                {seriesDelTipo.length > 1 ? 'Elige la serie. ' : ''}
-                El número lo confirma el servicio al emitir.
+              </div>
+            </div>
+          </div>
+
+          <div className="pareja">
+            {/* 21 OCT: LA SERIE Y EL NÚMERO, de la configuración de la empresa. */}
+            {seriesDelTipo.length > 0 ? (
+              <label className="campo">
+                <span className="etiqueta">Serie y número<Asterisco /></span>
+                <select value={serie} onChange={e => setSerie(e.target.value)}>
+                  {!seriesDelTipo.some(s => s.serie === serie) && (
+                    <option value={serie}>{serie} (no está dada de alta)</option>
+                  )}
+                  {seriesDelTipo.map(s => (
+                    <option key={s.serie} value={s.serie}>{s.siguiente}</option>
+                  ))}
+                </select>
+                <span className="pista">El número lo confirma el servicio al emitir.</span>
+              </label>
+            ) : (
+              <Campo
+                etiqueta="Serie"
+                obligatorio
+                value={serie}
+                onChange={e => setSerie(e.target.value.toUpperCase())}
+                maxLength={4}
+                mal={series !== null}
+                pista={series !== null
+                  ? (sucursalElegida && sucursales.length > 1
+                      ? `«${sucursalElegida.nombre}» no tiene serie de ${tipo === '01' ? 'factura' : 'boleta'}. Agrégala en Sucursales.`
+                      : `Tu empresa no tiene serie de ${tipo === '01' ? 'factura' : 'boleta'}. Agrégala en Configuración › Series.`)
+                  : 'Una de las que tiene dada de alta tu empresa en el servicio.'}
+              />
+            )}
+
+            <label className="campo">
+              <span className="etiqueta">Fecha de emisión<Asterisco /></span>
+              <input
+                type="date"
+                value={fechaEmision}
+                min={fechaMinima}
+                max={hoy}
+                onChange={e => setFechaEmision(e.target.value)}
+                aria-invalid={fechaMal ? true : undefined}
+              />
+              {/* FUERA DE PLAZO, AQUÍ SOLO LA ETIQUETA: el motivo completo y el
+                  botón para arreglarlo van en el aviso de debajo. */}
+              <span className={fechaMal ? 'pista mal' : 'pista'}>
+                {fechaEmision && fechaEmision < fechaMinima
+                  ? 'Fuera de plazo.'
+                  : fechaMal ?? `Hoy, o hasta ${plazoDias(tipo)} días antes.`}
               </span>
             </label>
-          ) : (
-            <Campo
-              etiqueta="Serie"
-              obligatorio
-              value={serie}
-              onChange={e => setSerie(e.target.value.toUpperCase())}
-              maxLength={4}
-              mal={series !== null}
-              pista={series !== null
-                ? (sucursalElegida && sucursales.length > 1
-                    ? `«${sucursalElegida.nombre}» no tiene serie de ${tipo === '01' ? 'factura' : 'boleta'}. Agrégala en Sucursales.`
-                    : `Tu empresa no tiene serie de ${tipo === '01' ? 'factura' : 'boleta'}. Agrégala en Configuración › Series.`)
-                : 'Una de las que tiene dada de alta tu empresa en el servicio.'}
-            />
+          </div>
+
+          {fechaMal && fechaEmision < fechaMinima && (
+            <Aviso tono="ojo">
+              <p>{fechaMal}</p>
+              <Boton estilo="secundario" onClick={() => setFechaEmision(hoy)}>
+                Poner la fecha de hoy
+              </Boton>
+            </Aviso>
           )}
+
+          <div className="pareja">
+            <label className="campo">
+              <span className="etiqueta">Moneda<Asterisco /></span>
+              <select value={moneda} onChange={e => setMoneda(e.target.value)}>
+                <option value="PEN">Soles (PEN)</option>
+                <option value="USD">Dólares (USD)</option>
+              </select>
+            </label>
+
+            {/* EN DÓLARES, EL TIPO DE CAMBIO (migración 026). SUNAT lo exige en el
+                XML; el de venta que publica SUNAT para la fecha de emisión. Desde
+                el 17 oct se propone solo y se puede corregir. */}
+            {moneda !== 'PEN' && (
+              <Campo
+                etiqueta="Tipo de cambio"
+                obligatorio
+                value={tipoCambio}
+                onChange={e => setTipoCambio(e.target.value)}
+                inputMode="decimal"
+                placeholder="3.745"
+                autoComplete="off"
+                mal={(!!tipoCambio.trim() && !(num(tipoCambio) > 0 && num(tipoCambio) < 100)) || (!tipoCambio.trim() && !!tcFallo)}
+                pista={!tipoCambio.trim() && tcFallo ? tcFallo : tcPropuesto && tipoCambio === tcPropuesto
+                  ? (tcNota ? `${tcNota} Puedes corregirlo.` : 'Venta SUNAT de la fecha. Puedes corregirlo.')
+                  : 'Soles por dólar, el de venta SUNAT, con 3 decimales.'}
+              />
+            )}
+          </div>
+        </section>
+
+        <section className="bloque nc-tarjeta">
+          <h2 className="nc-titulo"><span className="nc-paso">2</span>Cliente</h2>
+
+          <BuscadorCliente elegido={cliente} onElegir={c => { setCliente(c); setPorWhatsapp(null) }} />
+
+          {cliente && (cliente.direccion || cliente.correo || cliente.whatsapp) && (
+            <dl className="nc-cliente-datos">
+              {cliente.direccion && <div><dt>Dirección</dt><dd>{cliente.direccion}</dd></div>}
+              {cliente.correo && <div><dt>Correo</dt><dd>{cliente.correo}</dd></div>}
+              {cliente.whatsapp && <div><dt>WhatsApp</dt><dd>{whatsappLegible(cliente.whatsapp)}</dd></div>}
+            </dl>
+          )}
+
+          {boletaSinDni && (
+            <Aviso>
+              Una boleta de más de <strong>S/ 700</strong> tiene que llevar el DNI (u otro
+              documento) del cliente. Es norma de SUNAT. Pulsa «Cambiar» y búscalo o créalo.
+            </Aviso>
+          )}
+
+          {tipo === '01' && cliente && cliente.tipoDocumento !== '6' && (
+            <Aviso tono="ojo">
+              <strong>{cliente.razonSocial}</strong> no tiene RUC, y una factura lo
+              exige. Cambia a boleta de venta.
+            </Aviso>
+          )}
+
+          {cliente?.afectacionHabitual && (
+            <p className="nota">
+              A <strong>{cliente.razonSocial}</strong> se le factura como{' '}
+              <strong>{nombreAfectacion(cliente.afectacionHabitual)}</strong>. Las
+              líneas entran así solas.
+            </p>
+          )}
+
+          <Campo
+            etiqueta="Orden de compra"
+            value={ordenCompra}
+            onChange={e => setOrdenCompra(e.target.value)}
+            placeholder="Opcional"
+            pista="Se imprime en el comprobante; no viaja a SUNAT."
+          />
+        </section>
+      </div>
+
+      {/* --- 3: lo que se vende -------------------------------------------- */}
+      <section className="bloque nc-tarjeta">
+        <div className="nc-titulo-fila">
+          <h2 className="nc-titulo"><span className="nc-paso">3</span>Productos y servicios</h2>
+          {lineas.length > 0 && <span className="secundario">{lineas.length} {lineas.length === 1 ? 'línea' : 'líneas'}</span>}
         </div>
-
-        <BuscadorCliente elegido={cliente} onElegir={c => { setCliente(c); setPorWhatsapp(null) }} />
-
-        {boletaSinDni && (
-          <Aviso>
-            Una boleta de más de <strong>S/ 700</strong> tiene que llevar el DNI (u otro
-            documento) del cliente. Es norma de SUNAT. Pulsa «Cambiar» y búscalo o créalo.
-          </Aviso>
-        )}
-
-        {tipo === '01' && cliente && cliente.tipoDocumento !== '6' && (
-          <Aviso tono="ojo">
-            <strong>{cliente.razonSocial}</strong> no tiene RUC, y una factura lo
-            exige. Cambia a boleta de venta.
-          </Aviso>
-        )}
-
-        {cliente?.afectacionHabitual && (
-          <p className="nota">
-            A <strong>{cliente.razonSocial}</strong> se le factura como{' '}
-            <strong>{nombreAfectacion(cliente.afectacionHabitual)}</strong>. Las
-            líneas entran así solas.
-          </p>
-        )}
 
         {desajustadas.length > 0 && cliente?.afectacionHabitual && (
           <Aviso tono="ojo">
@@ -986,11 +1162,8 @@ export function NuevoComprobante() {
                 <>: {desajustadas.map(x => x.numero).join(', ')}</>
               )}
               , que es como se le suele facturar a{' '}
-              <strong>{cliente.razonSocial}</strong>.
-            </p>
-            <p>
-              Puede estar bien —una venta local a un cliente de exportación pasa—,
-              pero míralo antes de emitir.
+              <strong>{cliente.razonSocial}</strong>. Puede estar bien —una venta
+              local a un cliente de exportación pasa—, pero míralo antes de emitir.
             </p>
             <Boton estilo="secundario" onClick={igualarAfectacion}>
               Poner {nombreAfectacion(cliente.afectacionHabitual).toLowerCase()} en todas
@@ -998,220 +1171,163 @@ export function NuevoComprobante() {
           </Aviso>
         )}
 
-        <div className="pareja">
-          <label className="campo">
-            <span className="etiqueta">Fecha de emisión<Asterisco /></span>
-            <input
-              type="date"
-              value={fechaEmision}
-              min={fechaMinima}
-              max={hoy}
-              onChange={e => setFechaEmision(e.target.value)}
-              aria-invalid={fechaMal ? true : undefined}
-            />
-            {/* FUERA DE PLAZO, AQUÍ SOLO LA ETIQUETA: el motivo completo y el
-                botón para arreglarlo van en el aviso de debajo. Con el texto
-                en los dos sitios se leía dos veces lo mismo. */}
-            <span className={fechaMal ? 'pista mal' : 'pista'}>
-              {fechaEmision && fechaEmision < fechaMinima
-                ? 'Fuera de plazo.'
-                : fechaMal ?? `Hoy, o hasta ${plazoDias(tipo)} días antes si la venta fue ese día.`}
-            </span>
-          </label>
+        <div className="nc-lineas" role="table" aria-label="Líneas del comprobante">
+          {lineas.length > 0 && (
+            <div className="nc-fila nc-cabecera" role="row">
+              <span role="columnheader">#</span>
+              <span role="columnheader">Descripción</span>
+              <span role="columnheader" className="der">Cantidad</span>
+              <span role="columnheader">Unidad</span>
+              <span role="columnheader" className="der">V. unitario <small>sin IGV</small></span>
+              <span role="columnheader" className="der">Descuento</span>
+              <span role="columnheader" className="der">Importe</span>
+              <span role="columnheader"><span className="solo-lector">Quitar</span></span>
+            </div>
+          )}
 
-          <label className="campo">
-            <span className="etiqueta">Moneda<Asterisco /></span>
-            <select value={moneda} onChange={e => setMoneda(e.target.value)}>
-              <option value="PEN">Soles (PEN)</option>
-              <option value="USD">Dólares (USD)</option>
-            </select>
-          </label>
-        </div>
+          {lineas.length === 0 && (
+            <div className="nc-vacio">
+              <strong>Todavía no hay nada que facturar.</strong>
+              <span>Busca un producto de tu catálogo abajo, o agrega una línea libre para algo que no está (un flete, una instalación).</span>
+            </div>
+          )}
 
-        {fechaMal && fechaEmision < fechaMinima && (
-          <Aviso tono="ojo">
-            <p>{fechaMal}</p>
-            <Boton estilo="secundario" onClick={() => setFechaEmision(hoy)}>
-              Poner la fecha de hoy
-            </Boton>
-          </Aviso>
-        )}
+          {lineas.map((l, i) => {
+            const bruto = num(l.cantidad) * num(l.valorUnitario)
+            const importe = Math.max(0, bruto - num(l.descuento))
+            const conIgv = l.tipoAfectacion === '10' && num(l.valorUnitario) > 0 ? num(l.valorUnitario) * (1 + IGV) : null
+            const desajustada = !!cliente?.afectacionHabitual && l.tipoAfectacion !== cliente.afectacionHabitual
 
-        <Campo
-          etiqueta="Orden de compra"
-          value={ordenCompra}
-          onChange={e => setOrdenCompra(e.target.value)}
-          pista="Opcional. Se guarda y se imprime, pero no viaja a SUNAT."
-        />
+            // 052: cuánto hay. Si no alcanza, cuánto hay en las otras sucursales.
+            const p = l.productoId && disp?.encendido ? disp.productos?.find(x => x.productoId === l.productoId) : undefined
+            const falta = p ? faltan.find(f => f.productoId === p.productoId) : undefined
 
-        {/* EN DÓLARES, EL TIPO DE CAMBIO (migración 026). SUNAT lo exige en el
-            XML; el de venta que publica SUNAT para la fecha de emisión. Desde
-            el 17 oct se propone solo y se puede corregir. */}
-        {moneda !== 'PEN' && (
-          <Campo
-            etiqueta="Tipo de cambio"
-            obligatorio
-            value={tipoCambio}
-            onChange={e => setTipoCambio(e.target.value)}
-            inputMode="decimal"
-            placeholder="3.745"
-            autoComplete="off"
-            mal={(!!tipoCambio.trim() && !(num(tipoCambio) > 0 && num(tipoCambio) < 100)) || (!tipoCambio.trim() && !!tcFallo)}
-            pista={!tipoCambio.trim() && tcFallo ? tcFallo : tcPropuesto && tipoCambio === tcPropuesto
-              ? (tcNota ? `${tcNota} Puedes corregirlo.` : 'Propuesto: el de venta que publica SUNAT para la fecha de emisión. Puedes corregirlo.')
-              : 'Soles por dólar: el de venta que publica SUNAT para la fecha de emisión, con 3 decimales.'}
-          />
-        )}
-      </div>
+            return (
+              <div key={l.clave} className="nc-linea" role="row">
+                <div className="nc-fila">
+                  <span className="nc-num" role="cell">{i + 1}</span>
+                  <label className="nc-celda nc-desc" role="cell">
+                    <span className="nc-et">Descripción</span>
+                    <input id={`desc-${l.clave}`} value={l.descripcion} placeholder="Qué se vende (es lo que sale impreso)"
+                           onChange={e => cambiar(l.clave, 'descripcion', e.target.value)}
+                           aria-label={`Descripción de la línea ${i + 1}`}
+                           aria-invalid={!l.descripcion.trim() && (!!l.valorUnitario || !!l.productoId) ? true : undefined} />
+                  </label>
+                  <label className="nc-celda" role="cell">
+                    <span className="nc-et">Cantidad</span>
+                    <input id={`cant-${l.clave}`} className="der" value={l.cantidad} inputMode="decimal"
+                           onChange={e => cambiar(l.clave, 'cantidad', e.target.value)}
+                           aria-label={`Cantidad de la línea ${i + 1}`}
+                           aria-invalid={num(l.cantidad) <= 0 || (!!falta && !!disp?.bloquea) ? true : undefined} />
+                  </label>
+                  <label className="nc-celda" role="cell">
+                    <span className="nc-et">Unidad</span>
+                    <select value={l.unidadMedida} onChange={e => cambiar(l.clave, 'unidadMedida', e.target.value)}
+                            aria-label={`Unidad de la línea ${i + 1}`}>
+                      {!unidades.some(u => u.codigo === l.unidadMedida) && <option value={l.unidadMedida}>{l.unidadMedida}</option>}
+                      {unidades.map(u => (
+                        <option key={u.codigo} value={u.codigo}>{u.codigo}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="nc-celda" role="cell">
+                    <span className="nc-et">V. unitario sin IGV</span>
+                    <input className="der" value={l.valorUnitario} inputMode="decimal" placeholder="0.00"
+                           onChange={e => cambiar(l.clave, 'valorUnitario', e.target.value)}
+                           aria-label={`Valor unitario sin IGV de la línea ${i + 1}`}
+                           aria-invalid={num(l.valorUnitario) < 0 ? true : undefined} />
+                  </label>
+                  <label className="nc-celda" role="cell">
+                    <span className="nc-et">Descuento</span>
+                    <input className="der" value={l.descuento} inputMode="decimal"
+                           onChange={e => cambiar(l.clave, 'descuento', e.target.value)}
+                           aria-label={`Descuento de la línea ${i + 1} (${moneda === 'PEN' ? 'en soles' : 'en dólares'})`}
+                           aria-invalid={num(l.descuento) > bruto ? true : undefined} />
+                  </label>
+                  <div className="nc-celda nc-importe" role="cell">
+                    <span className="nc-et">Importe</span>
+                    <span className="mono">{dinero(importe)}</span>
+                  </div>
+                  <div className="nc-quitar" role="cell">
+                    <button type="button" title="Quitar la línea" aria-label={`Quitar la línea ${i + 1}`}
+                            onClick={() => setLineas(ls => ls.filter(x => x.clave !== l.clave))}>×</button>
+                  </div>
+                </div>
 
-      {/* --- Líneas -------------------------------------------------------- */}
-      <div className="bloque">
-        <h2 className="subtitulo">Qué se vende</h2>
+                <div className="nc-detalle">
+                  <label className={desajustada ? 'nc-afectacion desajustada' : 'nc-afectacion'}>
+                    <span className="solo-lector">Afectación del IGV de la línea {i + 1}</span>
+                    <select value={l.tipoAfectacion} onChange={e => cambiar(l.clave, 'tipoAfectacion', e.target.value)}>
+                      {afectaciones.map(a => (
+                        <option key={a.codigo} value={a.codigo}>{a.nombre}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {l.codigo && <span className="nc-dato">Código <span className="mono">{l.codigo}</span></span>}
+                  {conIgv != null && <span className="nc-dato">Con IGV <span className="mono">{conIgv.toFixed(2)}</span> c/u</span>}
+                  {p && !p.controla && <span className="nc-dato">No se cuenta en el inventario</span>}
+                  {p && p.controla && !falta && (
+                    <span className="nc-stock bien">Disponible aquí <strong className="mono">{cantidad(p.disponible)}</strong></span>
+                  )}
+                  {p && p.controla && falta && (
+                    <span className={disp?.bloquea ? 'nc-stock mal' : 'nc-stock ojo'}>Hay <strong className="mono">{cantidad(p.disponible)}</strong> disponibles</span>
+                  )}
+                </div>
 
-        {lineas.map((l, i) => {
-          const bruto = num(l.cantidad) * num(l.valorUnitario)
-          const neto  = Math.max(0, bruto - num(l.descuento))
-
-          return (
-            <div key={l.clave} className="linea-comprobante">
-              <div className="cabecera-linea">
-                <span className="numero">{i + 1}</span>
-                <BuscadorProducto onElegir={p => ponerProducto(l.clave, p)} />
-                {lineas.length > 1 && (
-                  <Boton
-                    estilo="plano"
-                    onClick={() => setLineas(ls => ls.filter(x => x.clave !== l.clave))}
-                  >
-                    Quitar
-                  </Boton>
+                {p && falta && (
+                  <div className={`inv-falta${disp?.bloquea ? '' : ' solo-aviso'}`}>
+                    <strong>No alcanza: pides {cantidad(falta.pedido)} y aquí hay {cantidad(p.disponible)} disponibles.</strong>
+                    {p.otras.length > 0 && <> En otras sucursales: {p.otras.map(o => <strong key={o.sucursalId}> {o.codigo} {o.nombre} {cantidad(o.disponible)}</strong>)}.</>}
+                    <div className="acciones-falta">
+                      {p.disponible > 0 && lineas.filter(x => x.productoId === p.productoId).length === 1 && (
+                        <button type="button" className="enlace" onClick={() => cambiar(l.clave, 'cantidad', String(p.disponible))}>Bajar a {cantidad(p.disponible)}</button>
+                      )}
+                      {p.otras.length > 0 && <span className="secundario">o pide un traslado, o emite la factura desde la sucursal que tiene</span>}
+                      {!disp?.bloquea && <span className="secundario">· {disp?.permitirSinStock ? 'se permite vender sin stock: quedará en negativo' : 'todavía no se controla: solo avisa'}</span>}
+                    </div>
+                  </div>
                 )}
               </div>
+            )
+          })}
+        </div>
 
-              <Campo
-                etiqueta="Descripción"
-                obligatorio
-                value={l.descripcion}
-                onChange={e => cambiar(l.clave, 'descripcion', e.target.value)}
-                pista="Es lo que sale impreso."
-              />
+        <div className="nc-agregar">
+          <BuscadorProducto onElegir={agregarProducto} placeholder="+ Agregar producto: busca por código o nombre…" />
+          <Boton estilo="secundario" onClick={lineaLibre}>Línea libre</Boton>
+        </div>
 
-              <div className="rejilla-linea">
-                <Campo
-                  etiqueta="Cantidad"
-                  obligatorio
-                  value={l.cantidad}
-                  onChange={e => cambiar(l.clave, 'cantidad', e.target.value)}
-                  inputMode="decimal"
-                />
+        {/* --- Los totales, al pie de las líneas, como en el papel ---------- */}
+        <div className="nc-pie-lineas">
+          {/* LA HONESTIDAD VA EN LA PANTALLA, no solo en un comentario del
+              código: quien emite tiene que saber que este número es una
+              estimación y que la cifra buena la pone el servicio. */}
+          <p className="nota nc-estimacion">
+            Los totales son una <strong>estimación</strong> para que veas por dónde va. El importe que se firma y viaja
+            a SUNAT lo calcula el servicio de facturación al emitir, y es el que quedará guardado.
+          </p>
 
-                <label className="campo">
-                  <span className="etiqueta">Unidad<Asterisco /></span>
-                  <select
-                    value={l.unidadMedida}
-                    onChange={e => cambiar(l.clave, 'unidadMedida', e.target.value)}
-                  >
-                    {unidades.map(u => (
-                      <option key={u.codigo} value={u.codigo}>{u.codigo}</option>
-                    ))}
-                  </select>
-                </label>
+          <dl className="nc-totales">
+            {totales.descuentos > 0 && (
+              <div><dt>Descuentos</dt><dd className="mono">−{dinero(totales.descuentos)}</dd></div>
+            )}
+            <div><dt>Op. gravadas</dt><dd className="mono">{dinero(totales.gravado)}</dd></div>
+            {totales.otros > 0 && (
+              <div><dt>Otras operaciones</dt><dd className="mono">{dinero(totales.otros)}</dd></div>
+            )}
+            <div><dt>IGV</dt><dd className="mono">{dinero(totales.igv)}</dd></div>
+            <div className="total"><dt>Total</dt><dd className="mono">{simbolo} {dinero(totales.total)}</dd></div>
+            {moneda !== 'PEN' && num(tipoCambio) > 0 && (
+              <div className="equivale"><dt>Equivale a</dt><dd className="mono">S/ {dinero(totales.total * num(tipoCambio))}</dd></div>
+            )}
+          </dl>
+        </div>
+      </section>
 
-                <Campo
-                  etiqueta="Valor unitario"
-                  obligatorio
-                  value={l.valorUnitario}
-                  onChange={e => cambiar(l.clave, 'valorUnitario', e.target.value)}
-                  inputMode="decimal"
-                  pista="Sin IGV"
-                />
-
-                <Campo
-                  etiqueta="Descuento"
-                  value={l.descuento}
-                  onChange={e => cambiar(l.clave, 'descuento', e.target.value)}
-                  inputMode="decimal"
-                  pista={moneda === 'PEN' ? 'En soles' : 'En dólares'}
-                  mal={num(l.descuento) > bruto}
-                />
-
-                <label className="campo">
-                  <span className="etiqueta">Afectación<Asterisco /></span>
-                  {/* Ámbar cuando no coincide con la costumbre del cliente. El
-                      aviso de arriba dice qué línea es; esto la señala sin que
-                      haya que contar. */}
-                  <select
-                    className={
-                      cliente?.afectacionHabitual &&
-                      l.tipoAfectacion !== cliente.afectacionHabitual
-                        ? 'desajustada' : undefined
-                    }
-                    value={l.tipoAfectacion}
-                    onChange={e => cambiar(l.clave, 'tipoAfectacion', e.target.value)}
-                  >
-                    {afectaciones.map(a => (
-                      <option key={a.codigo} value={a.codigo}>{a.nombre}</option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="campo">
-                  <span className="etiqueta">Importe</span>
-                  <div className="importe-linea mono">{neto.toFixed(2)}</div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-
-        <Boton estilo="secundario" onClick={() => setLineas(ls => [...ls, vacia()])}>
-          Añadir línea
-        </Boton>
-      </div>
-
-      {/* --- Totales ------------------------------------------------------- */}
-      <div className="bloque">
-        <h2 className="subtitulo">Total estimado</h2>
-
-        <dl className="datos totales">
-          {totales.descuentos > 0 && (
-            <div className="fila">
-              <dt>Descuentos</dt>
-              <dd className="mono">−{totales.descuentos.toFixed(2)}</dd>
-            </div>
-          )}
-          <div className="fila">
-            <dt>Gravado</dt>
-            <dd className="mono">{totales.gravado.toFixed(2)}</dd>
-          </div>
-          {totales.otros > 0 && (
-            <div className="fila">
-              <dt>Otras operaciones</dt>
-              <dd className="mono">{totales.otros.toFixed(2)}</dd>
-            </div>
-          )}
-          <div className="fila">
-            <dt>IGV</dt>
-            <dd className="mono">{totales.igv.toFixed(2)}</dd>
-          </div>
-          <div className="fila grande">
-            <dt>Total</dt>
-            <dd className="mono">{moneda} {totales.total.toFixed(2)}</dd>
-          </div>
-        </dl>
-
-        {/* LA HONESTIDAD VA EN LA PANTALLA, no solo en un comentario del
-            código: quien emite tiene que saber que este número es una
-            estimación y que la cifra buena la pone el servicio. */}
-        <p className="nota">
-          Es una <strong>estimación</strong> para que veas por dónde va. El
-          importe que se firma y viaja a SUNAT lo calcula el servicio de
-          facturación al emitir, y es el que quedará guardado.
-        </p>
-      </div>
-
-      {/* --- 040: forma de pago y detracción (solo facturas) ----------------- */}
+      {/* --- 4: forma de pago y detracción (solo facturas) ----------------- */}
       {esFactura && (
         <PagoYDetraccion
+          paso={4}
           moneda={moneda}
           total={totales.total}
           totalSoles={totalSoles}
@@ -1224,65 +1340,106 @@ export function NuevoComprobante() {
         />
       )}
 
-      {/* --- 043: a dónde se le manda --------------------------------------- */}
-      {cliente && (
-        <div className="bloque">
-          <h2 className="subtitulo">Envío al cliente</h2>
-          <label className="casilla-wsp">
-            <input type="checkbox" checked={!!cliente.correo} disabled />
-            {cliente.correo ? <>Correo a {cliente.correo}</> : <>Sin correo: no se le manda por correo</>}
-          </label>
-          {cliente.whatsapp ? (
-            <label className={(porWhatsapp ?? !!cliente.whatsappActivo) ? 'casilla-wsp caja-whatsapp' : 'casilla-wsp'}>
-              <input type="checkbox" checked={porWhatsapp ?? !!cliente.whatsappActivo}
-                     onChange={e => setPorWhatsapp(e.target.checked)} />
-              WhatsApp a {whatsappLegible(cliente.whatsapp)}
-            </label>
-          ) : (
-            <p className="nota">Sin WhatsApp guardado. Se puede mandar después, desde el detalle del comprobante.</p>
-          )}
-          {cliente.whatsapp && (
-            <p className="nota">
-              {cliente.whatsappActivo
-                ? 'Viene marcada porque el cliente lo tiene activado. Desmárcala si este no.'
-                : 'El cliente no lo tiene activado: márcala si este sí.'}
-              {' '}Al emitir se abre WhatsApp con el mensaje listo: solo pulsas Enviar.
-            </p>
-          )}
-        </div>
+      {/* --- Entrega (052) y envío (043) ----------------------------------- */}
+      {(hayEntrega || cliente) && (
+        <section className="bloque nc-tarjeta">
+          <h2 className="nc-titulo"><span className="nc-paso">{esFactura ? 5 : 4}</span>Entrega y envío</h2>
+          <div className={hayEntrega && cliente ? 'nc-dos interno' : undefined}>
+            {hayEntrega && (
+              <div>
+                <h3 className="nc-subtitulo">¿Cuándo sale la mercadería?</h3>
+                <label className="casilla">
+                  <input type="checkbox" checked={entregaEfectiva} onChange={e => setEntregaDespues(e.target.checked)} />
+                  <span>
+                    <strong>Se entrega después (con guía)</strong>
+                    <em>
+                      La factura reserva los productos; salen del almacén cuando se emite la guía de remisión.
+                      {disp?.modo === 'despacho'
+                        ? ' Viene marcada porque tu empresa trabaja «con despacho» por defecto; desmárcala si el cliente se lo lleva ahora.'
+                        : ' Tu empresa trabaja con venta directa por defecto: márcala si el cliente no se lo lleva ahora.'}
+                    </em>
+                  </span>
+                </label>
+                <p className="nota">
+                  Lo reservado no lo puede vender otra persona. El stock se revisa otra vez al emitir.
+                </p>
+              </div>
+            )}
+
+            {cliente && (
+              <div>
+                <h3 className="nc-subtitulo">Envío al cliente</h3>
+                <div className="nc-envio">
+                  <label className="casilla-wsp">
+                    <input type="checkbox" checked={!!cliente.correo} disabled />
+                    {cliente.correo ? <>Correo a {cliente.correo}</> : <>Sin correo: no se le manda por correo</>}
+                  </label>
+                  {cliente.whatsapp ? (
+                    <label className={(porWhatsapp ?? !!cliente.whatsappActivo) ? 'casilla-wsp caja-whatsapp' : 'casilla-wsp'}>
+                      <input type="checkbox" checked={porWhatsapp ?? !!cliente.whatsappActivo}
+                             onChange={e => setPorWhatsapp(e.target.checked)} />
+                      WhatsApp a {whatsappLegible(cliente.whatsapp)}
+                    </label>
+                  ) : (
+                    <p className="nota">Sin WhatsApp guardado. Se puede mandar después, desde el detalle del comprobante.</p>
+                  )}
+                </div>
+                {cliente.whatsapp && (
+                  <p className="nota">
+                    {cliente.whatsappActivo
+                      ? 'Viene marcada porque el cliente lo tiene activado. Desmárcala si este no.'
+                      : 'El cliente no lo tiene activado: márcala si este sí.'}
+                    {' '}Al emitir se abre WhatsApp con el mensaje listo: solo pulsas Enviar.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
       )}
 
-      <div className="acciones-pagina">
-        {borradorId && estadoDoc === 'borrador' && (
+      {/* --- La barra de abajo: el total y los botones, siempre a la vista -- */}
+      <div className="nc-barra">
+        <div className="nc-barra-total">
+          <span className="secundario">Total estimado</span>
+          <strong className="mono">{simbolo} {dinero(totales.total)}</strong>
+          {esFactura && pago.forma === 'credito' && detSoles != null && (
+            <span className="secundario">· neto a cobrar <span className="mono">{simbolo} {neto.toFixed(2)}</span></span>
+          )}
+        </div>
+        {pendiente && <span className="nc-barra-falta" title={pendiente}>{pendiente}</span>}
+        <div className="nc-barra-botones">
+          {borradorId && estadoDoc === 'borrador' && (
+            <Boton
+              estilo="plano"
+              onClick={() => void descartar()}
+              ocupado={descartando}
+              textoOcupado="Descartando…"
+              disabled={guardando || emitiendo}
+            >
+              Descartar
+            </Boton>
+          )}
+
           <Boton
-            estilo="plano"
-            onClick={() => void descartar()}
-            ocupado={descartando}
-            textoOcupado="Descartando…"
-            disabled={guardando || emitiendo}
+            estilo="secundario"
+            onClick={() => void guardar()}
+            ocupado={guardando}
+            textoOcupado="Guardando…"
+            disabled={emitiendo}
           >
-            Descartar borrador
+            Guardar borrador
           </Boton>
-        )}
 
-        <Boton
-          estilo="secundario"
-          onClick={() => void guardar()}
-          ocupado={guardando}
-          textoOcupado="Guardando…"
-          disabled={emitiendo}
-        >
-          Guardar borrador
-        </Boton>
-
-        <Boton
-          onClick={() => void emitir()}
-          ocupado={emitiendo || capa !== undefined}
-          textoOcupado="Emitiendo…"
-          disabled={!cliente || guardando}
-        >
-          Emitir
-        </Boton>
+          <Boton
+            onClick={() => void emitir()}
+            ocupado={emitiendo || capa !== undefined}
+            textoOcupado="Emitiendo…"
+            disabled={!cliente || guardando}
+          >
+            Emitir {tipo === '01' ? 'factura' : 'boleta'}
+          </Boton>
+        </div>
       </div>
 
       {confirmacion}
@@ -1305,6 +1462,6 @@ export function NuevoComprobante() {
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }

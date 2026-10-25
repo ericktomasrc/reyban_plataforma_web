@@ -12,13 +12,13 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { DialogoProducto } from '../componentes/DialogoProducto'
 import { productosServicio } from '../servicios/facturacionServicio'
 import type { CatalogosSunat, ProductoEnLista } from '../tipos'
+import { inventarioServicio, type Categoria } from '../../inventario/servicios/inventarioServicio'
 
 /**
  * Lo que vende esta empresa.
  *
- * NO ES UN INVENTARIO y conviene que se note en la pantalla: no hay stock, ni
- * almacén, ni entradas y salidas. Es la lista de lo que aparece en una línea de
- * factura. El día que haga falta llevar existencias, eso es otro módulo.
+ * El stock no está aquí: es el módulo de inventario (052). De aquí sale si el
+ * producto se cuenta («Controla stock») y su categoría.
  */
 export function Productos() {
   const navegar = useNavigate()
@@ -31,6 +31,11 @@ export function Productos() {
   const [unidad, setUnidad] = useState('')
   const [afectacion, setAfectacion] = useState('')
   const [orden, setOrden] = useState('recientes')
+  // 052: categoría y «controla stock».
+  const [categoria, setCategoria] = useState('')
+  const [stock, setStock] = useState('')
+  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [inventario, setInventario] = useState(false)
   const [pagina, setPagina] = useState(1)
   const [porPagina, setPorPagina] = useState(20)
   const [total, setTotal] = useState(0)
@@ -73,13 +78,15 @@ export function Productos() {
         if (vivo) setCatalogos(c)
       } catch { if (vivo) setCatalogosFallaron(true) }
     })()
+    inventarioServicio.categorias().then(c => { if (vivo) setCategorias(c) }).catch(() => { /* sin categorías */ })
+    inventarioServicio.estado().then(e => { if (vivo) setInventario(e.encendido) }).catch(() => { /* sin inventario */ })
     return () => { vivo = false }
   }, [])
 
   async function cargar() {
     setCargando(true)
     try {
-      const r = await productosServicio.pagina({ q, unidad, afectacion, estado, orden, pagina, porPagina })
+      const r = await productosServicio.pagina({ q, unidad, afectacion, estado, orden, pagina, porPagina, categoriaId: categoria, stock })
       setProductos(r.filas)
       setTotal(r.total)
       setErrorCarga(undefined)
@@ -106,7 +113,7 @@ export function Productos() {
     const t = setTimeout(() => { void cargar() }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, estado, unidad, afectacion, orden, pagina, porPagina])
+  }, [q, estado, unidad, afectacion, orden, pagina, porPagina, categoria, stock])
 
   const nombreAfectacion = (codigo: string) =>
     catalogos?.afectaciones.find(a => a.codigo === codigo)?.nombre ?? codigo
@@ -168,8 +175,8 @@ export function Productos() {
       </div>
 
       <p className="bajada-pagina">
-        Lo que vendes, con su precio y su afectación del IGV. No es un
-        inventario: no lleva stock ni movimientos.
+        Lo que vendes, con su precio y su afectación del IGV.
+        {inventario ? ' Su stock está en Inventario › Stock.' : ''}
       </p>
 
       {errorCarga && <Aviso>{errorCarga}</Aviso>}
@@ -215,6 +222,25 @@ export function Productos() {
             <option value="todos">Todos</option>
           </select>
         </label>
+        {categorias.length > 0 && (
+          <label>
+            <span>Categoría</span>
+            <select value={categoria} onChange={e => { setCategoria(e.target.value); setPagina(1) }}>
+              <option value="">Todas</option>
+              {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </select>
+          </label>
+        )}
+        {inventario && (
+          <label>
+            <span>Stock</span>
+            <select value={stock} onChange={e => { setStock(e.target.value); setPagina(1) }}>
+              <option value="">Todos</option>
+              <option value="controla">Controlan stock</option>
+              <option value="no_controla">No controlan</option>
+            </select>
+          </label>
+        )}
         <label>
           <span>Orden</span>
           <select value={orden} onChange={e => { setOrden(e.target.value); setPagina(1) }}>
@@ -246,6 +272,12 @@ export function Productos() {
                   <td>
                     <div className="principal">{p.descripcion}</div>
                     <div className="secundario mono">{p.codigo}</div>
+                    {(p.categoria || (inventario && p.controlaStock === false && p.unidadMedida !== 'ZZ')) && (
+                      <div className="secundario">
+                        {p.categoria}
+                        {inventario && p.controlaStock === false && p.unidadMedida !== 'ZZ' && <>{p.categoria ? ' · ' : ''}no controla stock</>}
+                      </div>
+                    )}
                   </td>
 
                   <td className="secundario">{p.unidadMedida}</td>
@@ -308,7 +340,7 @@ export function Productos() {
         ) : (
           <div className="relleno">
             <Vacio>
-              {q || unidad || afectacion || estado !== 'activos'
+              {q || unidad || afectacion || categoria || stock || estado !== 'activos'
                 ? 'Ningún producto cuadra con esos filtros.'
                 : 'Todavía no tienes productos. Crea el primero para poder facturar.'}
             </Vacio>

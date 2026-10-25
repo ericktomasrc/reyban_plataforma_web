@@ -7,6 +7,10 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha } from '../../../nucleo/formato/fechas'
 import { notaCreditoServicio } from '../servicios/facturacionServicio'
 import type { CalculoNotaCredito, PreviaNotaCredito } from '../tipos'
+import { inventarioServicio, type EstadoInventario } from '../../inventario/servicios/inventarioServicio'
+
+/** 052: las notas que devuelven productos preguntan si la mercadería volvió. */
+const DEVUELVEN = ['01', '02', '06', '07']
 
 /**
  * 031 — NOTA DE CRÉDITO (maqueta aprobada el 18 oct 2026).
@@ -68,6 +72,15 @@ export function NotaCredito() {
   const [calculando, setCalculando] = useState(false)
   const [emitiendo, setEmitiendo] = useState(false)
   const [falloEmitir, setFalloEmitir] = useState<string>()
+  // 052: ¿volvió al almacén? (si la empresa lleva inventario)
+  const [inventario, setInventario] = useState<EstadoInventario>()
+  const [retorno, setRetorno] = useState<'volvio' | 'danada' | 'no_volvio'>('volvio')
+  const [retornoSucursal, setRetornoSucursal] = useState('')
+  useEffect(() => {
+    let vivo = true
+    inventarioServicio.estado().then(e => { if (vivo) setInventario(e) }).catch(() => { /* sin inventario */ })
+    return () => { vivo = false }
+  }, [])
 
   // LA CLAVE NACE AL ABRIR LA PANTALLA: dos clics en «Emitir» son la misma nota.
   const clave = useRef(nuevaClave())
@@ -100,7 +113,10 @@ export function NotaCredito() {
       ? cuotas.map(c => ({ monto: Number(c.monto.replace(',', '.')) || 0, vence: c.vence }))
           .filter(c => c.monto > 0 || c.vence)
       : undefined,
-  }), [motivo, descripcion, cantidades, monto, linea, correcciones, afectacion, cuotas])
+    // 052
+    retorno: motivo && DEVUELVEN.includes(motivo) && inventario?.encendido ? retorno : undefined,
+    retornoSucursalId: motivo && DEVUELVEN.includes(motivo) && inventario?.encendido && retornoSucursal ? retornoSucursal : undefined,
+  }), [motivo, descripcion, cantidades, monto, linea, correcciones, afectacion, cuotas, retorno, retornoSucursal, inventario])
 
   // Calcular en el back, un momento después de que se deja de escribir.
   useEffect(() => {
@@ -325,6 +341,40 @@ export function NotaCredito() {
                          onChange={e => setMonto(e.target.value.replace(/[^\d.,]/g, ''))} />
                 </label>
               )}
+            </div>
+          )}
+
+          {/* --- 052: ¿la mercadería volvió al almacén? ---------------------- */}
+          {motivo && DEVUELVEN.includes(motivo) && inventario?.encendido && (
+            <div className="bloque">
+              <h2 className="subtitulo">¿La mercadería volvió al almacén?</h2>
+              <div className="casillas">
+                <label className="casilla">
+                  <input type="radio" name="retorno" checked={retorno === 'volvio'} onChange={() => setRetorno('volvio')} />
+                  <span><strong>Sí, volvió</strong><em>Entra otra vez al stock.</em></span>
+                </label>
+                <label className="casilla">
+                  <input type="radio" name="retorno" checked={retorno === 'danada'} onChange={() => setRetorno('danada')} />
+                  <span><strong>Volvió pero dañada</strong><em>Entra y sale como merma (queda el registro).</em></span>
+                </label>
+                <label className="casilla">
+                  <input type="radio" name="retorno" checked={retorno === 'no_volvio'} onChange={() => setRetorno('no_volvio')} />
+                  <span><strong>No volvió</strong><em>El cliente se la quedó o se perdió: el stock no cambia.</em></span>
+                </label>
+              </div>
+              {retorno !== 'no_volvio' && inventario.sucursales.length > 1 && (
+                <label className="campo" style={{ marginTop: 'var(--e3)' }}>
+                  <span className="etiqueta">Entra a</span>
+                  <select value={retornoSucursal} onChange={e => setRetornoSucursal(e.target.value)}>
+                    <option value="">La sucursal que emitió el comprobante</option>
+                    {inventario.sucursales.map(s => <option key={s.id} value={s.id}>{s.codigo} {s.nombre}</option>)}
+                  </select>
+                </label>
+              )}
+              <p className="nota se-aplica">
+                Se aplica: el stock entra cuando SUNAT acepta la nota, no antes. Si el comprobante estaba «se entrega después»
+                y aún no salía con guía, primero se libera lo reservado.
+              </p>
             </div>
           )}
 

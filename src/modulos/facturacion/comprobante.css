@@ -1,0 +1,227 @@
+/* =============================================================================
+   e161 — LA PANTALLA DE EMITIR UN COMPROBANTE, REORDENADA
+
+   Como un comprobante en papel: arriba los datos del documento y del cliente,
+   lado a lado; en medio las líneas como una tabla (una fila por producto) y
+   los totales al pie, a la derecha; debajo el pago y el envío. Los botones
+   viven en una barra fija abajo, con el total siempre a la vista.
+   ============================================================================= */
+
+.contenido > .nc { max-width: 1180px; }
+
+.nc-encabezado {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: var(--e4);
+  margin-bottom: var(--e5);
+}
+.nc-encabezado .titulo-pagina { margin-bottom: var(--e2); }
+.nc-bajada { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e2); margin: 0; font-size: 14px; color: var(--tinta-2); }
+.nc-bajada .mono { font-size: 14px; color: var(--tinta); }
+.nc-pastilla {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  background: var(--acento-suave); color: var(--acento); font-size: 12.5px; font-weight: 600;
+}
+.nc-pastilla.gris { background: var(--hundido); color: var(--tinta-2); font-weight: 500; }
+
+/* --- Las tarjetas de sección ----------------------------------------------- */
+
+.nc-tarjeta { padding: var(--e5) var(--e5) var(--e4); margin-bottom: var(--e5); box-shadow: 0 1px 2px rgb(22 32 42 / 4%); }
+.nc-titulo {
+  display: flex; align-items: center; gap: var(--e3);
+  font-size: 16px; font-weight: 600; color: var(--tinta);
+  margin: 0 0 var(--e4);
+}
+.nc-paso {
+  flex: none; display: inline-grid; place-items: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--acento-suave); color: var(--acento);
+  font-size: 13px; font-weight: 700;
+}
+.nc-titulo-fila { display: flex; justify-content: space-between; align-items: baseline; gap: var(--e3); }
+.nc-titulo-fila .secundario { font-size: 13px; }
+.nc-subtitulo { font-size: 13px; font-weight: 600; color: var(--tinta-2); margin: 0 0 var(--e2); }
+
+.nc-dos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--e5); align-items: stretch; }
+.nc-dos > .nc-tarjeta { margin-bottom: var(--e5); }
+.nc-dos.interno { align-items: start; }
+@media (max-width: 960px) { .nc-dos { grid-template-columns: 1fr; gap: 0; } .nc-dos.interno { gap: var(--e4); } }
+
+.nc .segmentado.nc-tipo { display: flex; margin: 0; }
+.nc .segmentado.nc-tipo button { flex: 1; min-height: 38px; }
+.nc-tarjeta .aviso { margin: 0 0 var(--e4); }
+.nc-tarjeta .aviso .boton { margin-top: var(--e1); }
+.nc-tarjeta > .nota:last-child { margin-bottom: 0; }
+.nc-tarjeta .buscador .elegido { padding: 12px 14px; }
+.nc-tarjeta .buscador .elegido .principal { font-weight: 600; }
+
+/* --- Las líneas -------------------------------------------------------------- */
+
+/* Una rejilla para la cabecera y las filas, con las mismas columnas:
+   # · descripción · cantidad · unidad · valor · descuento · importe · quitar */
+.nc-fila {
+  display: grid;
+  grid-template-columns: 28px minmax(200px, 1fr) 96px 92px 130px 104px 112px 32px;
+  gap: var(--e2);
+  align-items: center;
+}
+.nc-cabecera {
+  padding: 0 var(--e3) var(--e2);
+  font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--tinta-3);
+  border-bottom: 1px solid var(--borde);
+}
+.nc-cabecera small { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.nc-cabecera .der, .nc .der { text-align: right; }
+
+.nc-linea {
+  padding: var(--e3);
+  border-bottom: 1px solid var(--borde-sutil);
+}
+.nc-linea:hover { background: #fafbfc; }
+.nc-linea:focus-within { background: #f7fbfb; }
+
+.nc-num {
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--hundido); color: var(--tinta-2); font-size: 12px; font-weight: 600;
+}
+.nc-celda { display: block; min-width: 0; }
+.nc-celda input, .nc-celda select, .nc-afectacion select {
+  width: 100%; box-sizing: border-box; min-height: 38px;
+  font: inherit; font-size: 14px; padding: 7px 10px;
+  border: 1px solid var(--borde); border-radius: var(--radio);
+  background: var(--superficie); color: var(--tinta);
+}
+.nc-celda input.der { text-align: right; font-variant-numeric: tabular-nums; }
+.nc-celda input:focus, .nc-celda select:focus, .nc-afectacion select:focus {
+  outline: 2px solid var(--acento); outline-offset: -1px; border-color: var(--acento);
+}
+.nc-celda input[aria-invalid="true"] { border-color: var(--peligro); background: var(--peligro-suave); }
+.nc-desc input { font-weight: 500; }
+.nc-importe { text-align: right; font-weight: 600; font-size: 15px; padding-right: 2px; }
+.nc-importe .mono, .nc-totales .mono, .nc-barra-total .mono { font-family: var(--fuente); font-variant-numeric: tabular-nums; }
+.nc-et { display: none; }
+
+.nc-quitar button {
+  width: 30px; height: 30px; border: 0; border-radius: 50%;
+  background: none; color: var(--tinta-3); font-size: 20px; line-height: 1; cursor: pointer;
+}
+.nc-quitar button:hover { background: var(--peligro-suave); color: var(--peligro); }
+
+/* La segunda fila de cada línea: afectación, código, precio con IGV, stock. */
+.nc-detalle {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--e2) var(--e4);
+  margin: var(--e2) 0 0 calc(28px + var(--e2));
+  font-size: 12.5px; color: var(--tinta-3);
+}
+.nc-afectacion select { min-height: 30px; padding: 3px 8px; font-size: 12.5px; width: auto; max-width: 300px; color: var(--tinta-2); }
+.nc-afectacion.desajustada select { border-color: var(--aviso); background: var(--aviso-suave); color: var(--aviso); }
+.nc-dato .mono { color: var(--tinta-2); }
+.nc-stock { padding: 2px 8px; border-radius: 999px; }
+.nc-stock.bien { background: var(--bien-suave); color: var(--bien); }
+.nc-stock.ojo { background: var(--aviso-suave); color: var(--aviso); }
+.nc-stock.mal { background: var(--peligro-suave); color: var(--peligro); }
+.nc-linea .inv-falta { margin: var(--e2) 0 0 calc(28px + var(--e2)); }
+
+.nc-vacio {
+  display: grid; gap: var(--e1); justify-items: center; text-align: center;
+  padding: var(--e6) var(--e4);
+  border: 1px dashed var(--borde); border-radius: var(--radio-grande);
+  color: var(--tinta-2); font-size: 14px; background: var(--papel);
+}
+.nc-vacio strong { color: var(--tinta); font-weight: 600; }
+.nc-vacio span { max-width: 520px; }
+
+.nc-agregar { display: flex; gap: var(--e3); align-items: center; margin-top: var(--e4); }
+.nc-agregar .buscador.en-linea { flex: 1; max-width: 640px; }
+.nc-agregar .buscador.en-linea input { min-height: 42px; padding: 9px 14px; font-size: 14.5px; border-color: var(--acento); background: var(--superficie); }
+.nc-agregar .buscador.en-linea input::placeholder { color: var(--acento); opacity: .85; }
+.nc-agregar .boton { min-height: 42px; }
+
+/* --- Los totales al pie, a la derecha ----------------------------------------- */
+
+.nc-pie-lineas {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: var(--e5);
+  margin-top: var(--e5); padding-top: var(--e4); border-top: 1px solid var(--borde);
+}
+.nc-estimacion { max-width: 440px; margin: 0; }
+.nc-totales { margin: 0; min-width: 300px; display: grid; gap: 6px; font-size: 14px; }
+.nc-totales > div { display: flex; justify-content: space-between; gap: var(--e5); }
+.nc-totales dt { color: var(--tinta-2); }
+.nc-totales dd { margin: 0; font-variant-numeric: tabular-nums; }
+.nc-totales .total {
+  margin-top: var(--e1); padding: var(--e3) var(--e4); border-radius: var(--radio-grande);
+  background: var(--acento-suave); color: var(--acento); font-size: 18px; font-weight: 700;
+}
+.nc-totales .total dt { color: var(--acento); }
+.nc-totales .equivale { font-size: 13px; color: var(--tinta-3); }
+
+/* --- Entrega y envío ------------------------------------------------------------ */
+
+.nc-envio { display: grid; gap: var(--e2); }
+.nc-envio label.casilla-wsp { font-size: 14px; }
+
+/* --- La barra de abajo ------------------------------------------------------------ */
+
+.nc-barra {
+  position: sticky; bottom: 0; z-index: 20;
+  display: flex; align-items: center; gap: var(--e4);
+  margin: var(--e5) calc(-1 * var(--e2)) 0;
+  padding: var(--e3) var(--e4);
+  background: rgb(255 255 255 / 96%);
+  border: 1px solid var(--borde); border-radius: var(--radio-grande) var(--radio-grande) 0 0;
+  box-shadow: 0 -6px 18px rgb(22 32 42 / 8%);
+  backdrop-filter: blur(4px);
+}
+.nc-barra-total { display: flex; align-items: baseline; gap: var(--e2); white-space: nowrap; }
+.nc-barra-total strong { font-size: 20px; font-weight: 700; color: var(--tinta); }
+.nc-barra-total .secundario { font-size: 13px; }
+.nc-barra-falta {
+  flex: 1; min-width: 0; font-size: 13px; color: var(--aviso);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nc-barra-falta::before { content: "● "; }
+.nc-barra-botones { margin-left: auto; display: flex; gap: var(--e2); align-items: center; }
+.nc-barra-botones .boton { min-height: 40px; }
+.nc-barra-botones .boton:not(.secundario):not(.plano) { padding-inline: 24px; }
+
+/* --- Pantallas medianas y teléfono ------------------------------------------------ */
+
+@media (max-width: 1180px) {
+  .nc-fila { grid-template-columns: 28px minmax(160px, 1fr) 84px 84px 116px 92px 100px 32px; }
+}
+
+@media (max-width: 900px) {
+  .nc-cabecera { display: none; }
+  .nc-linea { padding: var(--e3) 0; }
+  .nc-linea { position: relative; }
+  .nc-linea > .nc-fila {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--e2) var(--e3);
+  }
+  .nc-linea > .nc-fila .nc-num { grid-column: 1 / -1; }
+  .nc-linea > .nc-fila .nc-quitar { position: absolute; top: var(--e2); right: 0; }
+  .nc-linea > .nc-fila .nc-desc { grid-column: 1 / -1; }
+  .nc-importe { align-self: end; padding-bottom: 8px; }
+  .nc-et { display: block; font-size: 12px; color: var(--tinta-3); margin-bottom: 2px; }
+  .nc-importe { text-align: left; }
+  .nc-detalle, .nc-linea .inv-falta { margin-left: 0; }
+  .nc-pie-lineas { flex-direction: column-reverse; align-items: stretch; }
+  .nc-totales { min-width: 0; }
+  .nc-agregar { flex-direction: column; align-items: stretch; }
+  .nc-agregar .buscador.en-linea { max-width: none; }
+  .nc-barra { flex-wrap: wrap; margin-inline: calc(-1 * var(--e4)); border-radius: 0; }
+  .nc-barra-falta { order: 3; flex-basis: 100%; }
+  .nc-barra-botones { width: 100%; }
+  .nc-barra-botones .boton { flex: 1; }
+}
+
+@media (max-width: 560px) {
+  .nc-encabezado { flex-wrap: wrap; }
+  .nc-tarjeta { padding: var(--e4); }
+}
+
+/* El cliente elegido, con sus datos de contacto debajo. */
+.nc-cliente-datos { margin: calc(-1 * var(--e2)) 0 var(--e4); display: grid; gap: 4px; font-size: 13px; }
+.nc-cliente-datos > div { display: grid; grid-template-columns: 90px 1fr; gap: var(--e2); }
+.nc-cliente-datos dt { color: var(--tinta-3); }
+.nc-cliente-datos dd { margin: 0; color: var(--tinta-2); overflow-wrap: anywhere; }
+.nc-totales > div:not(.total) dd { font-weight: 500; color: var(--tinta); }

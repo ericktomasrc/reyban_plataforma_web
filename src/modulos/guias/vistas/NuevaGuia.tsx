@@ -78,7 +78,8 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
   const [sucursalId, setSucursalId] = useState('')
   const [serie, setSerie] = useState('')
   const [fechaTraslado, setFechaTraslado] = useState(hoyLima())
-  const [motivo, setMotivo] = useState('01')
+  // 052: «Trasladar» desde Inventario abre la guía con motivo 04.
+  const [motivo, setMotivo] = useState(() => tipo === '09' && params.get('motivo') === '04' ? '04' : '01')
   const [motivoDescripcion, setMotivoDescripcion] = useState('')
 
   // --- 2. destinatario y recorrido ------------------------------------------------

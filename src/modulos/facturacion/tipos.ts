@@ -81,6 +81,11 @@ export interface ProductoEnLista {
   /** Cómo llama SUNAT a ese código («Azúcares naturales o productos endulzantes»). */
   codigoSunatNombre: string | null
   activo: boolean
+
+  /** 052: se cuenta en el inventario (marcado en los bienes; un servicio nunca). */
+  controlaStock?: boolean
+  categoriaId?: string | null
+  categoria?: string | null
 }
 
 /**
@@ -563,6 +568,20 @@ export interface DocumentoCompleto {
   notasVigentes?: number
   /** 23 oct: cuándo se pidió la baja / anulación, si SUNAT todavía no contesta. Mientras tanto, no hay notas. */
   bajaPedidaEn?: string | null
+
+  // --- 052: inventario --------------------------------------------------------
+  /** «Se entrega después (con guía)». Null = el modo de la empresa. */
+  entregaDespues?: boolean | null
+  invRetorno?: string | null
+  invSucursalId?: string | null
+  /** Lo que el inventario hizo con este comprobante. Null si no lo tocó. */
+  inventario?: {
+    modo: 'salida' | 'reserva' | 'nota'
+    aplicado: boolean
+    sucursalId: string
+    sucursal: string
+    reservas: { productoId: string; descripcion: string; reservada: number; despachada: number; liberada: number; pendiente: number }[]
+  } | null
 }
 
 /** 031: una nota de crédito de un comprobante. `cuenta` = vale y resta del saldo. */
@@ -647,6 +666,9 @@ export interface PeticionNotaCredito {
   afectacion?: string
   /** 24 oct: motivo 13, las cuotas nuevas. */
   cuotas?: { monto: number; vence: string }[]
+  /** 052: en 01, 02, 06 y 07, si la mercadería volvió al almacén, y a qué sucursal. */
+  retorno?: 'volvio' | 'danada' | 'no_volvio'
+  retornoSucursalId?: string
 }
 
 /** 24 oct: una serie de facturas o boletas ya usada (para elegirla, como en SOL). */

@@ -4,6 +4,7 @@ import type { ProductoEnLista } from '../tipos'
 
 interface Props {
   onElegir: (p: ProductoEnLista) => void
+  placeholder?: string
 }
 
 /**
@@ -21,7 +22,7 @@ interface Props {
  * se le quita antes de ponerlo en la línea, porque el servicio espera el valor
  * unitario sin él. En un solo sitio, para que nadie divida entre 1.18 a mano.
  */
-export function BuscadorProducto({ onElegir }: Props) {
+export function BuscadorProducto({ onElegir, placeholder = 'Buscar un producto…' }: Props) {
   const [q, setQ] = useState('')
   const [resultados, setResultados] = useState<ProductoEnLista[]>([])
   const [abierto, setAbierto] = useState(false)
@@ -61,7 +62,8 @@ export function BuscadorProducto({ onElegir }: Props) {
         value={q}
         onChange={e => setQ(e.target.value)}
         onFocus={() => resultados.length > 0 && setAbierto(true)}
-        placeholder="Buscar un producto…"
+        placeholder={placeholder}
+        aria-label="Agregar un producto del catálogo"
         autoComplete="off"
       />
 

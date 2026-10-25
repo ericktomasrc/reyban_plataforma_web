@@ -13,7 +13,7 @@ export function MenuDesplegable({ icono, titulo, inicio, prefijos, grupos }: {
   titulo: string
   inicio: string
   prefijos: string[]
-  grupos: { titulo: string; items: { ruta: string; nombre: string }[] }[]
+  grupos: { titulo: string; items: { ruta: string; nombre: string; exacto?: boolean }[] }[]
 }) {
   const ruta = useLocation()
   const navegar = useNavigate()
@@ -40,7 +40,7 @@ export function MenuDesplegable({ icono, titulo, inicio, prefijos, grupos }: {
           {grupos.filter(g => g.items.length > 0).map(g => (
             <div key={g.titulo} className="grupo-submenu">
               <span className="titulo-submenu">{g.titulo}</span>
-              {g.items.map(i => <NavLink key={i.ruta} to={i.ruta} className={activo}>{i.nombre}</NavLink>)}
+              {g.items.map(i => <NavLink key={i.ruta} to={i.ruta} end={i.exacto} className={activo}>{i.nombre}</NavLink>)}
             </div>
           ))}
         </div>

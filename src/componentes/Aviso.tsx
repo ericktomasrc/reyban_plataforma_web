@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-type Tono = 'error' | 'ojo' | 'bien'
+type Tono = 'error' | 'ojo' | 'bien' | 'info'
 
 /**
  * Un mensaje con tono.
