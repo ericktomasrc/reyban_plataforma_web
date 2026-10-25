@@ -384,3 +384,21 @@
 .vc-principal .rechazo-sunat details summary { cursor: pointer; font-size: 12.5px; }
 .vc-principal .rechazo-sunat code { display: block; white-space: pre-wrap; word-break: break-word; font-size: 11.5px; margin-top: 4px; }
 .vc-principal .fila-aviso > .boton { align-self: flex-start; }
+
+/* e167 — barra de líneas (notas y guía): cuántas, buscar y «Ver todo». */
+.barra-lineas { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e3); margin: 0 0 var(--e3); }
+.barra-lineas > strong { margin-right: auto; font-size: 14px; }
+.barra-lineas input { min-height: 40px; min-width: 220px; padding: 8px 12px; font: inherit; font-size: 14px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--papel); }
+.barra-lineas input:focus { outline: 2px solid var(--acento); outline-offset: -1px; border-color: var(--acento); background: var(--superficie); }
+.barra-lineas .ojo-lineas { min-height: 40px; }
+.nota-tabla + .paginacion { margin-top: var(--e3); }
+
+/* e167 — notas con el diseño del comprobante. */
+.nota .cifras-nota > div.destacada { border-color: var(--acento); background: var(--acento-suave); }
+.nota .cifras-nota > div.destacada strong { color: var(--acento); }
+.nota .cifras-nota > div > span:not(:first-child) { font-size: 11.5px; color: var(--tinta-3); }
+.nota .nota-anteriores { margin-top: var(--e3); font-size: 14px; }
+.nota .nota-anteriores summary { cursor: pointer; color: var(--acento); }
+.nota .nota-anteriores .lista-nota { margin: var(--e2) 0 0; }
+.nota .nota-monto { max-width: 320px; }
+.nota .nota-tabla input.correccion-nota { width: 100%; }

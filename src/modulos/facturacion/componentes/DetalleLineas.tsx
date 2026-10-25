@@ -24,9 +24,9 @@ export interface FilaDetalle {
   unidad: string
   valorUnitario: number
   descuento: number
-  /** Valor de venta: sin IGV. */
-  valorVenta: number
-  igv: number
+  /** Valor de venta: sin IGV. (e167: sin él, no sale su columna.) */
+  valorVenta?: number
+  igv?: number
   total: number
   afectacion?: string
   /** e165: línea libre (sin producto del catálogo). */
@@ -47,11 +47,19 @@ export function filtrarLineas<T extends { descripcion: string; codigo: string | 
 }
 
 /** El botón del ojo (arriba de la grilla) y la ventana con todas las líneas. */
-export function VerTodasLasLineas({ filas, moneda }: { filas: FilaDetalle[]; moneda: string }) {
+export function VerTodasLasLineas({ filas, moneda, etiquetaUnitario = 'V. unitario' }: {
+  filas: FilaDetalle[]
+  moneda: string
+  /** e167: en las notas el unitario es el precio con IGV del comprobante. */
+  etiquetaUnitario?: string
+}) {
   const [abierto, setAbierto] = useState(false)
   const [q, setQ] = useState('')
   const visibles = filtrarLineas(filas, q)
-  const suma = (k: 'valorVenta' | 'igv' | 'total') => visibles.reduce((s, f) => s + f[k], 0)
+  const suma = (k: 'valorVenta' | 'igv' | 'total') => visibles.reduce((s, f) => s + (f[k] ?? 0), 0)
+  // e167: las columnas de valor de venta e IGV, solo si se conocen.
+  const conDesglose = filas.some(f => f.igv !== undefined && f.valorVenta !== undefined)
+  const columnas = conDesglose ? 8 : 6
 
   return (
     <>
@@ -71,8 +79,9 @@ export function VerTodasLasLineas({ filas, moneda }: { filas: FilaDetalle[]; mon
               <thead>
                 <tr>
                   <th>#</th><th>Descripción</th><th className="derecha">Cantidad</th>
-                  <th className="derecha">V. unitario</th><th className="derecha">Desc.</th>
-                  <th className="derecha">Valor venta</th><th className="derecha">IGV</th><th className="derecha">Total</th>
+                  <th className="derecha">{etiquetaUnitario}</th><th className="derecha">Desc.</th>
+                  {conDesglose && <><th className="derecha">Valor venta</th><th className="derecha">IGV</th></>}
+                  <th className="derecha">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -86,21 +95,25 @@ export function VerTodasLasLineas({ filas, moneda }: { filas: FilaDetalle[]; mon
                     <td className="derecha mono">{cant(f.cantidad)} {f.unidad}</td>
                     <td className="derecha mono">{f.valorUnitario.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</td>
                     <td className="derecha mono">{f.descuento ? n2(f.descuento) : '—'}</td>
-                    <td className="derecha mono">{n2(f.valorVenta)}</td>
-                    <td className="derecha mono">{n2(f.igv)}</td>
+                    {conDesglose && <>
+                      <td className="derecha mono">{n2(f.valorVenta ?? 0)}</td>
+                      <td className="derecha mono">{n2(f.igv ?? 0)}</td>
+                    </>}
                     <td className="derecha mono"><strong>{n2(f.total)}</strong></td>
                   </tr>
                 ))}
                 {visibles.length === 0 && (
-                  <tr><td colSpan={8} className="vacio">Ninguna línea con «{q.trim()}».</td></tr>
+                  <tr><td colSpan={columnas} className="vacio">Ninguna línea con «{q.trim()}».</td></tr>
                 )}
               </tbody>
               {visibles.length > 0 && (
                 <tfoot>
                   <tr>
                     <td colSpan={5}>{q.trim() ? `${visibles.length} de ${filas.length} líneas` : `${filas.length} líneas`}</td>
-                    <td className="derecha mono">{n2(suma('valorVenta'))}</td>
-                    <td className="derecha mono">{n2(suma('igv'))}</td>
+                    {conDesglose && <>
+                      <td className="derecha mono">{n2(suma('valorVenta'))}</td>
+                      <td className="derecha mono">{n2(suma('igv'))}</td>
+                    </>}
                     <td className="derecha mono"><strong>{moneda} {n2(suma('total'))}</strong></td>
                   </tr>
                 </tfoot>
@@ -160,7 +173,7 @@ export function LineasEmitidas({ filas, moneda, onAgregar }: {
               </td>
               <td className="derecha mono">{cant(f.cantidad)} {f.unidad}</td>
               <td className="derecha mono">{f.valorUnitario.toFixed(4)}</td>
-              <td className="derecha mono">{n2(f.valorVenta)}</td>
+              <td className="derecha mono">{n2(f.valorVenta ?? f.total)}</td>
             </tr>
           ))}
           {visibles.length === 0 && (
@@ -173,6 +186,43 @@ export function LineasEmitidas({ filas, moneda, onAgregar }: {
           <Paginacion total={filtradas.length} pagina={real} porPagina={LINEAS_POR_PAGINA} onCambiar={setPagina} />
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * e167 — Buscar y paginar de 10 en 10 una lista de líneas (las notas y la
+ * guía). Devuelve lo visible y lo que necesita <Paginacion>.
+ */
+export function usePaginaLineas<T extends { descripcion: string; codigo?: string | null }>(lista: T[], porPagina = LINEAS_POR_PAGINA) {
+  const [q, setQ] = useState('')
+  const [pagina, setPagina] = useState(1)
+  const filtradas = filtrarLineas(lista.map(x => ({ ...x, codigo: x.codigo ?? null })), q) as unknown as T[]
+  const paginas = Math.max(1, Math.ceil(filtradas.length / porPagina))
+  const real = Math.min(pagina, paginas)
+  return {
+    q,
+    buscar: (v: string) => { setQ(v); setPagina(1) },
+    visibles: filtradas.slice((real - 1) * porPagina, real * porPagina),
+    hayMas: lista.length > porPagina,
+    paginacion: { total: filtradas.length, pagina: real, porPagina, onCambiar: setPagina },
+  }
+}
+
+/** e167 — La barra de arriba de una grilla de líneas: cuántas, buscar y «Ver todo». */
+export function BarraLineas({ cuantas, q, onBuscar, filas, moneda, etiquetaUnitario }: {
+  cuantas: number
+  q: string
+  onBuscar: (v: string) => void
+  filas: FilaDetalle[]
+  moneda: string
+  etiquetaUnitario?: string
+}) {
+  return (
+    <div className="barra-lineas">
+      <strong>{cuantas} {cuantas === 1 ? 'línea' : 'líneas'}</strong>
+      <input value={q} onChange={e => onBuscar(e.target.value)} placeholder="Buscar en las líneas…" aria-label="Buscar en las líneas" />
+      <VerTodasLasLineas filas={filas} moneda={moneda} etiquetaUnitario={etiquetaUnitario} />
     </div>
   )
 }
