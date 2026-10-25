@@ -319,6 +319,7 @@ export function PagoYDetraccion({
                   <option key={m.codigo} value={m.codigo}>{m.codigo} · {m.nombre}</option>
                 ))}
               </select>
+              <span className="pista">El que usaste la última vez queda puesto para la próxima.</span>
             </label>
           </div>
 

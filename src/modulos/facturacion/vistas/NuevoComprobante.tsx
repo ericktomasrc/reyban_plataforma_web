@@ -349,6 +349,8 @@ export function NuevoComprobante() {
             cuenta: pref.cuenta ?? '',
             codigo: pref.codigo ?? '',
             porcentaje: pref.porcentaje != null ? String(pref.porcentaje) : '',
+            // 054: el medio de pago de la última factura con detracción.
+            medioPago: pref.medioPago || d.medioPago,
           }))
         } catch { /* se escriben a mano */ }
 

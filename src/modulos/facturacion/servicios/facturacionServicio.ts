@@ -337,6 +337,8 @@ export interface PreferenciasDetraccion {
   cuenta: string | null
   codigo: string | null
   porcentaje: number | null
+  /** 054: el medio de pago habitual (catálogo 59). */
+  medioPago?: string | null
 }
 
 
