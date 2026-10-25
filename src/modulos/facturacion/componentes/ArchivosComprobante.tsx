@@ -87,7 +87,7 @@ function guardar(clave: string, valor: string) {
  * a «imprimir». Si el navegador no deja (algunos no imprimen PDF en un marco),
  * se abre en una pestaña nueva para imprimirlo desde ahí.
  */
-async function imprimirPdf(blob: Blob) {
+export async function imprimirPdf(blob: Blob) {
   const url = URL.createObjectURL(blob)
   const marco = document.createElement('iframe')
   marco.style.position = 'fixed'

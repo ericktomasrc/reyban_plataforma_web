@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Disposicion } from '../disposicion/Disposicion'
+import { PuntoDeVenta } from '../modulos/pos/vistas/PuntoDeVenta'
+import { Cajas, VerCaja } from '../modulos/pos/vistas/Cajas'
 import { Protegido } from '../nucleo/autorizacion/Protegido'
 import { Modulos, Permisos } from '../nucleo/autorizacion/permisos'
 import { ListaEmpresas } from '../modulos/administracion/vistas/ListaEmpresas'
@@ -74,6 +76,9 @@ import { Cargos } from '../modulos/usuarios/vistas/Cargos'
 export function Rutas() {
   return (
     <Routes>
+      {/* e173: el punto de venta va a pantalla completa, sin el menú. */}
+      <Route path="/pos" element={<Protegido permiso={Permisos.Pos.Vender} modulo={Modulos.Pos}><PuntoDeVenta /></Protegido>} />
+
       <Route element={<Disposicion />}>
         <Route path="/" element={<Inicio />} />
 
@@ -337,6 +342,10 @@ export function Rutas() {
         <Route path="/inventario/traslados" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Traslados /></Protegido>} />
         <Route path="/inventario/proveedores" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Proveedores /></Protegido>} />
         <Route path="/inventario/configuracion" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><ConfiguracionInventario /></Protegido>} />
+
+        {/* e173: las cajas y sus arqueos. */}
+        <Route path="/pos/cajas" element={<Protegido permiso={Permisos.Pos.Vender} modulo={Modulos.Pos}><Cajas /></Protegido>} />
+        <Route path="/pos/cajas/:id" element={<Protegido permiso={Permisos.Pos.Vender} modulo={Modulos.Pos}><VerCaja /></Protegido>} />
 
         {/* 044: sucursales (locales del mismo RUC), sus series y sus usuarios. */}
         <Route

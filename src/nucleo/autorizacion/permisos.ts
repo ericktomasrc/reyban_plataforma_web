@@ -64,6 +64,14 @@ export const Permisos = {
     Configurar: 'inventario.configurar',
   },
 
+  // e173 (055): punto de venta y caja.
+  Pos: {
+    Vender:      'pos.vender',
+    Movimientos: 'pos.movimientos',
+    Descuentos:  'pos.descuentos',
+    CajasVer:    'pos.cajas_ver',
+  },
+
   // 032: un permiso por reporte.
   Reportes: {
     MiDia:          'reportes.mi_dia',
@@ -84,4 +92,6 @@ export const Modulos = {
   Facturacion: 'facturacion',
   /** 053: se contrata aparte; sin él no sale nada de inventario. */
   Inventario: 'inventario',
+  /** e173 (055): el punto de venta, también aparte. */
+  Pos: 'pos',
 } as const

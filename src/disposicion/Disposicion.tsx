@@ -95,7 +95,9 @@ export function Disposicion() {
   // 036: «Reportes» lo abre y lo cierra MenuDesplegable.
   // 053: el inventario se contrata aparte y tiene su propio menú desplegable.
   const inventario = menu.some(m => m.codigo === 'inventario')
-  const otrosModulos = menu.filter(m => m.codigo !== 'facturacion' && m.codigo !== 'inventario')
+  // e173: el punto de venta, también con su propio menú.
+  const pos = menu.some(m => m.codigo === 'pos')
+  const otrosModulos = menu.filter(m => m.codigo !== 'facturacion' && m.codigo !== 'inventario' && m.codigo !== 'pos')
 
   const pagina = nombreDePagina(ruta.pathname)
   const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil'].includes(ruta.pathname)
@@ -282,6 +284,15 @@ export function Disposicion() {
                     { ruta: '/guias', nombre: 'Guías emitidas' },
                     { ruta: '/guias/transporte', nombre: 'Transporte guardado' },
                     { ruta: '/guias/configuracion', nombre: 'Configuración de guías' },
+                  ] }]} />
+              )}
+
+              {/* e173: punto de venta (a pantalla completa) y las cajas. */}
+              {facturacion && pos && puede(Permisos.Pos.Vender) && (
+                <MenuDesplegable icono="▣" titulo="Punto de venta" inicio="/pos" prefijos={['/pos']}
+                  grupos={[{ titulo: '', items: [
+                    { ruta: '/pos', nombre: 'Vender', exacto: true },
+                    { ruta: '/pos/cajas', nombre: puede(Permisos.Pos.CajasVer) ? 'Cajas y arqueos' : 'Mis cajas' },
                   ] }]} />
               )}
 
