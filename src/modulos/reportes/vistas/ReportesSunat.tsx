@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
+import { TablaDatos } from '../../../componentes/TablaDatos'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha } from '../../../nucleo/formato/fechas'
 import { Barras, Cifra, dinero } from '../componentes/Graficos'
+import { topYOtros } from '../componentes/topYOtros'
+import { ResumenDetalle } from '../componentes/ResumenDetalle'
 import {
   reportesServicio, type ReporteAnulados, type ReporteIgv, type ReportePersonasNotas, type ReporteProblemas, type ReporteRegistro,
 } from '../servicios/reportesServicio'
@@ -82,6 +85,8 @@ export function ReporteIgvPagina() {
                 {d.sinTipoCambio} comprobante(s) en dólares no tienen tipo de cambio guardado y salen en 0. Revísalos.
               </Aviso>
             )}
+            <ResumenDetalle filas={d.filas.length}
+              resumen={<>
             <div className="cifras-reporte">
               <Cifra titulo="Base gravada" valor={`S/ ${dinero(t.gravado)}`} />
               <Cifra titulo="IGV" valor={`S/ ${dinero(t.igv)}`} />
@@ -112,30 +117,90 @@ export function ReporteIgvPagina() {
                 </table>
               </div>
             </div>
-
-            <div className="bloque sin-relleno">
-              <table className="tabla">
-                <thead><tr><th>Mes</th><th className="derecha">Comprobantes</th><th className="derecha">Notas</th>
-                  <th className="derecha">Base gravada</th><th className="derecha">Exonerado</th><th className="derecha">Inafecto</th>
-                  <th className="derecha">Exportación</th><th className="derecha">IGV</th><th className="derecha">Total</th></tr></thead>
-                <tbody>
-                  {d.filas.map(f => (
-                    <tr key={f.mes}>
-                      <td className="mono">{f.mes}</td><td className="derecha mono">{f.comprobantes}</td>
-                      <td className="derecha mono">{f.notas}</td><td className="derecha mono">{dinero(f.gravado)}</td>
-                      <td className="derecha mono">{dinero(f.exonerado)}</td><td className="derecha mono">{dinero(f.inafecto)}</td>
-                      <td className="derecha mono">{dinero(f.exportacion)}</td><td className="derecha mono">{dinero(f.igv)}</td>
-                      <td className="derecha mono">{dinero(f.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              </>}
+              detalle={<IgvPorMes d={d} t={t} />} />
             <p className="nota">Referencial, para cuadrar. La declaración la hace tu contador.</p>
           </>
         )
       }}
     </Marco>
+  )
+}
+
+
+// =============================================================================
+/**
+ * e176: el detalle del IGV, un renglón por mes; cada mes se abre en sus días
+ * (antes la tabla crecía por días y no acababa). Al imprimir salen abiertos
+ * los que estén abiertos.
+ */
+function IgvPorMes({ d, t }: { d: ReporteIgv; t: { gravado: number; igv: number; total: number; otros: number } }) {
+  const [abiertos, setAbiertos] = useState<Set<string>>(new Set())
+  const cambiar = (mes: string) => setAbiertos(a => { const n = new Set(a); if (n.has(mes)) n.delete(mes); else n.add(mes); return n })
+  const celdas = (f: { comprobantes: number; notas: number; gravado: number; exonerado: number; inafecto: number; exportacion: number; igv: number; total: number }) => (
+    <>
+      <td className="derecha mono">{f.comprobantes}</td><td className="derecha mono">{f.notas}</td>
+      <td className="derecha mono">{dinero(f.gravado)}</td><td className="derecha mono">{dinero(f.exonerado)}</td>
+      <td className="derecha mono">{dinero(f.inafecto)}</td><td className="derecha mono">{dinero(f.exportacion)}</td>
+      <td className="derecha mono">{dinero(f.igv)}</td><td className="derecha mono">{dinero(f.total)}</td>
+    </>
+  )
+  const dias = d.dias ?? []
+  return (
+    <div className="bloque sin-relleno">
+      <div className="tabla-envoltura">
+        <table className="tabla tabla-igv">
+          <thead><tr><th>Mes</th><th className="derecha">Comprobantes</th><th className="derecha">Notas</th>
+            <th className="derecha">Base gravada</th><th className="derecha">Exonerado</th><th className="derecha">Inafecto</th>
+            <th className="derecha">Exportación</th><th className="derecha">IGV</th><th className="derecha">Total</th></tr></thead>
+          <tbody>
+            {d.filas.length === 0 && <tr><td colSpan={9} className="vacio">Sin comprobantes en este periodo.</td></tr>}
+            {d.filas.map(f => {
+              const abierto = abiertos.has(f.mes)
+              const suyos = dias.filter(x => x.fecha.startsWith(f.mes))
+              return (
+                <Fragment key={f.mes}>
+                  <tr className="fila-mes">
+                    <td>
+                      {suyos.length > 0 ? (
+                        <button type="button" className="enlace abrir-mes" aria-expanded={abierto} onClick={() => cambiar(f.mes)}
+                                title={`${suyos.length} día(s) con comprobantes`}>
+                          <span aria-hidden>{abierto ? '▾' : '▸'}</span> <span className="mono">{f.mes}</span>
+                        </button>
+                      ) : <span className="mono">{f.mes}</span>}
+                    </td>
+                    {celdas(f)}
+                  </tr>
+                  {abierto && suyos.map(x => (
+                    <tr key={x.fecha} className="fila-dia">
+                      <td className="secundario">{fecha(x.fecha)}</td>
+                      {celdas(x)}
+                    </tr>
+                  ))}
+                </Fragment>
+              )
+            })}
+            {d.filas.length > 1 && (
+              <tr className="fila-total">
+                <td>Total</td>
+                <td className="derecha mono">{d.filas.reduce((a, f) => a + f.comprobantes, 0)}</td>
+                <td className="derecha mono">{d.filas.reduce((a, f) => a + f.notas, 0)}</td>
+                <td className="derecha mono">{dinero(t.gravado)}</td>
+                <td colSpan={3} className="derecha mono secundario">{dinero(t.otros)}</td>
+                <td className="derecha mono">{dinero(t.igv)}</td><td className="derecha mono">{dinero(t.total)}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {dias.length > 0 && (
+        <div className="lineas-pie solo-pantalla">
+          <button type="button" className="enlace" onClick={() => setAbiertos(a => a.size ? new Set() : new Set(d.filas.map(f => f.mes)))}>
+            {abiertos.size ? 'Cerrar todos los meses' : 'Abrir todos los meses en días'}
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -152,36 +217,30 @@ export function ReporteRegistroPagina() {
             del cliente, base, IGV, total, moneda, tipo de cambio y el comprobante que modifica cada nota).
             Montos en soles; las notas en negativo; los anulados en 0. Sirve para cuadrar con la propuesta del SIRE.
           </p>
-          <div className="bloque sin-relleno tabla-ancha">
-            <table className="tabla">
-              <thead><tr><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th className="derecha">Base</th>
-                <th className="derecha">IGV</th><th className="derecha">Total</th><th>Modifica a</th><th>Estado</th></tr></thead>
-              <tbody>
-                {d.filas.length === 0 && <tr><td colSpan={8} className="vacio">No hay comprobantes en este periodo.</td></tr>}
-                {d.filas.map(f => (
-                  <tr key={f.id}>
-                    <td className="secundario">{fecha(f.fecha)}</td>
-                    <td className="mono"><Link to={`/facturacion/comprobantes/${f.id}`}>{f.serie}-{String(f.numero).padStart(8, '0')}</Link>
-                      <div className="secundario">{TIPO[f.tipo] ?? f.tipo}{f.moneda !== 'PEN' ? ` · ${f.moneda} a ${f.tipoCambio ?? '?'}` : ''}</div></td>
-                    <td>{f.cliente}<div className="secundario mono">{f.documento}</div></td>
-                    <td className="derecha mono">{dinero(f.gravado + f.exonerado + f.inafecto + f.exportacion)}</td>
-                    <td className="derecha mono">{dinero(f.igv)}</td>
-                    <td className="derecha mono">{dinero(f.total)}</td>
-                    <td className="mono secundario">{f.refSerie ? `${f.refSerie}-${String(f.refNumero).padStart(8, '0')}` : ''}</td>
-                    <td>{ESTADO[f.estado] ?? f.estado}</td>
-                  </tr>
-                ))}
-                {d.filas.length > 0 && (
-                  <tr className="fila-total">
-                    <td colSpan={3}>Total ({d.filas.length})</td>
-                    <td className="derecha mono">{dinero(d.filas.reduce((t, f) => t + f.gravado + f.exonerado + f.inafecto + f.exportacion, 0))}</td>
-                    <td className="derecha mono">{dinero(d.filas.reduce((t, f) => t + f.igv, 0))}</td>
-                    <td className="derecha mono">{dinero(d.filas.reduce((t, f) => t + f.total, 0))}</td>
-                    <td colSpan={2} />
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="tabla-ancha">
+          <TablaDatos filas={d.filas} clave={f => f.id} vacio="No hay comprobantes en este periodo."
+            columnas={[
+              { clave: 'fecha', titulo: 'Fecha', clase: 'secundario', celda: f => fecha(f.fecha), orden: f => f.fecha },
+              { clave: 'numero', titulo: 'Comprobante', clase: 'mono', orden: f => `${f.serie}-${String(f.numero).padStart(8, '0')}`,
+                celda: f => <><Link to={`/facturacion/comprobantes/${f.id}`}>{f.serie}-{String(f.numero).padStart(8, '0')}</Link>
+                  <div className="secundario">{TIPO[f.tipo] ?? f.tipo}{f.moneda !== 'PEN' ? ` · ${f.moneda} a ${f.tipoCambio ?? '?'}` : ''}</div></> },
+              { clave: 'cliente', titulo: 'Cliente', orden: f => f.cliente, celda: f => <>{f.cliente}<div className="secundario mono">{f.documento}</div></> },
+              { clave: 'base', titulo: 'Base', clase: 'derecha mono', orden: f => f.gravado + f.exonerado + f.inafecto + f.exportacion,
+                celda: f => dinero(f.gravado + f.exonerado + f.inafecto + f.exportacion) },
+              { clave: 'igv', titulo: 'IGV', clase: 'derecha mono', orden: f => f.igv, celda: f => dinero(f.igv) },
+              { clave: 'total', titulo: 'Total', clase: 'derecha mono', orden: f => f.total, celda: f => dinero(f.total) },
+              { clave: 'ref', titulo: 'Modifica a', clase: 'mono secundario', celda: f => f.refSerie ? `${f.refSerie}-${String(f.refNumero).padStart(8, '0')}` : '' },
+              { clave: 'estado', titulo: 'Estado', orden: f => ESTADO[f.estado] ?? f.estado, celda: f => ESTADO[f.estado] ?? f.estado },
+            ]}
+            pie={d.filas.length > 0 && (
+              <tr className="fila-total">
+                <td colSpan={3}>Total ({d.filas.length})</td>
+                <td className="derecha mono">{dinero(d.filas.reduce((t, f) => t + f.gravado + f.exonerado + f.inafecto + f.exportacion, 0))}</td>
+                <td className="derecha mono">{dinero(d.filas.reduce((t, f) => t + f.igv, 0))}</td>
+                <td className="derecha mono">{dinero(d.filas.reduce((t, f) => t + f.total, 0))}</td>
+                <td colSpan={2} />
+              </tr>
+            )} />
           </div>
         </>
       )}
@@ -198,25 +257,19 @@ export function ReporteProblemasPagina() {
       {d => d.filas.length === 0 ? (
         <Aviso tono="bien">Ningún comprobante con problema en este periodo.</Aviso>
       ) : (
-        <div className="bloque sin-relleno">
-          <table className="tabla">
-            <thead><tr><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th>Qué pasó</th><th>Qué hacer</th></tr></thead>
-            <tbody>
-              {d.filas.map(f => (
-                <tr key={f.id}>
-                  <td className="secundario">{fecha(f.fecha)}</td>
-                  <td className="mono"><Link to={`/facturacion/comprobantes/${f.id}`}>{f.numero ?? '(sin número)'}</Link>
-                    <div className="secundario">{TIPO[f.tipo] ?? f.tipo} · {f.moneda} {dinero(f.total)}</div></td>
-                  <td>{f.cliente}</td>
-                  <td><strong>{ESTADO[f.estado] ?? f.estado}</strong>
-                    {(f.codigo || f.mensaje) && <div className="secundario">{f.codigo && `[${f.codigo}] `}{f.mensaje}</div>}
-                    {f.observaciones?.map((o, i) => <div key={i} className="secundario">· {o}</div>)}</td>
-                  <td className="secundario">{queHacer(f.estado, f.tipo)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TablaDatos filas={d.filas} clave={f => f.id}
+          columnas={[
+            { clave: 'fecha', titulo: 'Fecha', clase: 'secundario', celda: f => fecha(f.fecha), orden: f => f.fecha },
+            { clave: 'numero', titulo: 'Comprobante', clase: 'mono', orden: f => f.numero,
+              celda: f => <><Link to={`/facturacion/comprobantes/${f.id}`}>{f.numero ?? '(sin número)'}</Link>
+                <div className="secundario">{TIPO[f.tipo] ?? f.tipo} · {f.moneda} {dinero(f.total)}</div></> },
+            { clave: 'cliente', titulo: 'Cliente', celda: f => f.cliente, orden: f => f.cliente },
+            { clave: 'que', titulo: 'Qué pasó', orden: f => ESTADO[f.estado] ?? f.estado,
+              celda: f => <><strong>{ESTADO[f.estado] ?? f.estado}</strong>
+                {(f.codigo || f.mensaje) && <div className="secundario">{f.codigo && `[${f.codigo}] `}{f.mensaje}</div>}
+                {f.observaciones?.map((o, i) => <div key={i} className="secundario">· {o}</div>)}</> },
+            { clave: 'hacer', titulo: 'Qué hacer', clase: 'secundario', celda: f => queHacer(f.estado, f.tipo) },
+          ]} />
       )}
     </Marco>
   )
@@ -231,32 +284,25 @@ export function ReporteAnuladosPagina() {
       {d => d.filas.length === 0 ? (
         <p className="nota">Ningún anulado ni nota de crédito en este periodo.</p>
       ) : (
-        <div className="bloque sin-relleno">
-          <table className="tabla">
-            <thead><tr><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th>Modifica a</th><th>Motivo</th>
-              <th className="derecha">Total</th><th>Estado</th><th>Quién</th></tr></thead>
-            <tbody>
-              {d.filas.map(f => (
-                <tr key={f.id}>
-                  <td className="secundario">{fecha(f.fecha)}</td>
-                  <td className="mono"><Link to={`/facturacion/comprobantes/${f.id}`}>{f.numero}</Link>
-                    <div className="secundario">{TIPO[f.tipo] ?? f.tipo}</div>
-                    {f.sucursal && <div className="secundario">{f.sucursal}</div>}</td>
-                  <td>{f.cliente}</td>
-                  <td className="mono">{f.afectaId ? <Link to={`/facturacion/comprobantes/${f.afectaId}`}>{f.afecta}</Link> : ''}</td>
-                  <td className="secundario">{f.tipoNota ? ((f.tipo === '08' ? MOTIVO_DEBITO : MOTIVO)[f.tipoNota] ?? f.tipoNota) : ''}{f.motivo && <div>{f.motivo}</div>}</td>
-                  <td className="derecha mono">{f.moneda} {dinero(f.total)}</td>
-                  <td>{ESTADO[f.estado] ?? f.estado}</td>
-                  <td className="secundario">
-                    {f.estado === 'anulado'
-                      ? <>Anuló: {f.anulo ?? '—'}{f.tipo === '07' || f.tipo === '08' ? <div>Emitió: {f.emitio}</div> : null}</>
-                      : <>Emitió: {f.emitio ?? '—'}</>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TablaDatos filas={d.filas} clave={f => f.id}
+          columnas={[
+            { clave: 'fecha', titulo: 'Fecha', clase: 'secundario', celda: f => fecha(f.fecha), orden: f => f.fecha },
+            { clave: 'numero', titulo: 'Comprobante', clase: 'mono', orden: f => f.numero,
+              celda: f => <><Link to={`/facturacion/comprobantes/${f.id}`}>{f.numero}</Link>
+                <div className="secundario">{TIPO[f.tipo] ?? f.tipo}</div>
+                {f.sucursal && <div className="secundario">{f.sucursal}</div>}</> },
+            { clave: 'cliente', titulo: 'Cliente', celda: f => f.cliente, orden: f => f.cliente },
+            { clave: 'afecta', titulo: 'Modifica a', clase: 'mono',
+              celda: f => f.afectaId ? <Link to={`/facturacion/comprobantes/${f.afectaId}`}>{f.afecta}</Link> : '' },
+            { clave: 'motivo', titulo: 'Motivo', clase: 'secundario',
+              celda: f => <>{f.tipoNota ? ((f.tipo === '08' ? MOTIVO_DEBITO : MOTIVO)[f.tipoNota] ?? f.tipoNota) : ''}{f.motivo && <div>{f.motivo}</div>}</> },
+            { clave: 'total', titulo: 'Total', clase: 'derecha mono', orden: f => f.total, celda: f => <>{f.moneda} {dinero(f.total)}</> },
+            { clave: 'estado', titulo: 'Estado', orden: f => ESTADO[f.estado] ?? f.estado, celda: f => ESTADO[f.estado] ?? f.estado },
+            { clave: 'quien', titulo: 'Quién', clase: 'secundario',
+              celda: f => f.estado === 'anulado'
+                ? <>Anuló: {f.anulo ?? '—'}{f.tipo === '07' || f.tipo === '08' ? <div>Emitió: {f.emitio}</div> : null}</>
+                : <>Emitió: {f.emitio ?? '—'}</> },
+          ]} />
       )}
     </Marco>
   )
@@ -277,31 +323,35 @@ export function ReportePersonasNotasPagina() {
       {d => d.filas.length === 0 ? (
         <p className="nota">Nadie hizo notas ni anulaciones en este periodo.</p>
       ) : (
-        <>
-          <div className="bloque">
-            <h2 className="subtitulo">Quién corrige más</h2>
-            <Barras cabeceras={['Persona', 'Notas y anulaciones']} formato={n => String(n)}
-                    filas={d.filas.map(f => ({ etiqueta: f.persona, valor: f.acciones }))} />
-          </div>
-          <div className="bloque sin-relleno">
-            <table className="tabla">
-              <thead><tr><th>Persona</th>
-                <th className="derecha">Notas de crédito</th><th className="derecha">Monto</th>
-                <th className="derecha">Notas de débito</th><th className="derecha">Monto</th>
-                <th className="derecha">Anulaciones</th><th className="derecha">Monto</th></tr></thead>
-              <tbody>
-                {d.filas.map((f, i) => (
-                  <tr key={i}>
-                    <td>{f.persona}{f.cargo && <div className="secundario">{f.cargo}</div>}</td>
-                    <td className="derecha mono">{f.notasCredito}</td><td className="derecha mono">{dinero(f.montoNotasCredito)}</td>
-                    <td className="derecha mono">{f.notasDebito}</td><td className="derecha mono">{dinero(f.montoNotasDebito)}</td>
-                    <td className="derecha mono">{f.anulaciones}</td><td className="derecha mono">{dinero(f.montoAnulaciones)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <ResumenDetalle filas={d.filas.length}
+          resumen={<>
+            <div className="cifras-reporte">
+              <Cifra titulo="Notas de crédito" valor={d.filas.reduce((t, f) => t + f.notasCredito, 0)}
+                     nota={`S/ ${dinero(d.filas.reduce((t, f) => t + f.montoNotasCredito, 0))}`} />
+              <Cifra titulo="Notas de débito" valor={d.filas.reduce((t, f) => t + f.notasDebito, 0)}
+                     nota={`S/ ${dinero(d.filas.reduce((t, f) => t + f.montoNotasDebito, 0))}`} />
+              <Cifra titulo="Anulaciones" valor={d.filas.reduce((t, f) => t + f.anulaciones, 0)}
+                     nota={`S/ ${dinero(d.filas.reduce((t, f) => t + f.montoAnulaciones, 0))}`} />
+            </div>
+            <div className="bloque">
+              <h2 className="subtitulo">Quién corrige más</h2>
+              <Barras cabeceras={['Persona', 'Notas y anulaciones']} formato={n => String(n)}
+                      filas={topYOtros(d.filas, f => f.persona, f => f.acciones)} />
+            </div>
+          </>}
+          detalle={
+            <TablaDatos filas={d.filas} clave={(_, i) => i} ordenInicial={{ clave: 'acc', desc: true }}
+              columnas={[
+                { clave: 'persona', titulo: 'Persona', orden: f => f.persona, celda: f => <>{f.persona}{f.cargo && <div className="secundario">{f.cargo}</div>}</> },
+                { clave: 'nc', titulo: 'Notas de crédito', clase: 'derecha mono', celda: f => f.notasCredito, orden: f => f.notasCredito },
+                { clave: 'mnc', titulo: 'Monto', clase: 'derecha mono', celda: f => dinero(f.montoNotasCredito), orden: f => f.montoNotasCredito },
+                { clave: 'nd', titulo: 'Notas de débito', clase: 'derecha mono', celda: f => f.notasDebito, orden: f => f.notasDebito },
+                { clave: 'mnd', titulo: 'Monto', clase: 'derecha mono', celda: f => dinero(f.montoNotasDebito), orden: f => f.montoNotasDebito },
+                { clave: 'an', titulo: 'Anulaciones', clase: 'derecha mono', celda: f => f.anulaciones, orden: f => f.anulaciones },
+                { clave: 'man', titulo: 'Monto', clase: 'derecha mono', celda: f => dinero(f.montoAnulaciones), orden: f => f.montoAnulaciones },
+                { clave: 'acc', titulo: 'Total', clase: 'derecha mono', celda: f => f.acciones, orden: f => f.acciones },
+              ]} />
+          } />
       )}
     </Marco>
   )

@@ -35,6 +35,8 @@ export interface FilaDetalle {
   /** e165: datos para guardarla en el catálogo. */
   tipoAfectacion?: string
   precioConIgv?: number
+  /** e174: ya está en el catálogo (código del producto): no se ofrece agregarla. */
+  enCatalogo?: string
 }
 
 const n2 = (x: number) => x.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -175,7 +177,10 @@ export function LineasEmitidas({ filas, moneda, onAgregar }: {
                   {f.tipoAfectacion && esRegalo(f.tipoAfectacion) && <> <span className="pastilla-regalo" title="Operación gratuita: no se cobró">🎁 regalo</span></>}
                 </div>
                 {f.codigo && <div className="secundario mono">{f.codigo}</div>}
-                {f.libre && onAgregar && (
+                {f.libre && f.enCatalogo && (
+                  <span className="en-catalogo">✓ En tus productos ({f.enCatalogo})</span>
+                )}
+                {f.libre && !f.enCatalogo && onAgregar && (
                   <button type="button" className="enlace agregar-catalogo" onClick={() => onAgregar(f)}>
                     + Agregar a mis productos
                   </button>

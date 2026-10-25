@@ -804,3 +804,33 @@ body:has(dialog[open]) { overflow: hidden; }
 .tabla td.acciones { white-space: normal; }
 .tabla td.acciones .boton { white-space: nowrap; margin: 2px 0 2px var(--e1); }
 .tabla td.acciones .boton + .boton { margin-left: var(--e1); }
+
+/* --- e175: pestañas con número y tabla con orden ---------------------------- */
+.pestanas-tabla button { display: inline-flex; align-items: center; gap: 6px; }
+.pestana-cuenta {
+  display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 999px;
+  background: var(--hundido); color: var(--tinta-2); font-size: 12px; font-weight: 600; line-height: 20px; text-align: center;
+}
+.pestanas-tabla button.elegido .pestana-cuenta { background: var(--acento); color: #fff; }
+.pestana-cuenta.aviso { background: var(--aviso); color: #fff; }
+.tabla th.ordenable { padding: 0; }
+.tabla .th-orden {
+  all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; width: 100%;
+  padding: inherit; cursor: pointer; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit;
+}
+.tabla th.ordenable .th-orden { padding: var(--e3) var(--e4); }
+.tabla th.derecha .th-orden { justify-content: flex-end; }
+.tabla .th-orden .flecha { opacity: .45; font-size: 11px; }
+.tabla th[aria-sort] .th-orden .flecha { opacity: 1; }
+.tabla .th-orden:focus-visible { outline: 2px solid var(--acento); outline-offset: -2px; }
+.tabla-datos .filtros-lista { margin-bottom: var(--e2); }
+.tabla .tbody-impresion { display: none; }
+@media print {
+  .tabla-datos .filtros-lista, .tabla-datos .lineas-pie { display: none !important; }
+  .tabla.paginada .tbody-pantalla { display: none; }
+  .tabla.paginada .tbody-impresion { display: table-row-group; }
+  .tabla .th-orden .flecha { display: none; }
+}
+/* e176: la pestaña de un reporte que no se ve (al imprimir salen las dos). */
+.rd-oculta { display: none; }
+@media print { .rd-oculta { display: block; } }

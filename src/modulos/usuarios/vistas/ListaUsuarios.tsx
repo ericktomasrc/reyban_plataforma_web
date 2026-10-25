@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Paginacion } from '../../../componentes/Paginacion'
+import { Pestanas } from '../../../componentes/Pestanas'
+import { TablaDatos } from '../../../componentes/TablaDatos'
+import { usePestana } from '../../../nucleo/hooks/usePestana'
 import { contiene, masNuevoPrimero, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
@@ -48,6 +51,9 @@ const NIVEL: Record<string, string> = { dueno: 'Dueño', colaborador_admin: 'Col
  * alguien» a la derecha, sin diálogo. Quien nunca entró sale como
  * «Invitación enviada».
  */
+const VISTAS = ['activos', 'invitaciones', 'desactivados', 'estudio'] as const
+type Vista = typeof VISTAS[number]
+
 export function ListaUsuarios() {
   const { usuario: yo, empresa } = useYo()
   const { puede } = useSesion()
@@ -68,7 +74,8 @@ export function ListaUsuarios() {
   const [q, setQ]                         = useState('')
   const [rol, setRol]                     = useState('')
   const [cargo, setCargo]                 = useState('')
-  const [estadoF, setEstadoF]             = useState('todos')
+  // e175: pestañas en vez de una sola tabla con todos (y el estudio aparte).
+  const [ver, setVer] = usePestana(VISTAS)
 
   const mensaje = useMensaje()
 
@@ -77,6 +84,9 @@ export function ListaUsuarios() {
   const variasSucursales = (opciones.datos?.totalSucursales ?? 0) > 1
 
   const todos = masNuevoPrimero(usuarios.datos ?? [])
+  const grupo = (u: UsuarioEnLista): Vista =>
+    !u.activo ? 'desactivados' : u.ultimoIngresoEn === null && u.id !== yo.id ? 'invitaciones' : 'activos'
+  const cuenta = (v: Vista) => todos.filter(u => grupo(u) === v).length
   const rolesHay = [...new Set(todos.flatMap(u => u.roles.map(r => r.nombre)))].sort()
   const cargosHay = [...new Set(todos.map(u => u.cargo).filter((c): c is string => !!c))].sort()
   const filtradas = todos.filter(u =>
@@ -86,8 +96,8 @@ export function ListaUsuarios() {
     contiene(q, u.nombre, u.correo, u.numeroDocumento) &&
     (!rol || u.roles.some(r => r.nombre === rol)) &&
     (!cargo || u.cargo === cargo) &&
-    (estadoF === 'todos' || (estadoF === 'activos' ? u.activo : !u.activo)))
-  const { visibles, paginacion } = usePaginaLocal(filtradas, [filtro, q, rol, cargo, estadoF].join('|'))
+    grupo(u) === ver)
+  const { visibles, paginacion } = usePaginaLocal(filtradas, [filtro, q, rol, cargo, ver].join('|'))
 
   async function desactivar(u: UsuarioEnLista) {
     const seguro = await pedir({
@@ -254,6 +264,15 @@ export function ListaUsuarios() {
       {usuarios.error && <Aviso>{usuarios.error}</Aviso>}
       {opciones.error && <Aviso>{opciones.error}</Aviso>}
 
+      <Pestanas etiqueta="Personal" valor={ver} onCambio={setVer} opciones={[
+        { valor: 'activos', texto: 'Activos', cuenta: cuenta('activos') },
+        { valor: 'invitaciones', texto: 'Invitaciones', cuenta: cuenta('invitaciones'), ocultarVacia: true,
+          aviso: todos.some(u => grupo(u) === 'invitaciones' && u.invitacionVencida) },
+        { valor: 'desactivados', texto: 'Desactivados', cuenta: cuenta('desactivados'), ocultarVacia: true },
+        { valor: 'estudio', texto: 'Desde tu estudio', cuenta: estudio.datos?.length ?? 0, ocultarVacia: true },
+      ]} />
+
+      {ver !== 'estudio' && <>
       {todos.length > 1 && (
         <div className="filtros-personal" role="group" aria-label="Filtrar">
           <button type="button" className={filtro === 'todos' ? 'elegido' : undefined} onClick={() => setFiltro('todos')}>
@@ -301,14 +320,6 @@ export function ListaUsuarios() {
               </select>
             </label>
           )}
-          <label>
-            <span>Estado</span>
-            <select value={estadoF} onChange={e => setEstadoF(e.target.value)}>
-              <option value="todos">Todos</option>
-              <option value="activos">Activos</option>
-              <option value="inactivos">Desactivados</option>
-            </select>
-          </label>
         </div>
       )}
 
@@ -484,38 +495,37 @@ export function ListaUsuarios() {
           </div>
         ) : (
           <div className="relleno">
-            <Vacio>{filtro === 'todos' && !q && !rol && !cargo && estadoF === 'todos' ? 'Todavía no hay nadie más en la empresa.' : 'Nadie con ese filtro.'}</Vacio>
+            <Vacio>{filtro !== 'todos' || q || rol || cargo ? 'Nadie con ese filtro.'
+              : ver === 'invitaciones' ? 'No hay invitaciones pendientes: todos ya entraron.'
+              : ver === 'desactivados' ? 'No hay nadie desactivado.'
+              : 'Todavía no hay nadie más en la empresa.'}</Vacio>
           </div>
         )}
       </div>
       <Paginacion {...paginacion} />
+      </>}
 
-      <div className="bloque">
+      {ver !== 'estudio' && <div className="bloque">
         <strong>Alcance: qué puede ver cada uno</strong>
         <p className="nota">
           <strong>Toda la empresa</strong> — todo (la central). <strong>Su sucursal</strong> — solo lo de sus
           sucursales. <strong>Solo lo suyo</strong> — solo los comprobantes que él emitió.
         </p>
-      </div>
+      </div>}
 
       {/* 046: la gente de la Cuenta Profesional que también entra (solo lectura). */}
-      {estudio.datos && estudio.datos.length > 0 && (
-        <div className="bloque bloque-estudio">
+      {ver === 'estudio' && estudio.datos && estudio.datos.length > 0 && (
+        <div className="bloque-estudio">
           <strong>Además entran desde tu estudio</strong>
           <p className="nota">Son de Mi equipo (Cuenta Profesional): sus datos y su acceso se cambian allí.</p>
-          <table className="tabla">
-            <thead><tr><th>Persona</th><th>Nivel</th><th>Rol</th><th>Alcance</th></tr></thead>
-            <tbody>
-              {estudio.datos.map((p, i) => (
-                <tr key={i}>
-                  <td>{p.nombre}</td>
-                  <td>{NIVEL[p.nivel] ?? p.nivel}</td>
-                  <td>{p.rol}</td>
-                  <td>{NOMBRE_ALCANCE[p.alcance] ?? p.alcance}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TablaDatos filas={estudio.datos} clave={(_, i) => i}
+            buscar={p => [p.nombre, p.rol]} textoBuscar="Nombre o rol"
+            columnas={[
+              { clave: 'nombre', titulo: 'Persona', celda: p => p.nombre, orden: p => p.nombre },
+              { clave: 'nivel', titulo: 'Nivel', celda: p => NIVEL[p.nivel] ?? p.nivel, orden: p => NIVEL[p.nivel] ?? p.nivel },
+              { clave: 'rol', titulo: 'Rol', celda: p => p.rol, orden: p => p.rol },
+              { clave: 'alcance', titulo: 'Alcance', celda: p => NOMBRE_ALCANCE[p.alcance] ?? p.alcance },
+            ]} />
         </div>
       )}
 

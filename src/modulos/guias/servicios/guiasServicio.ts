@@ -179,6 +179,8 @@ export interface GuiaCompleta {
   placa: string | null
   conductor: string | null
   conductorDoc: string | null
+  /** e174: el WhatsApp guardado del cliente (para mandarle la guía). */
+  clienteWhatsapp?: string | null
   transportista: { ruc: string | null; razonSocial: string } | null
   documento: { id: string; tipo: string; numero: string } | null
   documentoRelacionado: string | null
@@ -214,6 +216,16 @@ export interface ConfiguracionGuias {
 
 export type ClaseTransporte = 'vehiculos' | 'conductores' | 'transportistas'
 
+/** e174: lo que devuelve POST /api/guias/{id}/whatsapp. */
+export interface MensajeWhatsappGuia {
+  numero: string
+  numeroLegible: string
+  mensaje: string
+  enlace: string
+  expiraEn: string
+  abrir: string
+}
+
 export const guiasServicio = {
   listar: (f: { tipo?: string; estado?: string; q?: string; pagina?: number
                 desde?: string; hasta?: string; sucursalId?: string; porPagina?: number }) => {
@@ -246,6 +258,9 @@ export const guiasServicio = {
     api.crear<{ estado: EstadoGuia; mensaje: string }>(`/api/guias/${id}/anulacion`, { motivo, fecha: fecha || null }),
   descargar: (id: string, archivo: 'pdf' | 'xml' | 'cdr') => api.descargar(`/api/guias/${id}/${archivo}`),
   archivo: (id: string) => api.archivo(`/api/guias/${id}/pdf`),
+  /** e174 (057): el mensaje y el enlace para mandar la guía por WhatsApp. */
+  whatsapp: (id: string, para: 'cliente' | 'conductor', numero?: string) =>
+    api.crear<MensajeWhatsappGuia>(`/api/guias/${id}/whatsapp`, { para, numero: numero || null }),
 
   transporte: () => api.obtener<Transporte>('/api/guias/transporte'),
   personal: () => api.obtener<PersonaDelPersonal[]>('/api/guias/transporte/personal'),

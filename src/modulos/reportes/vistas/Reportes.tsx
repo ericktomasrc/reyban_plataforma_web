@@ -10,6 +10,9 @@ import { fecha } from '../../../nucleo/formato/fechas'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion, useYo } from '../../../nucleo/sesion/SesionContexto'
 import { Barras, Cifra, Dona, GraficoLinea, dinero } from '../componentes/Graficos'
+import { topYOtros } from '../componentes/topYOtros'
+import { ResumenDetalle } from '../componentes/ResumenDetalle'
+import { TablaDatos } from '../../../componentes/TablaDatos'
 import {
   reportesServicio, type Filtros, type NombreReporte, type ReporteClientes, type ReporteMiDia,
   type ReporteProductos, type ReporteSucursales, type ReporteVendedores, type ReporteVentas,
@@ -27,6 +30,7 @@ import {
 export const REPORTES: { ruta: string; nombre: string; permiso: string; grupo: string; conSucursales?: boolean }[] = [
   { ruta: '/reportes/mi-dia',     nombre: 'Mi día',              permiso: Permisos.Reportes.MiDia,          grupo: 'Mi negocio' },
   { ruta: '/reportes/ventas',     nombre: 'Tablero de ventas',   permiso: Permisos.Reportes.TableroVentas,  grupo: 'Mi negocio' },
+  { ruta: '/reportes/comparar',   nombre: 'Comparar periodos',   permiso: Permisos.Reportes.TableroVentas,  grupo: 'Mi negocio' },   // e176
   { ruta: '/reportes/clientes',   nombre: 'Ventas por cliente',  permiso: Permisos.Reportes.VentasCliente,  grupo: 'Mi negocio' },
   { ruta: '/reportes/productos',  nombre: 'Ventas por producto', permiso: Permisos.Reportes.VentasProducto, grupo: 'Mi negocio' },
   { ruta: '/reportes/vendedores', nombre: 'Ventas por vendedor', permiso: Permisos.Reportes.VentasVendedor, grupo: 'Mi negocio' },
@@ -429,6 +433,8 @@ export function ReporteVentasPagina() {
               <Cifra titulo="Notas de crédito" valor={`−${s} ${dinero(d.kpis.montoNotas)}`} nota={`${d.kpis.notas} nota(s)`} />
             </div>
 
+            <p className="nota solo-pantalla"><Link to="/reportes/comparar">Comparar con otro periodo →</Link></p>
+
             <div className="dos-reporte">
               <div className="bloque">
                 <h2 className="subtitulo">Ventas por día ({s})</h2>
@@ -475,33 +481,39 @@ export function ReporteClientesPagina() {
   const r = useReporte<ReporteClientes>('clientes', true)
   return (
     <Marco titulo="Ventas por cliente" reporte="clientes" r={r} busqueda={{ texto: 'Nombre, RUC o DNI del cliente' }}>
-      {d => (
-        <>
-          <div className="bloque">
-            <h2 className="subtitulo">Los 10 que más compraron</h2>
-            <Barras cabeceras={['Cliente', 'Total']}
-                    filas={d.filas.slice(0, 10).map(f => ({ etiqueta: f.cliente, valor: f.total }))} />
-          </div>
-          <div className="bloque sin-relleno">
-            <table className="tabla">
-              <thead><tr><th>Cliente</th><th>RUC / DNI</th><th className="derecha">Comprobantes</th>
-                <th className="derecha">Base</th><th className="derecha">IGV</th><th className="derecha">Total</th><th className="derecha">%</th></tr></thead>
-              <tbody>
-                {d.filas.map((f, i) => (
-                  <tr key={i}>
-                    <td>{f.cliente}</td><td className="mono secundario">{f.documento}</td>
-                    <td className="derecha mono">{f.comprobantes}</td>
-                    <td className="derecha mono">{dinero(f.base)}</td><td className="derecha mono">{dinero(f.igv)}</td>
-                    <td className="derecha mono">{dinero(f.total)}</td>
-                    <td className="derecha mono secundario">{d.total ? ((f.total / d.total) * 100).toFixed(1) : '0'}</td>
-                  </tr>
-                ))}
-                <tr className="fila-total"><td colSpan={5}>Total</td><td className="derecha mono">{dinero(d.total)}</td><td /></tr>
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      {d => {
+        const s = d.moneda === 'USD' ? 'US$' : 'S/'
+        const comprobantes = d.filas.reduce((t, f) => t + f.comprobantes, 0)
+        return (
+          <ResumenDetalle filas={d.filas.length}
+            resumen={<>
+              <div className="cifras-reporte">
+                <Cifra titulo="Vendido" valor={`${s} ${dinero(d.total)}`} />
+                <Cifra titulo="Clientes" valor={d.filas.length} />
+                <Cifra titulo="Comprobantes" valor={comprobantes} />
+                <Cifra titulo="Promedio por cliente" valor={`${s} ${dinero(d.filas.length ? d.total / d.filas.length : 0)}`} />
+              </div>
+              <div className="bloque">
+                <h2 className="subtitulo">Los 10 que más compraron</h2>
+                <Barras cabeceras={['Cliente', 'Total']} filas={topYOtros(d.filas, f => f.cliente, f => f.total, f => `${f.comprobantes} comp.`)} />
+              </div>
+            </>}
+            detalle={
+              <TablaDatos filas={d.filas} clave={(_, i) => i} ordenInicial={{ clave: 'total', desc: true }}
+                vacio="Sin ventas en este periodo."
+                columnas={[
+                  { clave: 'cliente', titulo: 'Cliente', celda: f => f.cliente, orden: f => f.cliente },
+                  { clave: 'doc', titulo: 'RUC / DNI', clase: 'mono secundario', celda: f => f.documento },
+                  { clave: 'comp', titulo: 'Comprobantes', clase: 'derecha mono', celda: f => f.comprobantes, orden: f => f.comprobantes },
+                  { clave: 'base', titulo: 'Base', clase: 'derecha mono', celda: f => dinero(f.base), orden: f => f.base },
+                  { clave: 'igv', titulo: 'IGV', clase: 'derecha mono', celda: f => dinero(f.igv), orden: f => f.igv },
+                  { clave: 'total', titulo: 'Total', clase: 'derecha mono', celda: f => dinero(f.total), orden: f => f.total },
+                  { clave: 'pct', titulo: '%', clase: 'derecha mono secundario', celda: f => d.total ? ((f.total / d.total) * 100).toFixed(1) : '0' },
+                ]}
+                pie={<tr className="fila-total"><td colSpan={5}>Total</td><td className="derecha mono">{dinero(d.total)}</td><td /></tr>} />
+            } />
+        )
+      }}
     </Marco>
   )
 }
@@ -512,31 +524,37 @@ export function ReporteProductosPagina() {
   const r = useReporte<ReporteProductos>('productos', true)
   return (
     <Marco titulo="Ventas por producto" reporte="productos" r={r} busqueda={{ texto: 'Nombre o código del producto' }}>
-      {d => (
-        <>
-          <div className="bloque">
-            <h2 className="subtitulo">Los 10 que más se vendieron</h2>
-            <Barras cabeceras={['Producto', 'Total']}
-                    filas={d.filas.slice(0, 10).map(f => ({ etiqueta: f.producto, valor: f.total }))} />
-          </div>
-          <div className="bloque sin-relleno">
-            <table className="tabla">
-              <thead><tr><th>Producto</th><th>Código</th><th className="derecha">Cantidad</th>
-                <th className="derecha">Base</th><th className="derecha">Total</th></tr></thead>
-              <tbody>
-                {d.filas.map((f, i) => (
-                  <tr key={i}>
-                    <td>{f.producto}</td><td className="mono secundario">{f.codigo ?? ''}</td>
-                    <td className="derecha mono">{f.cantidad === null ? '' : `${Number(f.cantidad)} ${f.unidad}`}</td>
-                    <td className="derecha mono">{dinero(f.base)}</td><td className="derecha mono">{dinero(f.total)}</td>
-                  </tr>
-                ))}
-                <tr className="fila-total"><td colSpan={4}>Total</td><td className="derecha mono">{dinero(d.total)}</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      {d => {
+        const s = d.moneda === 'USD' ? 'US$' : 'S/'
+        return (
+          <ResumenDetalle filas={d.filas.length}
+            resumen={<>
+              <div className="cifras-reporte">
+                <Cifra titulo="Vendido" valor={`${s} ${dinero(d.total)}`} />
+                <Cifra titulo="Productos distintos" valor={d.filas.length} />
+                <Cifra titulo="El que más vendió" valor={d.filas[0]?.producto ?? '—'}
+                       nota={d.filas[0] ? `${s} ${dinero(d.filas[0].total)}` : undefined} />
+              </div>
+              <div className="bloque">
+                <h2 className="subtitulo">Los 10 que más se vendieron</h2>
+                <Barras cabeceras={['Producto', 'Total']} filas={topYOtros(d.filas, f => f.producto, f => f.total)} />
+              </div>
+            </>}
+            detalle={
+              <TablaDatos filas={d.filas} clave={(_, i) => i} ordenInicial={{ clave: 'total', desc: true }}
+                vacio="Sin ventas en este periodo."
+                columnas={[
+                  { clave: 'producto', titulo: 'Producto', celda: f => f.producto, orden: f => f.producto },
+                  { clave: 'codigo', titulo: 'Código', clase: 'mono secundario', celda: f => f.codigo ?? '', orden: f => f.codigo },
+                  { clave: 'cant', titulo: 'Cantidad', clase: 'derecha mono', orden: f => f.cantidad,
+                    celda: f => f.cantidad === null ? '' : `${Number(f.cantidad)} ${f.unidad}` },
+                  { clave: 'base', titulo: 'Base', clase: 'derecha mono', celda: f => dinero(f.base), orden: f => f.base },
+                  { clave: 'total', titulo: 'Total', clase: 'derecha mono', celda: f => dinero(f.total), orden: f => f.total },
+                ]}
+                pie={<tr className="fila-total"><td colSpan={4}>Total</td><td className="derecha mono">{dinero(d.total)}</td></tr>} />
+            } />
+        )
+      }}
     </Marco>
   )
 }
@@ -547,30 +565,37 @@ export function ReporteVendedoresPagina() {
   const r = useReporte<ReporteVendedores>('vendedores', true)
   return (
     <Marco titulo="Ventas por vendedor" reporte="vendedores" r={r} busqueda={{ texto: 'Nombre de quien emitió' }}>
-      {d => (
-        <>
-          <div className="bloque">
-            <h2 className="subtitulo">Quién emitió cada comprobante</h2>
-            <Barras cabeceras={['Vendedor', 'Total']} filas={porPersona(d.filas)} />
-          </div>
-          <div className="bloque sin-relleno">
-            <table className="tabla">
-              <thead><tr><th>Quién emitió</th>{d.variasSucursales && <th>Sucursal</th>}<th className="derecha">Comprobantes</th>
-                <th className="derecha">Notas de crédito</th><th className="derecha">Total</th></tr></thead>
-              <tbody>
-                {d.filas.map((f, i) => (
-                  <tr key={i}>
-                    <td>{f.vendedor}</td>{d.variasSucursales && <td className="secundario">{f.sucursal}</td>}
-                    <td className="derecha mono">{f.comprobantes}</td>
-                    <td className="derecha mono">{f.notas}</td><td className="derecha mono">{dinero(f.total)}</td>
-                  </tr>
-                ))}
-                <tr className="fila-total"><td colSpan={d.variasSucursales ? 4 : 3}>Total</td><td className="derecha mono">{dinero(d.total)}</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      {d => {
+        const s = d.moneda === 'USD' ? 'US$' : 'S/'
+        const personas = porPersona(d.filas)
+        return (
+          <ResumenDetalle filas={d.filas.length}
+            resumen={<>
+              <div className="cifras-reporte">
+                <Cifra titulo="Vendido" valor={`${s} ${dinero(d.total)}`} />
+                <Cifra titulo="Personas que emitieron" valor={personas.length} />
+                <Cifra titulo="Comprobantes" valor={d.filas.reduce((t, f) => t + f.comprobantes, 0)} />
+              </div>
+              <div className="bloque">
+                <h2 className="subtitulo">Quién emitió más</h2>
+                <Barras cabeceras={['Vendedor', 'Total']} filas={topYOtros(personas, p => p.etiqueta, p => p.valor, p => p.nota)} />
+              </div>
+            </>}
+            detalle={
+              <TablaDatos filas={d.filas} clave={(_, i) => i} ordenInicial={{ clave: 'total', desc: true }}
+                vacio="Sin ventas en este periodo."
+                columnas={[
+                  { clave: 'vendedor', titulo: 'Quién emitió', celda: f => f.vendedor, orden: f => f.vendedor },
+                  ...(d.variasSucursales ? [{ clave: 'suc', titulo: 'Sucursal', clase: 'secundario',
+                      celda: (f: ReporteVendedores['filas'][number]) => f.sucursal, orden: (f: ReporteVendedores['filas'][number]) => f.sucursal }] : []),
+                  { clave: 'comp', titulo: 'Comprobantes', clase: 'derecha mono', celda: f => f.comprobantes, orden: f => f.comprobantes },
+                  { clave: 'notas', titulo: 'Notas de crédito', clase: 'derecha mono', celda: f => f.notas, orden: f => f.notas },
+                  { clave: 'total', titulo: 'Total', clase: 'derecha mono', celda: f => dinero(f.total), orden: f => f.total },
+                ]}
+                pie={<tr className="fila-total"><td colSpan={d.variasSucursales ? 4 : 3}>Total</td><td className="derecha mono">{dinero(d.total)}</td></tr>} />
+            } />
+        )
+      }}
     </Marco>
   )
 }
@@ -594,37 +619,39 @@ export function ReporteSucursalesPagina() {
   const r = useReporte<ReporteSucursales>('sucursales', true)
   return (
     <Marco titulo="Ventas por sucursal" reporte="sucursales" r={r} busqueda={{ texto: 'Nombre o código del local' }}>
-      {d => (
-        <>
-          <div className="bloque">
-            <h2 className="subtitulo">Cuánto vendió cada local</h2>
-            <Barras cabeceras={['Sucursal', 'Total']}
-                    filas={d.filas.map(f => ({ etiqueta: `${f.codigo ?? ''} ${f.sucursal}`.trim(), valor: f.total,
-                                               nota: `${f.facturas + f.boletas} comprobantes` }))} />
-          </div>
-          <div className="bloque sin-relleno">
-            <table className="tabla">
-              <thead><tr><th>Sucursal</th><th className="derecha">Facturas</th><th className="derecha">Boletas</th>
-                <th className="derecha">Notas</th><th className="derecha">Base</th><th className="derecha">IGV</th>
-                <th className="derecha">Total</th><th className="derecha">%</th></tr></thead>
-              <tbody>
-                {d.filas.map((f, i) => (
-                  <tr key={i} className={f.total === 0 ? 'apagada' : undefined}>
-                    <td><span className="mono secundario">{f.codigo}</span> {f.sucursal}
-                      {!f.activa && <span className="secundario"> · desactivada</span>}</td>
-                    <td className="derecha mono">{f.facturas}</td><td className="derecha mono">{f.boletas}</td>
-                    <td className="derecha mono">{f.notas}</td>
-                    <td className="derecha mono">{dinero(f.base)}</td><td className="derecha mono">{dinero(f.igv)}</td>
-                    <td className="derecha mono">{dinero(f.total)}</td>
-                    <td className="derecha mono secundario">{d.total ? ((f.total / d.total) * 100).toFixed(1) : '0'}</td>
-                  </tr>
-                ))}
-                <tr className="fila-total"><td colSpan={6}>Total</td><td className="derecha mono">{dinero(d.total)}</td><td /></tr>
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      {d => {
+        const s = d.moneda === 'USD' ? 'US$' : 'S/'
+        return (
+          <ResumenDetalle filas={d.filas.length}
+            resumen={<>
+              <div className="cifras-reporte">
+                <Cifra titulo="Vendido" valor={`${s} ${dinero(d.total)}`} />
+                <Cifra titulo="Locales que vendieron" valor={d.filas.filter(f => f.total !== 0).length} nota={`de ${d.filas.length}`} />
+                <Cifra titulo="Comprobantes" valor={d.filas.reduce((t, f) => t + f.facturas + f.boletas, 0)} />
+              </div>
+              <div className="bloque">
+                <h2 className="subtitulo">Cuánto vendió cada local</h2>
+                <Barras cabeceras={['Sucursal', 'Total']}
+                        filas={topYOtros(d.filas, f => `${f.codigo ?? ''} ${f.sucursal}`.trim(), f => f.total, f => `${f.facturas + f.boletas} comprobantes`)} />
+              </div>
+            </>}
+            detalle={
+              <TablaDatos filas={d.filas} clave={(_, i) => i} ordenInicial={{ clave: 'total', desc: true }}
+                columnas={[
+                  { clave: 'suc', titulo: 'Sucursal', orden: f => `${f.codigo ?? ''} ${f.sucursal}`,
+                    celda: f => <><span className="mono secundario">{f.codigo}</span> {f.sucursal}{!f.activa && <span className="secundario"> · desactivada</span>}</> },
+                  { clave: 'fac', titulo: 'Facturas', clase: 'derecha mono', celda: f => f.facturas, orden: f => f.facturas },
+                  { clave: 'bol', titulo: 'Boletas', clase: 'derecha mono', celda: f => f.boletas, orden: f => f.boletas },
+                  { clave: 'notas', titulo: 'Notas', clase: 'derecha mono', celda: f => f.notas, orden: f => f.notas },
+                  { clave: 'base', titulo: 'Base', clase: 'derecha mono', celda: f => dinero(f.base), orden: f => f.base },
+                  { clave: 'igv', titulo: 'IGV', clase: 'derecha mono', celda: f => dinero(f.igv), orden: f => f.igv },
+                  { clave: 'total', titulo: 'Total', clase: 'derecha mono', celda: f => dinero(f.total), orden: f => f.total },
+                  { clave: 'pct', titulo: '%', clase: 'derecha mono secundario', celda: f => d.total ? ((f.total / d.total) * 100).toFixed(1) : '0' },
+                ]}
+                pie={<tr className="fila-total"><td colSpan={6}>Total</td><td className="derecha mono">{dinero(d.total)}</td><td /></tr>} />
+            } />
+        )
+      }}
     </Marco>
   )
 }

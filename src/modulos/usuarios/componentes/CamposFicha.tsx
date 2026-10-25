@@ -103,8 +103,9 @@ export function CamposFicha({ valor, onCambio, campoMal, aviso, children, cargos
   const poner = (k: keyof DatosFicha) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     onCambio({ ...valor, [k]: e.target.value })
 
+  // e174: los datos de la persona se escriben como son (no en mayúsculas).
   return (
-    <>
+    <div className="sin-mayusculas" style={{ display: 'contents' }}>
       <div className="terna">
         <label className="campo">
           <span className="etiqueta">Tipo de documento<Asterisco /></span>
@@ -156,6 +157,6 @@ export function CamposFicha({ valor, onCambio, campoMal, aviso, children, cargos
         <Campo etiqueta="Fecha de ingreso" type="date" value={valor.fechaIngreso} onChange={poner('fechaIngreso')}
                mal={campoMal === 'fechaIngreso'} />
       </div>}
-    </>
+    </div>
   )
 }

@@ -216,7 +216,7 @@ function DialogoProveedor({ proveedor, onCerrar, onHecho }: { proveedor?: Provee
       <label className="campo"><span className="etiqueta">Razón social</span><input value={razon} maxLength={200} onChange={e => setRazon(e.target.value)} /></label>
       <label className="campo"><span className="etiqueta">Dirección (opcional)</span><input value={direccion} maxLength={250} onChange={e => setDireccion(e.target.value)} /></label>
       <div className="pareja">
-        <label className="campo"><span className="etiqueta">Correo (opcional)</span><input value={correo} maxLength={150} onChange={e => setCorreo(e.target.value)} /></label>
+        <label className="campo"><span className="etiqueta">Correo (opcional)</span><input type="email" value={correo} maxLength={150} onChange={e => setCorreo(e.target.value)} /></label>
         <label className="campo"><span className="etiqueta">Teléfono (opcional)</span><input value={telefono} maxLength={30} onChange={e => setTelefono(e.target.value)} /></label>
       </div>
       <p className="nota se-aplica">Se aplica: también se crea solo al registrar un ingreso con un RUC nuevo. No se borra; se desactiva.</p>

@@ -59,7 +59,7 @@ export function RegistroGoogle() {
 
   return (
     <div className="pantalla-centrada">
-      <form className="tarjeta-acceso ancha" onSubmit={e => void crear(e)}>
+      <form className="tarjeta-acceso ancha sin-mayusculas" onSubmit={e => void crear(e)}>
         <p className="marca">Reyban Consulting</p>
         <h1>Crea tu cuenta</h1>
         <p className="bajada">

@@ -104,12 +104,13 @@ export function GraficoLinea({ puntos, etiquetaValor }: {
 
 /** Barras horizontales con su nombre y su valor (los mejores N). */
 export function Barras({ filas, cabeceras, formato = dinero }: {
-  filas: { etiqueta: string; valor: number; nota?: string }[]
+  /** e176: `aparte` (la barra «Otros»): no cuenta para la escala y llega como mucho al ancho entero. */
+  filas: { etiqueta: string; valor: number; nota?: string; aparte?: boolean }[]
   cabeceras: [string, string]
   formato?: (n: number) => string
 }) {
   if (filas.length === 0) return <p className="nota">Sin datos en este periodo.</p>
-  const max = Math.max(...filas.map(f => Math.abs(f.valor)), 1)
+  const max = Math.max(...filas.filter(f => !f.aparte).map(f => Math.abs(f.valor)), 1)
   return (
     <>
       <div className="barras-reporte">
@@ -117,7 +118,7 @@ export function Barras({ filas, cabeceras, formato = dinero }: {
           <div key={i} className="barra-fila" title={`${f.etiqueta}: ${formato(f.valor)}`}>
             <span className="barra-nombre">{f.etiqueta}{f.nota && <small> · {f.nota}</small>}</span>
             <span className="barra-pista">
-              <span className={f.valor < 0 ? 'barra negativa' : 'barra'} style={{ width: `${(Math.abs(f.valor) / max) * 100}%` }} />
+              <span className={(f.valor < 0 ? 'barra negativa' : 'barra') + (f.aparte ? ' otros' : '')} style={{ width: `${Math.min(100, (Math.abs(f.valor) / max) * 100)}%` }} />
             </span>
             <span className="barra-valor mono">{formato(f.valor)}</span>
           </div>

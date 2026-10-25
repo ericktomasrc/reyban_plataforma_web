@@ -17,7 +17,7 @@ import { pedidosServicio } from '../servicios/pedidosServicio'
 import type { Pedido, ReclamoSobreMia } from '../servicios/pedidosServicio'
 import { FranjaReclamos } from '../componentes/ResponderReclamo'
 
-type Filtro = 'todas' | 'atencion' | 'pausa'
+type Filtro = 'todas' | 'atencion' | 'pausa' | 'pedidas'   // e175: los pedidos a su titular, en su pestaña
 
 /**
  * «MIS EMPRESAS» (fase 3): la bandeja de la Cuenta Profesional.
@@ -130,15 +130,14 @@ export function MisEmpresas() {
 
       <FranjaReclamos reclamos={reclamos} onRespondido={cargar} />
 
-      {pedidos.length > 0 && <PedidosATitulares pedidos={pedidos} onCancelar={cancelarPedido} onOcultar={ocultarPedido} />}
-
-      {empresas.length === 0 ? (
+      {empresas.length === 0 ? (<>
+        {pedidos.length > 0 && <PedidosATitulares pedidos={pedidos} onCancelar={cancelarPedido} onOcultar={ocultarPedido} />}
         <section className="bloque vacio-bandeja">
           <h2>Todavía no tienes empresas</h2>
           <p className="texto-paso">Agrega la primera y te guiamos hasta emitir.</p>
           {agrega && <Link to="/configurar?nueva=1" className="boton">Agregar mi primera empresa</Link>}
         </section>
-      ) : (
+      </>) : (
         <>
           <div className="resumen-bandeja">
             <div><strong>{empresas.length}</strong><span>en tu cartera</span></div>
@@ -152,13 +151,17 @@ export function MisEmpresas() {
                    onChange={e => setBuscar(e.target.value)} aria-label="Buscar empresa" />
             <div className="segmentado">
               {([['todas', `Todas (${empresas.length})`], ['atencion', `Necesitan atención (${atencion.length})`],
-                 ['pausa', `En pausa (${pausadas.length})`]] as [Filtro, string][]).map(([f, t]) => (
+                 ['pausa', `En pausa (${pausadas.length})`],
+                 ...(pedidos.length > 0 || filtro === 'pedidas' ? [['pedidas', `Pedidas a su titular (${pedidos.length})`]] : [])] as [Filtro, string][]).map(([f, t]) => (
                 <button key={f} type="button" className={filtro === f ? 'elegido' : undefined}
                         onClick={() => setFiltro(f)}>{t}</button>
               ))}
             </div>
           </div>
 
+          {filtro === 'pedidas' ? (
+            <PedidosATitulares pedidos={pedidos} onCancelar={cancelarPedido} onOcultar={ocultarPedido} />
+          ) : <>
           <div className="tabla-envoltura">
             <table className="tabla">
               <thead>
@@ -225,6 +228,7 @@ export function MisEmpresas() {
             </table>
           </div>
           <Paginacion {...paginacion} />
+          </>}
 
           <p className="nota">
             Una empresa en pausa no emite y no se borra nada. Reanudarla la devuelve tal cual estaba.

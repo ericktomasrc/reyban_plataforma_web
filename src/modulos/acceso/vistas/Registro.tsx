@@ -144,7 +144,7 @@ export function Registro() {
       {/* 049: en un paso, sin contraseña ni correo de confirmación. */}
       <BotonGoogle texto="Crear mi cuenta con Google" despues="o con tu correo" />
 
-      <form onSubmit={enviar} noValidate>
+      <form className="sin-mayusculas" onSubmit={enviar} noValidate>
         <fieldset className="grupo-registro">
           <legend>¿Para quién vas a facturar?</legend>
           <div className="opciones-cuenta">

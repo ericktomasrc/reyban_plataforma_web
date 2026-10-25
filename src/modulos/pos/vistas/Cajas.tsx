@@ -4,6 +4,9 @@ import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
 import { Paginacion } from '../../../componentes/Paginacion'
+import { Pestanas } from '../../../componentes/Pestanas'
+import { TablaDatos } from '../../../componentes/TablaDatos'
+import { usePestana } from '../../../nucleo/hooks/usePestana'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { posServicio, type DetalleCaja, type FilaCaja } from '../servicios/posServicio'
 import { ArqueoSistemaTabla, TablaVentas } from './PuntoDeVenta'
@@ -80,6 +83,7 @@ export function Cajas() {
 
 export function VerCaja() {
   const { id } = useParams()
+  const [ver, setVer] = usePestana(['ventas', 'movimientos'] as const)
   const [d, setD] = useState<DetalleCaja>()
   const [fallo, setFallo] = useState<string>()
 
@@ -131,30 +135,26 @@ export function VerCaja() {
         </section>
       </div>
 
-      <section className="bloque">
-        <h2 className="subtitulo">Ingresos y retiros</h2>
-        {d.movimientos.length === 0 ? <p className="nota">Ninguno.</p> : (
-          <table className="tabla">
-            <thead><tr><th>Hora</th><th>Tipo</th><th>Motivo</th><th>Quién</th><th className="derecha">Monto</th></tr></thead>
-            <tbody>
-              {d.movimientos.map((m, i) => (
-                <tr key={i}>
-                  <td className="secundario">{cuando(m.en)}</td>
-                  <td>{m.tipo === 'ingreso' ? 'Ingreso' : 'Retiro'}</td>
-                  <td>{m.motivo}{m.detalle && <div className="secundario">{m.detalle}</div>}</td>
-                  <td className="secundario">{m.por ?? '—'}</td>
-                  <td className="derecha mono">{m.tipo === 'retiro' ? '−' : ''}{dinero(m.monto)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-
-      <section className="bloque">
-        <h2 className="subtitulo">Ventas ({d.ventas.length})</h2>
-        <TablaVentas d={d} />
-      </section>
+      {/* e175: ventas e ingresos/retiros en pestañas, cada una de 20 en 20. */}
+      <div className="no-imprimir">
+        <Pestanas etiqueta="Caja" valor={ver} onCambio={setVer} opciones={[
+          { valor: 'ventas', texto: 'Ventas', cuenta: d.ventas.length },
+          { valor: 'movimientos', texto: 'Ingresos y retiros', cuenta: d.movimientos.length },
+        ]} />
+      </div>
+      {ver === 'ventas' ? <TablaVentas d={d} /> : d.movimientos.length === 0 ? <p className="nota">Ninguno.</p> : (
+        <TablaDatos filas={d.movimientos} clave={(_, i) => i} buscar={m => [m.motivo, m.detalle, m.por]} textoBuscar="Motivo o persona"
+          ordenInicial={{ clave: 'hora', desc: true }}
+          columnas={[
+            { clave: 'hora', titulo: 'Hora', clase: 'secundario', celda: m => cuando(m.en), orden: m => m.en },
+            { clave: 'tipo', titulo: 'Tipo', celda: m => m.tipo === 'ingreso' ? 'Ingreso' : 'Retiro', orden: m => m.tipo },
+            { clave: 'motivo', titulo: 'Motivo', orden: m => m.motivo,
+              celda: m => <>{m.motivo}{m.detalle && <div className="secundario">{m.detalle}</div>}</> },
+            { clave: 'por', titulo: 'Quién', clase: 'secundario', celda: m => m.por ?? '—', orden: m => m.por },
+            { clave: 'monto', titulo: 'Monto', clase: 'derecha mono', orden: m => m.monto,
+              celda: m => <>{m.tipo === 'retiro' ? '−' : ''}{dinero(m.monto)}</> },
+          ]} />
+      )}
     </div>
   )
 }

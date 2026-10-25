@@ -15,7 +15,8 @@ interface Props {
   inicial?: Partial<ProductoEnLista>
   catalogos: CatalogosSunat
   onCerrar: () => void
-  onGuardado: (mensaje: string) => void
+  /** e174: también el código con el que quedó (para marcar la línea «en tus productos»). */
+  onGuardado: (mensaje: string, codigo?: string) => void
 }
 
 export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuardado }: Props) {
@@ -41,7 +42,7 @@ export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuar
   useEffect(() => {
     let vivo = true
     inventarioServicio.categorias().then(c => { if (vivo) setCategorias(c) }).catch(() => { /* sin categorías */ })
-    inventarioServicio.estado().then(e => { if (vivo) setEncendido(e.encendido) }).catch(() => { /* sin inventario */ })
+    inventarioServicio.estado().then(e => { if (vivo) setEncendido(e.encendido && e.contratado !== false) }).catch(() => { /* sin inventario */ })
     if (producto) {
       inventarioServicio.minimos(producto.id)
         .then(m => {
@@ -107,10 +108,10 @@ export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuar
           .filter(m => m.minimo === null || Number.isFinite(m.minimo))
         if (encendido && controla && cambios.some(c => c.minimo !== (minimos.find(m => m.sucursalId === c.sucursalId)?.minimo ?? null)))
           await inventarioServicio.guardarMinimos(producto.id, cambios)
-        onGuardado(r.mensaje)
+        onGuardado(r.mensaje, datos.codigo)
       } else {
         const r = await productosServicio.crear(datos)
-        onGuardado(`${r.codigo} ya está en tu catálogo.`)
+        onGuardado(`${r.codigo} ya está en tu catálogo.`, r.codigo)
       }
     } catch (err) {
       mensaje.error(err instanceof ErrorApi ? err.message : 'No se pudo guardar el producto.')
@@ -233,7 +234,9 @@ export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuar
             </select>
           </label>
         )}
-        <label className={`casilla${esServicio ? ' deshabilitada' : ''}`}>
+        {/* e174: sin inventario la casilla no se ve. Por dentro un bien sigue
+            marcado, así el día que se active el inventario ya está listo. */}
+        {encendido && <label className={`casilla${esServicio ? ' deshabilitada' : ''}`}>
           <input type="checkbox" checked={!esServicio && controla} disabled={esServicio} onChange={e => setControla(e.target.checked)} />
           <span>
             <strong>Controla stock</strong>
@@ -241,7 +244,7 @@ export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuar
               ? 'Los servicios no tienen stock.'
               : 'Marcado de fábrica en los productos que no son servicio. Desmárcalo si no quieres contarlo (por ejemplo, algo que pides a pedido).'}</em>
           </span>
-        </label>
+        </label>}
         {editando && encendido && controla && !esServicio && minimos.length > 0 && (
           <>
             <span className="etiqueta">Stock mínimo por sucursal (opcional)</span>
@@ -257,7 +260,7 @@ export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuar
             </div>
           </>
         )}
-        {editando && producto.controlaStock && !controla && !esServicio && (
+        {encendido && editando && producto.controlaStock && !controla && !esServicio && (
           <p className="nota se-aplica">Se aplica: si desmarcas un producto que ya tiene movimientos, su kardex se guarda pero deja de contarse y de bloquear.</p>
         )}
 

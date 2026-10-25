@@ -99,6 +99,9 @@ export interface ReporteIgv extends Comun {
   filas: { mes: string; comprobantes: number; notas: number; gravado: number; exonerado: number;
            inafecto: number; exportacion: number; igv: number; total: number }[]
   porTipo: { tipo: string; cantidad: number; base: number; igv: number; total: number }[]
+  /** e176: lo mismo por día (para abrir cada mes). */
+  dias?: { fecha: string; comprobantes: number; notas: number; gravado: number; exonerado: number;
+           inafecto: number; exportacion: number; igv: number; total: number }[]
 }
 
 export interface ReporteRegistro extends Comun {

@@ -14,6 +14,7 @@ import { BarraLineas, usePaginaLineas } from '../../facturacion/componentes/Deta
 import { EstadoGuia, explicarEstadoGuia } from '../componentes/EstadoGuia'
 import { RechazoGuia } from '../componentes/RechazoGuia'
 import { RegistrarEvento } from '../componentes/RegistrarEvento'
+import { PanelWhatsappGuia } from '../componentes/PanelWhatsappGuia'
 import { guiasServicio, nombreUnidad, type GuiaCompleta } from '../servicios/guiasServicio'
 import '../../facturacion/comprobante.css'
 import '../guias.css'
@@ -320,6 +321,11 @@ export function VerGuia() {
                 {aceptada && <Boton estilo="secundario" onClick={() => void bajar('cdr')} ocupado={ocupado === 'cdr'}>CDR</Boton>}
               </div>
             </div>
+          )}
+
+          {/* --- e174 (057): la guía por WhatsApp, al conductor o al cliente ----- */}
+          {g.numero && ['encolado', 'aceptado', 'observado'].includes(g.estado) && puede(Permisos.Guias.Emitir) && (
+            <PanelWhatsappGuia guiaId={g.id} conductor={g.conductor} clienteWhatsapp={g.clienteWhatsapp} />
           )}
 
           {/* --- Acciones: evento (051), anulación y otra guía ------------------ */}

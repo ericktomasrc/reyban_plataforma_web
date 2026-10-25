@@ -148,7 +148,7 @@ export function MiPerfil() {
       {d.esSuperAdmin ? (
         <div className="bloque">
           <h2 className="subtitulo">Quién soy</h2>
-          <form onSubmit={guardarNombre}>
+          <form className="sin-mayusculas" onSubmit={guardarNombre}>
             <Campo
               etiqueta="Nombre"
               value={valor}

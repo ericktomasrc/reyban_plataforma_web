@@ -122,7 +122,7 @@ export function RecuperarEmpresa() {
           <h2>Crea tu Cuenta Negocio</h2>
           <Campo etiqueta="Tu nombre" value={nombre} onChange={e => setNombre(e.target.value)}
                  placeholder="Nombres y apellidos" />
-          <Campo etiqueta="Correo" value={info.correo ?? ''} readOnly
+          <Campo etiqueta="Correo" type="email" value={info.correo ?? ''} readOnly
                  pista="Es el correo del titular: con él entrarás." />
           <label className="casilla-terminos">
             <input type="checkbox" checked={acepta} onChange={e => setAcepta(e.target.checked)} />

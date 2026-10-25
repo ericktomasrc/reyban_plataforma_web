@@ -1,7 +1,10 @@
+import { TablaDatos } from '../../../componentes/TablaDatos'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { fecha } from '../../../nucleo/formato/fechas'
 import { Barras, Cifra, GraficoLinea, dinero } from '../componentes/Graficos'
+import { topYOtros } from '../componentes/topYOtros'
+import { ResumenDetalle } from '../componentes/ResumenDetalle'
 import type {
   ReporteActivacion, ReporteCartera, ReporteConsumo, ReporteCuentas, ReporteEmpresasMes, ReportePlataforma,
   ReporteRechazos, ReporteRiesgo,
@@ -57,7 +60,8 @@ export function ReporteCarteraPagina() {
         const comprobantes = d.filas.reduce((s, f) => s + f.comprobantes, 0)
         const conProblema = d.filas.filter(f => f.rechazados > 0 || f.pendientes > 0).length
         return (
-          <>
+          <ResumenDetalle filas={d.filas.length}
+            resumen={<>
             <div className="cifras-reporte">
               <Cifra titulo="Empresas" valor={d.filas.length} nota={`${d.filas.filter(f => f.ambiente === 'produccion').length} en SUNAT real`} />
               <Cifra titulo="Comprobantes" valor={comprobantes} />
@@ -67,29 +71,24 @@ export function ReporteCarteraPagina() {
             <div className="bloque">
               <h2 className="subtitulo">Lo vendido por empresa (S/)</h2>
               <Barras cabeceras={['Empresa', 'Vendido (S/)']}
-                      filas={d.filas.map(f => ({ etiqueta: f.nombre, valor: f.total, nota: `${f.comprobantes} comp.` }))} />
-            </div>
-            <div className="bloque sin-relleno tabla-ancha">
-              <table className="tabla">
-                <thead><tr><th>Empresa</th><th>SUNAT</th><th className="derecha">Comprobantes</th><th className="derecha">Vendido</th>
-                  <th className="derecha">Rechazados</th><th className="derecha">Sin respuesta</th><th>Certificado</th></tr></thead>
-                <tbody>
-                  {d.filas.map(f => (
-                    <tr key={f.id}>
-                      <td>{f.nombre}<div className="secundario mono">{f.ruc}</div>{f.pausada && <span className="etiqueta aviso">en pausa</span>}</td>
-                      <td>{f.ambiente === 'produccion' ? 'Real' : 'Prueba'}</td>
-                      <td className="derecha mono">{f.comprobantes}{f.notas > 0 && <div className="secundario">{f.notas} nota(s)</div>}</td>
-                      <td className="derecha mono">{dinero(f.total)}</td>
-                      <td className="derecha mono">{f.rechazados || ''}</td>
-                      <td className="derecha mono">{f.pendientes || ''}</td>
-                      <td>{chipCertificado(f.certificadoHasta)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      filas={topYOtros(d.filas, f => f.nombre, f => f.total, f => `${f.comprobantes} comp.`)} />
             </div>
             <p className="nota">Para trabajar en una, ábrela desde <Link to="/empresas">Mis empresas</Link>.</p>
-          </>
+            </>}
+            detalle={<div className="tabla-ancha">
+              <TablaDatos filas={d.filas} clave={f => f.id} ordenInicial={{ clave: 'total', desc: true }}
+                columnas={[
+                  { clave: 'nombre', titulo: 'Empresa', orden: f => f.nombre,
+                    celda: f => <>{f.nombre}<div className="secundario mono">{f.ruc}</div>{f.pausada && <span className="etiqueta aviso">en pausa</span>}</> },
+                  { clave: 'sunat', titulo: 'SUNAT', celda: f => f.ambiente === 'produccion' ? 'Real' : 'Prueba', orden: f => f.ambiente },
+                  { clave: 'comp', titulo: 'Comprobantes', clase: 'derecha mono', orden: f => f.comprobantes,
+                    celda: f => <>{f.comprobantes}{f.notas > 0 && <div className="secundario">{f.notas} nota(s)</div>}</> },
+                  { clave: 'total', titulo: 'Vendido', clase: 'derecha mono', celda: f => dinero(f.total), orden: f => f.total },
+                  { clave: 'rech', titulo: 'Rechazados', clase: 'derecha mono', celda: f => f.rechazados || '', orden: f => f.rechazados },
+                  { clave: 'pend', titulo: 'Sin respuesta', clase: 'derecha mono', celda: f => f.pendientes || '', orden: f => f.pendientes },
+                  { clave: 'cert', titulo: 'Certificado', celda: f => chipCertificado(f.certificadoHasta), orden: f => diasPara(f.certificadoHasta) ?? 99999 },
+                ]} />
+            </div>} />
         )
       }}
     </Marco>
@@ -111,16 +110,12 @@ export function ReporteCertificadosPagina() {
             {pronto.length === 0
               ? <Aviso tono="bien">Ningún certificado vence en los próximos 60 días.</Aviso>
               : <Aviso tono="ojo">{pronto.length} empresa(s) con el certificado vencido o por vencer en 60 días.</Aviso>}
-            <div className="bloque sin-relleno">
-              <table className="tabla">
-                <thead><tr><th>Empresa</th><th>RUC</th><th>Certificado</th></tr></thead>
-                <tbody>
-                  {filas.map(f => (
-                    <tr key={f.id}><td>{f.nombre}</td><td className="mono secundario">{f.ruc}</td><td>{chipCertificado(f.certificadoHasta)}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TablaDatos filas={filas} clave={f => f.id}
+              columnas={[
+                { clave: 'nombre', titulo: 'Empresa', celda: f => f.nombre, orden: f => f.nombre },
+                { clave: 'ruc', titulo: 'RUC', clase: 'mono secundario', celda: f => f.ruc },
+                { clave: 'cert', titulo: 'Certificado', celda: f => chipCertificado(f.certificadoHasta), orden: f => diasPara(f.certificadoHasta) ?? 99999 },
+              ]} />
           </>
         )
       }}
@@ -168,23 +163,18 @@ export function ReporteEmpresasPagina() {
   return (
     <Marco titulo="Comprobantes por empresa y mes" reporte="admin/empresas" r={r} conMoneda={false} horizontal busqueda={{ texto: 'Nombre o RUC de la empresa', sunat: true }} pie={null}>
       {d => (
-        <div className="bloque sin-relleno tabla-ancha">
-          <table className="tabla">
-            <thead><tr><th>Mes</th><th>Empresa</th><th>SUNAT</th><th className="derecha">Facturas</th><th className="derecha">Boletas</th>
-              <th className="derecha">Notas</th><th className="derecha">Rechazados</th><th className="derecha">Total (S/)</th></tr></thead>
-            <tbody>
-              {d.filas.length === 0 && <tr><td colSpan={8} className="vacio">Sin comprobantes en este periodo.</td></tr>}
-              {d.filas.map((f, i) => (
-                <tr key={i}>
-                  <td className="mono">{f.mes}</td><td>{f.empresa}<div className="secundario mono">{f.ruc}</div></td>
-                  <td>{f.ambiente === 'real' ? 'Real' : 'Prueba'}</td>
-                  <td className="derecha mono">{f.facturas}</td><td className="derecha mono">{f.boletas}</td>
-                  <td className="derecha mono">{f.notas}</td><td className="derecha mono">{f.rechazados || ''}</td>
-                  <td className="derecha mono">{dinero(f.total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="tabla-ancha">
+          <TablaDatos filas={d.filas} clave={(_, i) => i} vacio="Sin comprobantes en este periodo."
+            columnas={[
+              { clave: 'mes', titulo: 'Mes', clase: 'mono', celda: f => f.mes, orden: f => f.mes },
+              { clave: 'empresa', titulo: 'Empresa', orden: f => f.empresa, celda: f => <>{f.empresa}<div className="secundario mono">{f.ruc}</div></> },
+              { clave: 'sunat', titulo: 'SUNAT', celda: f => f.ambiente === 'real' ? 'Real' : 'Prueba', orden: f => f.ambiente },
+              { clave: 'fac', titulo: 'Facturas', clase: 'derecha mono', celda: f => f.facturas, orden: f => f.facturas },
+              { clave: 'bol', titulo: 'Boletas', clase: 'derecha mono', celda: f => f.boletas, orden: f => f.boletas },
+              { clave: 'notas', titulo: 'Notas', clase: 'derecha mono', celda: f => f.notas, orden: f => f.notas },
+              { clave: 'rech', titulo: 'Rechazados', clase: 'derecha mono', celda: f => f.rechazados || '', orden: f => f.rechazados },
+              { clave: 'total', titulo: 'Total (S/)', clase: 'derecha mono', celda: f => dinero(f.total), orden: f => f.total },
+            ]} />
         </div>
       )}
     </Marco>
@@ -199,26 +189,28 @@ export function ReporteRechazosPagina() {
     <Marco titulo="Rechazos SUNAT por código" reporte="admin/rechazos" r={r} conMoneda={false} busqueda={{ texto: 'Código o mensaje de SUNAT' }}
            pie={<p className="nota pie-reporte">Para ver qué falla más y corregirlo en el servicio o explicarlo en la guía. El detalle de cada código está en Vigilancia SUNAT.</p>}>
       {d => d.filas.length === 0 ? <Aviso tono="bien">Ningún rechazo en este periodo.</Aviso> : (
-        <>
-          <div className="bloque">
-            <Barras cabeceras={['Código', 'Rechazos']} formato={n => String(n)}
-                    filas={d.filas.map(f => ({ etiqueta: f.codigo, valor: f.cantidad, nota: `${f.empresas} empresa(s)` }))} />
-          </div>
-          <div className="bloque sin-relleno">
-            <table className="tabla">
-              <thead><tr><th>Código</th><th className="derecha">Rechazos</th><th className="derecha">Empresas</th><th>Último</th><th>Mensaje</th></tr></thead>
-              <tbody>
-                {d.filas.map(f => (
-                  <tr key={f.codigo}>
-                    <td className="mono">{f.codigo}</td><td className="derecha mono">{f.cantidad}</td>
-                    <td className="derecha mono">{f.empresas}</td><td className="secundario">{fecha(f.ultimo)}</td>
-                    <td className="secundario">{f.mensaje}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        <ResumenDetalle filas={d.filas.length}
+          resumen={<>
+            <div className="cifras-reporte">
+              <Cifra titulo="Rechazos" valor={d.filas.reduce((t, f) => t + f.cantidad, 0)} />
+              <Cifra titulo="Códigos distintos" valor={d.filas.length} />
+              <Cifra titulo="El más frecuente" valor={d.filas[0]?.codigo ?? '—'} nota={d.filas[0] ? `${d.filas[0].cantidad} veces` : undefined} />
+            </div>
+            <div className="bloque">
+              <Barras cabeceras={['Código', 'Rechazos']} formato={n => String(n)}
+                      filas={topYOtros(d.filas, f => f.codigo, f => f.cantidad, f => `${f.empresas} empresa(s)`)} />
+            </div>
+          </>}
+          detalle={
+            <TablaDatos filas={d.filas} clave={f => f.codigo} ordenInicial={{ clave: 'cant', desc: true }}
+              columnas={[
+                { clave: 'codigo', titulo: 'Código', clase: 'mono', celda: f => f.codigo, orden: f => f.codigo },
+                { clave: 'cant', titulo: 'Rechazos', clase: 'derecha mono', celda: f => f.cantidad, orden: f => f.cantidad },
+                { clave: 'emp', titulo: 'Empresas', clase: 'derecha mono', celda: f => f.empresas, orden: f => f.empresas },
+                { clave: 'ultimo', titulo: 'Último', clase: 'secundario', celda: f => fecha(f.ultimo), orden: f => f.ultimo },
+                { clave: 'msj', titulo: 'Mensaje', clase: 'secundario', celda: f => f.mensaje },
+              ]} />
+          } />
       )}
     </Marco>
   )
@@ -232,7 +224,8 @@ export function ReporteCuentasPagina() {
     <Marco titulo="Cuentas nuevas" reporte="admin/cuentas" r={r} conMoneda={false} busqueda={{ texto: 'Titular o correo', tipos: [['negocio', 'Negocio'], ['profesional', 'Profesional (contadores)']], etiquetaTipo: 'Cuenta' }}
            pie={<p className="nota pie-reporte">Las consultas de RUC, DNI y tipo de cambio del mes están en tu Inicio (contador de Decolecta).</p>}>
       {d => (
-        <>
+        <ResumenDetalle filas={d.filas.length}
+          resumen={<>
           <div className="cifras-reporte">
             <Cifra titulo="Cuentas nuevas" valor={d.filas.length} />
             <Cifra titulo="Negocio" valor={d.filas.filter(f => f.tipo === 'negocio').length} />
@@ -243,22 +236,16 @@ export function ReporteCuentasPagina() {
             <GraficoLinea etiquetaValor="Cuentas nuevas"
                           puntos={d.porDia.map(p => ({ etiqueta: fecha(p.fecha).slice(0, 5), valor: p.negocio + p.profesional }))} />
           </div>
-          <div className="bloque sin-relleno">
-            <table className="tabla">
-              <thead><tr><th>Fecha</th><th>Tipo</th><th>Titular</th><th className="derecha">Empresas</th></tr></thead>
-              <tbody>
-                {d.filas.map((f, i) => (
-                  <tr key={i}>
-                    <td className="secundario">{fecha(f.fecha)}</td>
-                    <td>{f.tipo === 'profesional' ? 'Profesional' : 'Negocio'}</td>
-                    <td>{f.titular}<div className="secundario">{f.correo}</div></td>
-                    <td className="derecha mono">{f.empresas}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+          </>}
+          detalle={
+            <TablaDatos filas={d.filas} clave={(_, i) => i} ordenInicial={{ clave: 'fecha', desc: true }}
+              columnas={[
+                { clave: 'fecha', titulo: 'Fecha', clase: 'secundario', celda: f => fecha(f.fecha), orden: f => f.fecha },
+                { clave: 'tipo', titulo: 'Tipo', celda: f => f.tipo === 'profesional' ? 'Profesional' : 'Negocio', orden: f => f.tipo },
+                { clave: 'titular', titulo: 'Titular', orden: f => f.titular, celda: f => <>{f.titular}<div className="secundario">{f.correo}</div></> },
+                { clave: 'emp', titulo: 'Empresas', clase: 'derecha mono', celda: f => f.empresas, orden: f => f.empresas },
+              ]} />
+          } />
       )}
     </Marco>
   )
@@ -286,7 +273,8 @@ export function ReporteActivacionPagina() {
         const total = d.embudo[0]?.cuentas ?? 0
         const paradas = d.filas.filter(f => f.paso < 7 && (f.diasParada ?? 0) >= 7).length
         return (
-          <>
+          <ResumenDetalle filas={d.filas.length}
+            resumen={<>
             <div className="cifras-reporte">
               <Cifra titulo="Cuentas registradas" valor={total} />
               <Cifra titulo="Ya emiten real" valor={d.embudo[6]?.cuentas ?? 0}
@@ -299,25 +287,21 @@ export function ReporteActivacionPagina() {
                       filas={d.embudo.map(e => ({ etiqueta: `${e.paso}. ${PASOS[e.paso]}`, valor: e.cuentas,
                                                   nota: total ? `${Math.round((e.cuentas / total) * 100)} %` : undefined }))} />
             </div>
-            <div className="bloque sin-relleno">
-              <table className="tabla">
-                <thead><tr><th>Registro</th><th>Cuenta</th><th>Llegó hasta</th><th>Lo que falta</th>
-                  <th className="derecha">Días parada</th></tr></thead>
-                <tbody>
-                  {d.filas.map((f, i) => (
-                    <tr key={i}>
-                      <td className="secundario">{fecha(f.fecha)}</td>
-                      <td>{f.titular ?? '—'}<div className="secundario">{f.correo} · {f.tipo === 'profesional' ? 'Profesional' : 'Negocio'}
-                        {f.empresas > 0 && ` · ${f.empresas} empresa(s)`}</div></td>
-                      <td><span className={'etiqueta' + (f.paso === 7 ? ' acento' : '')}>{f.paso}. {PASOS[f.paso]}</span></td>
-                      <td className="secundario">{SIGUIENTE[f.paso]}</td>
-                      <td className={'derecha mono' + ((f.diasParada ?? 0) >= 7 ? ' texto-ojo' : '')}>{f.diasParada ?? ''}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+            </>}
+            detalle={
+              <TablaDatos filas={d.filas} clave={(_, i) => i} ordenInicial={{ clave: 'dias', desc: true }}
+                columnas={[
+                  { clave: 'fecha', titulo: 'Registro', clase: 'secundario', celda: f => fecha(f.fecha), orden: f => f.fecha },
+                  { clave: 'cuenta', titulo: 'Cuenta', orden: f => f.titular,
+                    celda: f => <>{f.titular ?? '—'}<div className="secundario">{f.correo} · {f.tipo === 'profesional' ? 'Profesional' : 'Negocio'}
+                      {f.empresas > 0 && ` · ${f.empresas} empresa(s)`}</div></> },
+                  { clave: 'paso', titulo: 'Llegó hasta', orden: f => f.paso,
+                    celda: f => <span className={'etiqueta' + (f.paso === 7 ? ' acento' : '')}>{f.paso}. {PASOS[f.paso]}</span> },
+                  { clave: 'falta', titulo: 'Lo que falta', clase: 'secundario', celda: f => SIGUIENTE[f.paso] },
+                  { clave: 'dias', titulo: 'Días parada', clase: 'derecha mono', orden: f => f.diasParada,
+                    celda: f => <span className={(f.diasParada ?? 0) >= 7 ? 'texto-ojo' : undefined}>{f.diasParada ?? ''}</span> },
+                ]} />
+            } />
         )
       }}
     </Marco>
@@ -346,22 +330,16 @@ export function ReporteRiesgoPagina() {
             <Cifra titulo="Riesgo medio" valor={d.filas.filter(f => f.nivel === 'medio').length} />
             <Cifra titulo="En SUNAT real" valor={d.filas.filter(f => f.ambiente === 'real').length} nota="las que más importan" />
           </div>
-          <div className="bloque sin-relleno">
-            <table className="tabla">
-              <thead><tr><th>Nivel</th><th>Empresa</th><th>Por qué</th><th>Titular</th><th>Último comprobante</th></tr></thead>
-              <tbody>
-                {d.filas.map(f => (
-                  <tr key={f.id}>
-                    <td><span className={'etiqueta' + (f.nivel === 'alto' ? ' peligro' : ' aviso')}>{f.nivel === 'alto' ? 'Alto' : 'Medio'}</span></td>
-                    <td>{f.empresa}<div className="secundario">RUC {f.ruc} · {f.ambiente === 'real' ? 'SUNAT real' : 'prueba'}</div></td>
-                    <td><ul className="lista-motivos">{f.motivos.map((m, i) => <li key={i}>{m}</li>)}</ul></td>
-                    <td>{f.titular ?? '—'}<div className="secundario">{f.correo}</div></td>
-                    <td className="secundario">{f.ultimo ? fecha(f.ultimo) : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TablaDatos filas={d.filas} clave={f => f.id}
+            columnas={[
+              { clave: 'nivel', titulo: 'Nivel', orden: f => (f.nivel === 'alto' ? 0 : 1),
+                celda: f => <span className={'etiqueta' + (f.nivel === 'alto' ? ' peligro' : ' aviso')}>{f.nivel === 'alto' ? 'Alto' : 'Medio'}</span> },
+              { clave: 'empresa', titulo: 'Empresa', orden: f => f.empresa,
+                celda: f => <>{f.empresa}<div className="secundario">RUC {f.ruc} · {f.ambiente === 'real' ? 'SUNAT real' : 'prueba'}</div></> },
+              { clave: 'porque', titulo: 'Por qué', celda: f => <ul className="lista-motivos">{f.motivos.map((m, i) => <li key={i}>{m}</li>)}</ul> },
+              { clave: 'titular', titulo: 'Titular', orden: f => f.titular, celda: f => <>{f.titular ?? '—'}<div className="secundario">{f.correo}</div></> },
+              { clave: 'ultimo', titulo: 'Último comprobante', clase: 'secundario', orden: f => f.ultimo, celda: f => f.ultimo ? fecha(f.ultimo) : '—' },
+            ]} />
         </>
       )}
     </Marco>
@@ -383,7 +361,8 @@ export function ReporteConsumoPagina() {
         const porCuenta = new Map<string, number>()
         for (const f of d.filas) porCuenta.set(f.titular ?? '—', (porCuenta.get(f.titular ?? '—') ?? 0) + f.reales)
         return (
-          <>
+          <ResumenDetalle filas={d.filas.length}
+            resumen={<>
             <div className="cifras-reporte">
               <Cifra titulo="Comprobantes reales" valor={suma('reales')} />
               <Cifra titulo="De prueba" valor={suma('prueba')} />
@@ -393,29 +372,25 @@ export function ReporteConsumoPagina() {
             <div className="bloque">
               <h2 className="subtitulo">Las 10 que más emiten (reales)</h2>
               <Barras cabeceras={['Cuenta', 'Reales']} formato={n => String(n)}
-                      filas={[...porCuenta].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([etiqueta, valor]) => ({ etiqueta, valor }))} />
+                      filas={topYOtros([...porCuenta], ([e]) => e, ([, v]) => v)} />
             </div>
-            <div className="bloque sin-relleno">
-              <table className="tabla">
-                <thead><tr><th>Mes</th><th>Cuenta</th><th className="derecha">Empresas</th><th className="derecha">Reales</th>
-                  <th className="derecha">Prueba</th><th className="derecha">Notas</th><th className="derecha">Rechazados</th>
-                  <th className="derecha">WhatsApp</th></tr></thead>
-                <tbody>
-                  {d.filas.map((f, i) => (
-                    <tr key={i}>
-                      <td className="mono secundario">{f.mes}</td>
-                      <td>{f.titular ?? '—'}<div className="secundario">{f.correo} · {f.tipo === 'profesional' ? 'Profesional' : 'Negocio'}</div></td>
-                      <td className="derecha mono" title="con movimiento / de la cuenta">{f.empresas} / {f.empresasCuenta}</td>
-                      <td className="derecha mono">{f.reales}</td><td className="derecha mono secundario">{f.prueba}</td>
-                      <td className="derecha mono">{f.notas}</td>
-                      <td className={'derecha mono' + (f.rechazados > 0 ? ' texto-ojo' : '')}>{f.rechazados}</td>
-                      <td className="derecha mono">{f.whatsapp}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+            </>}
+            detalle={
+              <TablaDatos filas={d.filas} clave={(_, i) => i} ordenInicial={{ clave: 'reales', desc: true }}
+                buscar={f => [f.titular, f.correo, f.mes]} textoBuscar="Cuenta, correo o mes"
+                columnas={[
+                  { clave: 'mes', titulo: 'Mes', clase: 'mono secundario', celda: f => f.mes, orden: f => f.mes },
+                  { clave: 'cuenta', titulo: 'Cuenta', orden: f => f.titular,
+                    celda: f => <>{f.titular ?? '—'}<div className="secundario">{f.correo} · {f.tipo === 'profesional' ? 'Profesional' : 'Negocio'}</div></> },
+                  { clave: 'emp', titulo: 'Empresas', clase: 'derecha mono', orden: f => f.empresas, celda: f => `${f.empresas} / ${f.empresasCuenta}` },
+                  { clave: 'reales', titulo: 'Reales', clase: 'derecha mono', celda: f => f.reales, orden: f => f.reales },
+                  { clave: 'prueba', titulo: 'Prueba', clase: 'derecha mono secundario', celda: f => f.prueba, orden: f => f.prueba },
+                  { clave: 'notas', titulo: 'Notas', clase: 'derecha mono', celda: f => f.notas, orden: f => f.notas },
+                  { clave: 'rech', titulo: 'Rechazados', clase: 'derecha mono', orden: f => f.rechazados,
+                    celda: f => <span className={f.rechazados > 0 ? 'texto-ojo' : undefined}>{f.rechazados}</span> },
+                  { clave: 'wa', titulo: 'WhatsApp', clase: 'derecha mono', celda: f => f.whatsapp, orden: f => f.whatsapp },
+                ]} />
+            } />
         )
       }}
     </Marco>

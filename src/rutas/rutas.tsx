@@ -39,6 +39,7 @@ import {
   InicioReportes, ReporteClientesPagina, ReporteMiDiaPagina, ReporteProductosPagina,
   ReporteSucursalesPagina, ReporteVendedoresPagina, ReporteVentasPagina,
 } from '../modulos/reportes/vistas/Reportes'
+import { CompararPeriodosPagina } from '../modulos/reportes/vistas/CompararPeriodos'
 import {
   ReporteAnuladosPagina, ReporteDescargaPagina, ReporteIgvPagina, ReportePersonasNotasPagina, ReporteProblemasPagina,
   ReporteRegistroPagina,
@@ -363,6 +364,9 @@ export function Rutas() {
           <Protegido permiso={Permisos.Reportes.MiDia} modulo={Modulos.Facturacion}><ReporteMiDiaPagina /></Protegido>} />
         <Route path="/reportes/ventas" element={
           <Protegido permiso={Permisos.Reportes.TableroVentas} modulo={Modulos.Facturacion}><ReporteVentasPagina /></Protegido>} />
+        {/* e176: dos periodos lado a lado (y antes / después del inventario). */}
+        <Route path="/reportes/comparar" element={
+          <Protegido permiso={Permisos.Reportes.TableroVentas} modulo={Modulos.Facturacion}><CompararPeriodosPagina /></Protegido>} />
         <Route path="/reportes/clientes" element={
           <Protegido permiso={Permisos.Reportes.VentasCliente} modulo={Modulos.Facturacion}><ReporteClientesPagina /></Protegido>} />
         <Route path="/reportes/productos" element={

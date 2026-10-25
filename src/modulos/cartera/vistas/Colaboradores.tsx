@@ -595,7 +595,7 @@ function DialogoPersona({ persona, empresas, dueno, soyYo, onCerrar, onQuitar, o
         <CamposFicha valor={ficha} onCambio={setFicha} campoMal={error?.campo} cargos={cargos}>
           <label className="campo">
             <span className="etiqueta">Correo (con este entra)</span>
-            <input value={persona.correo} disabled />
+            <input type="email" value={persona.correo} disabled />
           </label>
         </CamposFicha>
       </section>

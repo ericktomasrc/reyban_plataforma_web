@@ -463,6 +463,8 @@ export interface LineaDocumento {
   descripcion: string
   unidadMedida: string
   cantidad: number
+  /** e174: línea libre cuya descripción ya está en el catálogo (su código). */
+  enCatalogo?: string | null
 
   /** Sin IGV y sin descuento. Es lo que espera el servicio. */
   valorUnitario: number

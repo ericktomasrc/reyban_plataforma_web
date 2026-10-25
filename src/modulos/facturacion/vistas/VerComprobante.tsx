@@ -73,6 +73,8 @@ export function VerComprobante() {
   // e165: el producto nuevo que sale de una línea libre.
   const [nuevoProducto, setNuevoProducto] = useState<Partial<ProductoEnLista>>()
   const [catalogosSunat, setCatalogosSunat] = useState<CatalogosSunat>()
+  // e174: las descripciones (en mayúsculas) que se acaban de agregar, con su código.
+  const [agregados, setAgregados] = useState<Record<string, string>>({})
 
   // EL MENSAJE QUE DEJÓ LA PANTALLA DE EMISIÓN al navegar hasta aquí. Se
   // enseña en ventana porque es la respuesta a «Emitir», el botón más serio de
@@ -181,7 +183,8 @@ export function VerComprobante() {
       const redondo = gravado && Math.abs(Math.round(conIgv * 100) / 100 - conIgv) < 0.000001
       setNuevoProducto({
         codigo: sig.codigo, descripcion: f.descripcion, unidadMedida: f.unidad, tipoAfectacion: base,
-        precioUnitario: redondo ? conIgv : f.valorUnitario, incluyeIgv: redondo, controlaStock: false,
+        // e174: un bien nace contando stock (como en Productos); un servicio no.
+        precioUnitario: redondo ? conIgv : f.valorUnitario, incluyeIgv: redondo, controlaStock: f.unidad !== 'ZZ',
       })
     } catch (e) {
       mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo preparar el producto.')
@@ -409,6 +412,7 @@ export function VerComprobante() {
             numero: l.numero, codigo: l.codigo, descripcion: l.descripcion, cantidad: l.cantidad, unidad: l.unidadMedida,
             valorUnitario: l.valorUnitario, descuento: l.descuento, valorVenta: l.valorVenta, igv: l.igv, total: l.importeTotal,
             libre: !l.productoId, tipoAfectacion: l.tipoAfectacion, precioConIgv: l.precioUnitario,
+            enCatalogo: l.enCatalogo ?? agregados[l.descripcion.trim().toUpperCase()] ?? undefined,
           }))} onAgregar={puede(Permisos.Facturacion.ProductosGestionar) && !esNota ? f => void agregarAlCatalogo(f) : undefined} />
 
           {/* --- Totales ------------------------------------------------------- */}
@@ -604,7 +608,11 @@ export function VerComprobante() {
       {nuevoProducto && catalogosSunat && (
         <DialogoProducto inicial={nuevoProducto} catalogos={catalogosSunat}
                          onCerrar={() => setNuevoProducto(undefined)}
-                         onGuardado={m => { setNuevoProducto(undefined); mensaje.bien(m) }} />
+                         onGuardado={(m, codigo) => {
+                           const clave = (nuevoProducto.descripcion ?? '').trim().toUpperCase()
+                           if (codigo && clave) setAgregados(x => ({ ...x, [clave]: codigo }))
+                           setNuevoProducto(undefined); mensaje.bien(m)
+                         }} />
       )}
 
       <Dialogo titulo={`${textoAnular} ${d.numero}`} abierto={ventana === 'anular'} onCerrar={() => setVentana(null)}

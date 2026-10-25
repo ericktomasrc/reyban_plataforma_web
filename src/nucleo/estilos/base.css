@@ -39,3 +39,13 @@ a { color: var(--acento); }
 }
 
 code, .mono { font-family: var(--mono); font-size: .9em; }
+
+/* e174 — LO QUE SE ESCRIBE SE VE EN MAYÚSCULAS (y la API lo guarda así: 056).
+   Fuera: correos, contraseñas, códigos de verificación, enlaces y los datos de
+   la persona (su ficha). Un campo que no deba ir en mayúsculas lleva
+   «sin-mayusculas» (o está dentro de algo que la lleva). */
+input:not([type]), input[type="text"], input[type="search"], textarea { text-transform: uppercase; }
+input::placeholder, textarea::placeholder { text-transform: none; }
+.sin-mayusculas input, .sin-mayusculas textarea, input.sin-mayusculas, textarea.sin-mayusculas,
+input[inputmode="email"], input[inputmode="url"], input[autocomplete="email"],
+input[autocomplete="username"], input[autocomplete="one-time-code"] { text-transform: none; }

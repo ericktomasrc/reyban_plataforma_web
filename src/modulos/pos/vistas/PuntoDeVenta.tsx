@@ -4,6 +4,7 @@ import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Cargando } from '../../../componentes/Cargando'
 import { Dialogo } from '../../../componentes/Dialogo'
+import { TablaDatos } from '../../../componentes/TablaDatos'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useYo } from '../../../nucleo/sesion/SesionContexto'
@@ -739,27 +740,26 @@ function VentasDeLaCaja({ onCerrar }: { onCerrar: () => void }) {
   )
 }
 
+/** e175: de 20 en 20, con búsqueda (número o cliente) y orden. */
 export function TablaVentas({ d }: { d: DetalleCaja }) {
   if (d.ventas.length === 0) return <p className="nota">Todavía no hay ventas.</p>
+  const cuenta = (e: string) => ['encolado', 'aceptado', 'observado'].includes(e)
   return (
-    <div className="tabla-envoltura">
-      <table className="tabla">
-        <thead><tr><th>Hora</th><th>Comprobante</th><th>Cliente</th><th>Pago</th><th className="derecha">Total</th><th>Estado</th></tr></thead>
-        <tbody>
-          {d.ventas.map(v => (
-            <tr key={v.id}>
-              <td className="secundario">{hora(v.en)}</td>
-              <td><Link className="mono" to={`/facturacion/comprobantes/${v.id}`} target="_blank">{v.numero}</Link></td>
-              <td>{v.cliente}</td>
-              <td className="secundario">{(v.pagos ?? []).map(p => `${nombreMedio(p.medio)} ${dinero(p.monto)}`).join(' + ')}{v.vuelto > 0 && ` · vuelto ${dinero(v.vuelto)}`}</td>
-              <td className="derecha mono">{dinero(v.total)}</td>
-              <td>{['encolado', 'aceptado', 'observado'].includes(v.estado) ? <span className="texto-bien">{v.estado === 'encolado' ? 'En camino' : 'Aceptado'}</span>
-                : <span className="texto-mal">{v.estado === 'error' ? 'No se envió (no cuenta)' : v.estado === 'rechazado' ? 'Rechazado (no cuenta)' : v.estado}</span>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <TablaDatos filas={d.ventas} clave={v => v.id} buscar={v => [v.numero, v.cliente]} textoBuscar="Número o cliente"
+      ordenInicial={{ clave: 'hora', desc: true }}
+      columnas={[
+        { clave: 'hora', titulo: 'Hora', clase: 'secundario', celda: v => hora(v.en), orden: v => v.en },
+        { clave: 'numero', titulo: 'Comprobante', orden: v => v.numero,
+          celda: v => <Link className="mono" to={`/facturacion/comprobantes/${v.id}`} target="_blank">{v.numero}</Link> },
+        { clave: 'cliente', titulo: 'Cliente', celda: v => v.cliente, orden: v => v.cliente },
+        { clave: 'pago', titulo: 'Pago', clase: 'secundario',
+          celda: v => <>{(v.pagos ?? []).map(p => `${nombreMedio(p.medio)} ${dinero(p.monto)}`).join(' + ')}{v.vuelto > 0 && ` · vuelto ${dinero(v.vuelto)}`}</> },
+        { clave: 'total', titulo: 'Total', clase: 'derecha mono', celda: v => dinero(v.total), orden: v => v.total },
+        { clave: 'estado', titulo: 'Estado', orden: v => (cuenta(v.estado) ? 0 : 1),
+          celda: v => cuenta(v.estado)
+            ? <span className="texto-bien">{v.estado === 'encolado' ? 'En camino' : 'Aceptado'}</span>
+            : <span className="texto-mal">{v.estado === 'error' ? 'No se envió (no cuenta)' : v.estado === 'rechazado' ? 'Rechazado (no cuenta)' : v.estado}</span> },
+      ]} />
   )
 }
 
