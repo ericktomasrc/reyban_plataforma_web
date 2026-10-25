@@ -17,6 +17,7 @@ import { SegundoFactor } from './modulos/acceso/vistas/SegundoFactor'
 import { CLAVE_TUS_DATOS_LUEGO, TusDatos } from './modulos/acceso/vistas/TusDatos'
 import { ConfirmarCorreo } from './modulos/perfil/vistas/ConfirmarCorreo'
 import { ProveedorMensajes } from './nucleo/mensajes/ProveedorMensajes'
+import { AvisoVersion } from './nucleo/pwa/AvisoVersion'
 import { ProveedorSesion, useSesion } from './nucleo/sesion/SesionContexto'
 import { Rutas } from './rutas/rutas'
 
@@ -64,6 +65,8 @@ export default function App() {
             <Route path="*" element={<Puerta />} />
           </Routes>
         </BrowserRouter>
+        {/* e171: «Hay una versión nueva» (la app instalable). */}
+        <AvisoVersion />
       </ProveedorMensajes>
     </ProveedorSesion>
   )

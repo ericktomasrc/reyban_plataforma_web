@@ -1345,3 +1345,17 @@ button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
 .grupo-permisos-nota { margin: 0 0 var(--e2); color: var(--aviso); }
 .permiso-casilla { align-items: flex-start; padding: 4px 0; }
 .permiso-casilla input { margin-top: 3px; accent-color: var(--acento); }
+
+/* e171 — la app instalable: el aviso de versión nueva y los pasos del iPhone. */
+.aviso-version {
+  /* Arriba: abajo taparía la barra de Emitir del comprobante. */
+  position: fixed; left: 50%; top: 12px; transform: translateX(-50%); z-index: 60;
+  display: flex; align-items: center; gap: var(--e3); max-width: min(680px, calc(100vw - 32px));
+  padding: var(--e3) var(--e4); border-radius: 12px; background: var(--tinta, #1d252c); color: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .18); font-size: 14px;
+}
+.aviso-version .boton { flex: none; }
+.aviso-version-cerrar { flex: none; border: 0; background: none; color: #fff; opacity: .7; font-size: 20px; cursor: pointer; }
+.aviso-version-cerrar:hover { opacity: 1; }
+@media (max-width: 560px) { .aviso-version { flex-wrap: wrap; top: 8px; } }
+.pasos-instalar { margin: 0 0 var(--e3); padding-left: 1.3em; display: grid; gap: 6px; }

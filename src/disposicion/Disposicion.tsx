@@ -5,6 +5,8 @@ import { fecha } from '../nucleo/formato/fechas'
 import { useMensaje } from '../nucleo/mensajes/ProveedorMensajes'
 import { DialogoMiFicha } from '../modulos/perfil/componentes/DialogoMiFicha'
 import { Boton } from '../componentes/Boton'
+import { Dialogo } from '../componentes/Dialogo'
+import { useInstalar } from '../nucleo/pwa/pwa'
 import { BarraSuplantacion } from './BarraSuplantacion'
 import { SelectorEmpresa } from './SelectorEmpresa'
 import { SelectorSucursal } from './SelectorSucursal'
@@ -47,6 +49,9 @@ export function Disposicion() {
 
   // 048: EL MENÚ DEL NOMBRE (Mi cuenta · Seguridad · Salir).
   const [menuNombre, setMenuNombre] = useState(false)
+  // e171: «Instalar la app» y, en iPhone, los pasos.
+  const instalarApp = useInstalar()
+  const [pasosIos, setPasosIos] = useState(false)
   const nombreRef = useRef<HTMLDivElement>(null)
   useEffect(() => { setMenuNombre(false) }, [ruta.pathname, ruta.search])
   useEffect(() => {
@@ -159,6 +164,14 @@ export function Disposicion() {
           <div className="menu-quien" role="menu">
             <Link to="/perfil" role="menuitem">Mi cuenta</Link>
             <Link to="/perfil?pestana=seguridad" role="menuitem">Seguridad</Link>
+            {/* e171: la app instalable. Solo si el navegador lo permite (o en iPhone, con los pasos). */}
+            {(instalarApp.puede || instalarApp.soloPasos) && (
+              <button type="button" role="menuitem" onClick={() => {
+                setMenuNombre(false)
+                if (instalarApp.puede) void instalarApp.instalar().then(ok => { if (ok) mensaje.bien('Listo: Reyban quedó instalada. Ábrela desde su ícono.') })
+                else setPasosIos(true)
+              }}>Instalar la app</button>
+            )}
             <hr />
             <button type="button" role="menuitem" onClick={() => {
               // e163: se vuelve al inicio ANTES de salir, para que quien entre
@@ -191,6 +204,18 @@ export function Disposicion() {
           onGuardado={m => { setPidiendoFicha(false); mensaje.bien(m + ' Ya puedes seguir.') }}
         />
       )}
+
+      {/* e171: en iPhone y iPad no hay botón de instalar: se agrega desde Safari. */}
+      <Dialogo titulo="Instalar Reyban en tu iPhone" abierto={pasosIos} onCerrar={() => setPasosIos(false)}
+               acciones={<Boton onClick={() => setPasosIos(false)}>Entendido</Boton>}>
+        <ol className="pasos-instalar">
+          <li>Abre esta página en <strong>Safari</strong>.</li>
+          <li>Toca <strong>Compartir</strong> (el cuadrado con la flecha hacia arriba).</li>
+          <li>Elige <strong>«Agregar a inicio»</strong> y luego <strong>Agregar</strong>.</li>
+        </ol>
+        <p className="nota">Queda el ícono de Reyban en tu pantalla de inicio y se abre a pantalla completa, como una app.
+          Para emitir sigue haciendo falta internet.</p>
+      </Dialogo>
 
       <div className="cuerpo">
         <aside className="lateral" aria-label="Menú">
