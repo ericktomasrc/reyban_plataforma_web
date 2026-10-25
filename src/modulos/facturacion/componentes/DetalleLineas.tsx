@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Boton } from '../../../componentes/Boton'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { Paginacion } from '../../../componentes/Paginacion'
+import { esRegalo } from '../regalos'
 
 /**
  * e163 — LAS LÍNEAS DE UN COMPROBANTE: buscar, de 10 en 10, y el «ojito».
@@ -169,7 +170,10 @@ export function LineasEmitidas({ filas, moneda, onAgregar }: {
             <tr key={f.numero}>
               <td className="secundario">{f.numero}</td>
               <td>
-                <div className="principal">{f.descripcion}</div>
+                <div className="principal">
+                  {f.descripcion}
+                  {f.tipoAfectacion && esRegalo(f.tipoAfectacion) && <> <span className="pastilla-regalo" title="Operación gratuita: no se cobró">🎁 regalo</span></>}
+                </div>
                 {f.codigo && <div className="secundario mono">{f.codigo}</div>}
                 {f.libre && onAgregar && (
                   <button type="button" className="enlace agregar-catalogo" onClick={() => onAgregar(f)}>
@@ -179,7 +183,11 @@ export function LineasEmitidas({ filas, moneda, onAgregar }: {
               </td>
               <td className="derecha mono">{cant(f.cantidad)} {f.unidad}</td>
               <td className="derecha mono">{f.valorUnitario.toFixed(4)}</td>
-              <td className="derecha mono">{n2(f.valorVenta ?? f.total)}</td>
+              <td className="derecha mono">
+                {f.tipoAfectacion && esRegalo(f.tipoAfectacion)
+                  ? <>0.00<span className="nc-vale" title="Lo que vale: no se cobró">{n2(f.valorVenta ?? 0)}</span></>
+                  : n2(f.valorVenta ?? f.total)}
+              </td>
             </tr>
           ))}
           {visibles.length === 0 && (

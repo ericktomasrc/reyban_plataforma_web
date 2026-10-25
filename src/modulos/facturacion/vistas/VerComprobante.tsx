@@ -11,6 +11,7 @@ import { fecha, fechaYHora } from '../../../nucleo/formato/fechas'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { ArchivosComprobante } from '../componentes/ArchivosComprobante'
 import { LineasEmitidas, type FilaDetalle } from '../componentes/DetalleLineas'
+import { afectacionBase } from '../regalos'
 import { DialogoProducto } from '../componentes/DialogoProducto'
 import { RechazoComprobante } from '../componentes/RechazoComprobante'
 import { EstadoComprobante } from '../componentes/EstadoComprobante'
@@ -174,11 +175,12 @@ export function VerComprobante() {
     try {
       const [cat, sig] = await Promise.all([catalogosSunat ?? productosServicio.catalogos(), productosServicio.siguienteCodigo()])
       setCatalogosSunat(cat)
-      const gravado = f.tipoAfectacion === '10'
+      const base = afectacionBase(f.tipoAfectacion ?? '10')   // e169: un regalo se guarda con su afectación de venta
+      const gravado = base === '10'
       const conIgv = f.precioConIgv ?? f.valorUnitario
       const redondo = gravado && Math.abs(Math.round(conIgv * 100) / 100 - conIgv) < 0.000001
       setNuevoProducto({
-        codigo: sig.codigo, descripcion: f.descripcion, unidadMedida: f.unidad, tipoAfectacion: f.tipoAfectacion ?? '10',
+        codigo: sig.codigo, descripcion: f.descripcion, unidadMedida: f.unidad, tipoAfectacion: base,
         precioUnitario: redondo ? conIgv : f.valorUnitario, incluyeIgv: redondo, controlaStock: false,
       })
     } catch (e) {
@@ -426,6 +428,13 @@ export function VerComprobante() {
                 <dt>IGV</dt>
                 <dd className="mono">{d.totales.totalIgv.toFixed(2)}</dd>
               </div>
+              {/* e169: los regalos (operaciones gratuitas): no suman al total. */}
+              {d.totales.totalGratuito > 0 && (
+                <div className="fila gratuito">
+                  <dt>🎁 Gratuito (no se cobró)</dt>
+                  <dd className="mono">{d.totales.totalGratuito.toFixed(2)}</dd>
+                </div>
+              )}
               <div className="fila grande">
                 <dt>Total</dt>
                 <dd className="mono">{d.moneda} {d.totales.importeTotal.toFixed(2)}</dd>

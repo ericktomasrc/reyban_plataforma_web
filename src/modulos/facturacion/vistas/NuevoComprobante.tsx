@@ -27,6 +27,7 @@ import type { DatosDocumento, SerieEmpresa, SucursalMia } from '../servicios/fac
 import { sucursalesServicio } from '../servicios/facturacionServicio'
 import { cantidad, inventarioServicio, type Disponible } from '../../inventario/servicios/inventarioServicio'
 import '../comprobante.css'
+import { afectacionBase, codigoRegalo, deRegalo, esRegalo, motivosPara, NOMBRE_REGALO, sePuedeRegalar, type MotivoRegalo } from '../regalos'
 
 /**
  * 046: con qué sucursal abre la pantalla. Con una elegida arriba, la API ya
@@ -449,12 +450,19 @@ export function NuevoComprobante() {
   // cada tecla. Si se cambia una, hay que cambiar la otra.
   // ══════════════════════════════════════════════════════════════════════════
   const totales = useMemo(() => {
-    let gravado = 0, otros = 0, igv = 0, descuentos = 0
+    let gravado = 0, otros = 0, igv = 0, descuentos = 0, gratuito = 0, igvRegalo = 0
 
     for (const l of lineas) {
       const bruto = num(l.cantidad) * num(l.valorUnitario)
       const desc  = num(l.descuento)
       const neto  = r2(Math.max(0, bruto - desc))
+
+      // e169: el regalo no se cobra: va al total gratuito y a nada más.
+      if (esRegalo(l.tipoAfectacion)) {
+        gratuito += r2(bruto)
+        if (afectacionBase(l.tipoAfectacion) === '10') igvRegalo += r2(r2(bruto) * IGV)
+        continue
+      }
 
       descuentos += desc
 
@@ -472,7 +480,7 @@ export function NuevoComprobante() {
     }
 
     return {
-      gravado: r2(gravado), otros: r2(otros), igv: r2(igv),
+      gravado: r2(gravado), otros: r2(otros), igv: r2(igv), gratuito: r2(gratuito), igvRegalo: r2(igvRegalo),
       descuentos: r2(descuentos), total: r2(gravado + otros + igv),
     }
   }, [lineas])
@@ -570,11 +578,12 @@ export function NuevoComprobante() {
 
     return lineas
       .map((l, i) => ({ numero: i + 1, l }))
-      .filter(x => x.l.tipoAfectacion !== habitual)
+      .filter(x => afectacionBase(x.l.tipoAfectacion) !== habitual)
   }, [lineas, cliente])
 
   const nombreAfectacion = (codigo: string) =>
-    catalogos?.afectaciones.find(a => a.codigo === codigo)?.nombre ?? codigo
+    catalogos?.afectaciones.find(a => a.codigo === codigo)?.nombre
+      ?? (esRegalo(codigo) ? `Regalo (${NOMBRE_REGALO[codigo]})` : codigo)
 
   /** Cuántas líneas van de cada afectación. Es el resumen de la revisión. */
   const resumenAfectaciones = useMemo(() => {
@@ -594,7 +603,24 @@ export function NuevoComprobante() {
   const igualarAfectacion = () => {
     const habitual = cliente?.afectacionHabitual
     if (!habitual) return
-    setLineas(ls => ls.map(l => ({ ...l, tipoAfectacion: habitual })))
+    // e169: un regalo sigue siendo regalo; solo cambia la venta normal.
+    setLineas(ls => ls.map(l => esRegalo(l.tipoAfectacion) ? l : ({ ...l, tipoAfectacion: habitual })))
+  }
+
+  /** e169: «Es regalo»: marca o desmarca la línea. El código lo pone el motivo. */
+  function marcarRegalo(clave: string, si: boolean) {
+    setLineas(ls => ls.map(l => {
+      if (l.clave !== clave) return l
+      if (!si) return { ...l, tipoAfectacion: afectacionBase(l.tipoAfectacion) }
+      if (!sePuedeRegalar(l.tipoAfectacion)) return l
+      return { ...l, tipoAfectacion: codigoRegalo(l.tipoAfectacion, 'bonificacion'), descuento: '0' }
+    }))
+  }
+
+  function motivoRegalo(clave: string, motivo: MotivoRegalo) {
+    setLineas(ls => ls.map(l => l.clave === clave
+      ? { ...l, tipoAfectacion: codigoRegalo(afectacionBase(l.tipoAfectacion), motivo) }
+      : l))
   }
 
   // --- Manejo de líneas -----------------------------------------------------
@@ -781,14 +807,15 @@ export function NuevoComprobante() {
       try {
         const codigo = l.codigoNuevo?.trim() || (await productosServicio.siguienteCodigo()).codigo
         const v = num(l.valorUnitario)
-        const tasa = l.tipoAfectacion === '10' ? IGV : 0
+        const base = afectacionBase(l.tipoAfectacion)   // e169: un regalo se guarda con su afectación de venta
+        const tasa = base === '10' ? IGV : 0
         const conIgv = r2(v * (1 + tasa))
         const redondo = tasa > 0 && Math.abs(conIgv / (1 + tasa) - v) < 0.000001
         const r = await productosServicio.crear({
           codigo,
           descripcion: l.descripcion.trim(),
           unidadMedida: l.unidadMedida,
-          tipoAfectacion: l.tipoAfectacion,
+          tipoAfectacion: base,
           precioUnitario: redondo ? conIgv : v,
           incluyeIgv: redondo,
           controlaStock: false,
@@ -869,7 +896,12 @@ export function NuevoComprobante() {
       if (!l.descripcion.trim()) return `A la línea ${i + 1} le falta la descripción.`
       if (num(l.cantidad) <= 0) return `La cantidad de la línea ${i + 1} tiene que ser mayor que cero.`
       if (num(l.valorUnitario) < 0) return `El valor de la línea ${i + 1} no puede ser negativo.`
+      if (esRegalo(l.tipoAfectacion) && num(l.descuento) > 0) return `La línea ${i + 1} es un regalo: no lleva descuento.`
     }
+
+    // e169: todo de regalo sale en cero y SUNAT lo rechaza (2062).
+    if (lineas.every(l => esRegalo(l.tipoAfectacion)))
+      return 'Todas las líneas son regalo: el comprobante saldría en cero (SUNAT lo rechaza). Pon el regalo junto a la venta que lo origina.'
 
     const ivap = lineas.filter(l => l.tipoAfectacion === '17').length
     if (ivap > 0 && ivap !== lineas.length)
@@ -944,7 +976,14 @@ export function NuevoComprobante() {
 
     // e166: UNA LÍNEA EN CERO LA RECHAZA SUNAT (error 3105: «al menos un
     // tributo por línea»). Pasa con un precio vacío o un descuento del 100 %.
-    // Los regalos (operaciones gratuitas) todavía no se emiten desde aquí.
+    // e169: el regalo, aparte: su valor no se cobra pero tiene que existir.
+    const regaloSinValor = lineas.map((l, i) => ({ l, i })).filter(({ l }) => esRegalo(l.tipoAfectacion) && valorDeVenta(l) <= 0)
+    if (regaloSinValor.length > 0) {
+      mensaje.error(
+        `${regaloSinValor.length === 1 ? 'La línea' : 'Las líneas'} ${regaloSinValor.map(x => x.i + 1).join(', ')}: regalo sin valor.`,
+        'Aunque no se cobre, SUNAT pide cuánto vale, mayor que cero (error 2367). Escribe su valor unitario.')
+      return
+    }
     const enCero = lineas.map((l, i) => ({ l, i })).filter(({ l }) => valorDeVenta(l) <= 0)
     if (enCero.length > 0) {
       mensaje.error(
@@ -1214,12 +1253,13 @@ export function NuevoComprobante() {
   // e163: para la ventana del ojo, todas las líneas con sus importes.
   const filasDetalle: FilaDetalle[] = lineas.map((l, i) => {
     const vv = r2(Math.max(0, num(l.cantidad) * num(l.valorUnitario) - num(l.descuento)))
-    const tasa = l.tipoAfectacion === '10' ? IGV : l.tipoAfectacion === '17' ? 0.04 : 0
+    const regalo = esRegalo(l.tipoAfectacion)
+    const tasa = regalo ? 0 : l.tipoAfectacion === '10' ? IGV : l.tipoAfectacion === '17' ? 0.04 : 0
     const ig = r2(vv * tasa)
     return {
       numero: i + 1, codigo: l.codigo || null, descripcion: l.descripcion, cantidad: num(l.cantidad), unidad: l.unidadMedida,
-      valorUnitario: num(l.valorUnitario), descuento: num(l.descuento), valorVenta: vv, igv: ig, total: vv + ig,
-      afectacion: nombreAfectacion(l.tipoAfectacion),
+      valorUnitario: num(l.valorUnitario), descuento: num(l.descuento), valorVenta: vv, igv: ig, total: regalo ? 0 : vv + ig,
+      afectacion: regalo ? '🎁 regalo' : nombreAfectacion(l.tipoAfectacion), tipoAfectacion: l.tipoAfectacion,
     }
   })
   const lineaVista = lineas.findIndex(l => l.clave === verLinea)
@@ -1521,8 +1561,10 @@ export function NuevoComprobante() {
           {lineasVisibles.map(({ l, i }) => {
             const bruto = num(l.cantidad) * num(l.valorUnitario)
             const importe = Math.max(0, bruto - num(l.descuento))
-            const conIgv = l.tipoAfectacion === '10' && num(l.valorUnitario) > 0 ? num(l.valorUnitario) * (1 + IGV) : null
-            const desajustada = !!cliente?.afectacionHabitual && l.tipoAfectacion !== cliente.afectacionHabitual
+            // e169: el regalo: su código lo dice todo (motivo y afectación del producto).
+            const regalo = deRegalo(l.tipoAfectacion)
+            const conIgv = afectacionBase(l.tipoAfectacion) === '10' && num(l.valorUnitario) > 0 ? num(l.valorUnitario) * (1 + IGV) : null
+            const desajustada = !!cliente?.afectacionHabitual && afectacionBase(l.tipoAfectacion) !== cliente.afectacionHabitual
             // e166: en cero (sin precio o con todo descontado): SUNAT la rechaza.
             const enCeroLinea = (!!l.descripcion.trim() || !!l.productoId) && valorDeVenta(l) <= 0
 
@@ -1531,7 +1573,7 @@ export function NuevoComprobante() {
             const falta = p ? faltan.find(f => f.productoId === p.productoId) : undefined
 
             return (
-              <div key={l.clave} className="nc-linea" role="row">
+              <div key={l.clave} className={regalo ? 'nc-linea nc-regalo' : 'nc-linea'} role="row">
                 <div className="nc-fila">
                   <span className="nc-num" role="cell">{i + 1}</span>
                   <label className="nc-celda nc-desc" role="cell">
@@ -1567,14 +1609,19 @@ export function NuevoComprobante() {
                   </label>
                   <label className="nc-celda" role="cell">
                     <span className="nc-et">Descuento</span>
-                    <input className="der" value={l.descuento} inputMode="decimal"
+                    <input className="der" value={l.descuento} inputMode="decimal" disabled={!!regalo}
+                           title={regalo ? 'Un regalo no lleva descuento' : undefined}
                            onChange={e => cambiar(l.clave, 'descuento', e.target.value)}
                            aria-label={`Descuento de la línea ${i + 1} (${moneda === 'PEN' ? 'en soles' : 'en dólares'})`}
                            aria-invalid={num(l.descuento) > bruto || (enCeroLinea && num(l.descuento) > 0) ? true : undefined} />
                   </label>
                   <div className="nc-celda nc-importe" role="cell">
                     <span className="nc-et">Importe</span>
-                    <span className="mono">{dinero(importe)}</span>
+                    {regalo ? (
+                      <span className="mono">0.00<span className="nc-vale" title="Lo que vale: no se cobra">{dinero(r2(bruto))}</span></span>
+                    ) : (
+                      <span className="mono">{dinero(importe)}</span>
+                    )}
                   </div>
                   <div className="nc-quitar" role="cell">
                     <button type="button" className="ver" title="Ver el detalle" aria-label={`Ver el detalle de la línea ${i + 1}`}
@@ -1587,20 +1634,37 @@ export function NuevoComprobante() {
                 </div>
 
                 <div className="nc-detalle">
-                  <label className={desajustada ? 'nc-afectacion desajustada' : 'nc-afectacion'}>
-                    <span className="solo-lector">Afectación del IGV de la línea {i + 1}</span>
-                    <select value={l.tipoAfectacion} onChange={e => cambiar(l.clave, 'tipoAfectacion', e.target.value)}>
-                      {afectaciones.map(a => (
-                        <option key={a.codigo} value={a.codigo}>{a.nombre}</option>
-                      ))}
-                    </select>
-                  </label>
+                  {regalo ? (
+                    <>
+                      <label className="nc-es-regalo marcado">
+                        <input type="checkbox" checked onChange={() => marcarRegalo(l.clave, false)} />
+                        🎁 Es regalo
+                      </label>
+                      <label className="nc-motivo-regalo">
+                        <span className="solo-lector">¿Por qué regalas la línea {i + 1}?</span>
+                        <select value={regalo.motivo} onChange={e => motivoRegalo(l.clave, e.target.value as MotivoRegalo)}>
+                          {motivosPara(regalo.base).map(m => <option key={m.codigo} value={m.codigo}>¿Por qué? {m.nombre}</option>)}
+                        </select>
+                      </label>
+                      <span className="nc-dato">va a SUNAT como <span className="mono">{l.tipoAfectacion}</span> · {NOMBRE_REGALO[l.tipoAfectacion]}</span>
+                    </>
+                  ) : (
+                    <label className={desajustada ? 'nc-afectacion desajustada' : 'nc-afectacion'}>
+                      <span className="solo-lector">Afectación del IGV de la línea {i + 1}</span>
+                      <select value={l.tipoAfectacion} onChange={e => cambiar(l.clave, 'tipoAfectacion', e.target.value)}>
+                        {!afectaciones.some(a => a.codigo === l.tipoAfectacion) && <option value={l.tipoAfectacion}>{l.tipoAfectacion}</option>}
+                        {afectaciones.map(a => (
+                          <option key={a.codigo} value={a.codigo}>{a.nombre}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   {enCeroLinea && (
-                    <span className="nc-stock mal" title="SUNAT rechaza una línea sin valor (error 3105).">
-                      {num(l.descuento) > 0 ? 'El descuento la deja en cero' : 'Sin precio'}: SUNAT la rechaza
+                    <span className="nc-stock mal" title={regalo ? 'SUNAT pide cuánto vale el regalo (error 2367).' : 'SUNAT rechaza una línea sin valor (error 3105).'}>
+                      {regalo ? 'Regalo sin valor: escribe cuánto vale' : `${num(l.descuento) > 0 ? 'El descuento la deja en cero' : 'Sin precio'}: SUNAT la rechaza`}
                     </span>
                   )}
-                  {l.productoId && primeraDe.get(l.productoId) !== l.clave && (
+                  {!regalo && l.productoId && primeraDe.get(l.productoId) !== l.clave && (
                     <span className="nc-repetido" title={`Este producto ya está en la línea ${lineas.findIndex(x => x.clave === primeraDe.get(l.productoId!)) + 1}`}>repetido</span>
                   )}
                   {l.codigo && <span className="nc-dato">Código <span className="mono">{l.codigo}</span></span>}
@@ -1619,13 +1683,27 @@ export function NuevoComprobante() {
                       )}
                     </span>
                   )}
-                  {conIgv != null && <span className="nc-dato">Con IGV <span className="mono">{conIgv.toFixed(2)}</span> c/u</span>}
+                  {conIgv != null && (regalo
+                    ? <span className="nc-dato">Vale con IGV <span className="mono">{conIgv.toFixed(2)}</span> c/u · <strong>no se cobra</strong></span>
+                    : <span className="nc-dato">Con IGV <span className="mono">{conIgv.toFixed(2)}</span> c/u</span>)}
+                  {regalo && conIgv == null && <span className="nc-dato"><strong>No se cobra</strong>: el valor es lo que vale</span>}
                   {p && !p.controla && <span className="nc-dato">No se cuenta en el inventario</span>}
                   {p && p.controla && !falta && (
                     <span className="nc-stock bien">Disponible aquí <strong className="mono">{cantidad(p.disponible)}</strong></span>
                   )}
                   {p && p.controla && falta && (
                     <span className={disp?.bloquea ? 'nc-stock mal' : 'nc-stock ojo'}>Hay <strong className="mono">{cantidad(p.disponible)}</strong> disponibles</span>
+                  )}
+                  {/* e169: «Es regalo», apagada hasta que se marca. */}
+                  {!regalo && (
+                    <label className="nc-es-regalo"
+                           title={sePuedeRegalar(l.tipoAfectacion)
+                             ? 'Marca si esta línea se entrega gratis (bonificación, premio, muestra…). El cliente no la paga.'
+                             : 'La exportación y el IVAP no se pueden entregar como regalo.'}>
+                      <input type="checkbox" checked={false} disabled={!sePuedeRegalar(l.tipoAfectacion)}
+                             onChange={() => marcarRegalo(l.clave, true)} aria-label={`La línea ${i + 1} es regalo`} />
+                      Es regalo
+                    </label>
                   )}
                 </div>
 
@@ -1683,11 +1761,20 @@ export function NuevoComprobante() {
               <div><dt>Otras operaciones</dt><dd className="mono">{dinero(totales.otros)}</dd></div>
             )}
             <div><dt>IGV</dt><dd className="mono">{dinero(totales.igv)}</dd></div>
+            {totales.gratuito > 0 && (
+              <div className="nc-gratuito"><dt>🎁 Gratuito (no se cobra)</dt><dd className="mono">{dinero(totales.gratuito)}</dd></div>
+            )}
             <div className="total"><dt>Total</dt><dd className="mono">{simbolo} {dinero(totales.total)}</dd></div>
             {moneda !== 'PEN' && num(tipoCambio) > 0 && (
               <div className="equivale"><dt>Equivale a</dt><dd className="mono">S/ {dinero(totales.total * num(tipoCambio))}</dd></div>
             )}
           </dl>
+          {totales.igvRegalo > 0 && (
+            <p className="nota nc-nota-regalo">
+              IGV de lo regalado: <strong className="mono">{simbolo} {dinero(totales.igvRegalo)}</strong>. Lo asumes tú, no el
+              cliente (tu contador lo declara como retiro de bienes).
+            </p>
+          )}
         </div>
       </section>
 
@@ -1817,7 +1904,8 @@ export function NuevoComprobante() {
         const l = lineas[lineaVista]
         const bruto = num(l.cantidad) * num(l.valorUnitario)
         const valorVenta = r2(Math.max(0, bruto - num(l.descuento)))
-        const tasa = l.tipoAfectacion === '10' ? IGV : l.tipoAfectacion === '17' ? 0.04 : 0
+        const regaloVista = esRegalo(l.tipoAfectacion)
+        const tasa = regaloVista ? 0 : l.tipoAfectacion === '10' ? IGV : l.tipoAfectacion === '17' ? 0.04 : 0
         const igvLinea = r2(valorVenta * tasa)
         const p = l.productoId && disp?.encendido ? disp.productos?.find(x => x.productoId === l.productoId) : undefined
         const unidad = unidades.find(u => u.codigo === l.unidadMedida)
@@ -1839,8 +1927,14 @@ export function NuevoComprobante() {
               <dl className="nc-totales nc-detalle-importes">
                 <div><dt>Valor de venta</dt><dd className="mono">{dinero(valorVenta)}</dd></div>
                 <div><dt>{l.tipoAfectacion === '17' ? 'IVAP (4 %)' : tasa > 0 ? 'IGV (18 %)' : 'IGV'}</dt><dd className="mono">{dinero(igvLinea)}</dd></div>
-                <div className="total"><dt>Total de la línea</dt><dd className="mono">{simbolo} {dinero(valorVenta + igvLinea)}</dd></div>
+                <div className="total"><dt>{regaloVista ? 'El cliente paga' : 'Total de la línea'}</dt><dd className="mono">{simbolo} {dinero(regaloVista ? 0 : valorVenta + igvLinea)}</dd></div>
               </dl>
+              {regaloVista && (
+                <p className="nota se-aplica">
+                  🎁 Regalo: el valor de venta es lo que vale (va al total gratuito y al XML como valor referencial). El cliente no lo paga.
+                  {afectacionBase(l.tipoAfectacion) === '10' && ' Su IGV lo asumes tú: lo declara tu contador como retiro de bienes.'}
+                </p>
+              )}
               {p?.controla && (
                 <div className="nc-detalle-stock">
                   <span className="secundario">Stock disponible</span>
