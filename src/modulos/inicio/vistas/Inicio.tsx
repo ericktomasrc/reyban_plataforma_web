@@ -14,8 +14,11 @@ import { consultasServicio } from '../../facturacion/servicios/facturacionServic
 import { FranjaReclamos } from '../../cartera/componentes/ResponderReclamo'
 import { pedidosServicio } from '../../cartera/servicios/pedidosServicio'
 import type { ReclamoSobreMia } from '../../cartera/servicios/pedidosServicio'
-import type { Resumen, UltimoComprobante } from '../servicios/inicioServicio'
+import type { Resumen } from '../servicios/inicioServicio'
 import { inventarioServicio, type AlertaInventario } from '../../inventario/servicios/inventarioServicio'
+import { documentosServicio } from '../../facturacion/servicios/facturacionServicio'
+import type { DocumentoEnLista } from '../../facturacion/tipos'
+import { Paginacion } from '../../../componentes/Paginacion'
 
 /**
  * EL INICIO.
@@ -79,6 +82,8 @@ function Tablero() {
 
   const [datos, setDatos] = useState<Resumen | null>(null)
   const [fallo, setFallo] = useState<string | null>(null)
+  // e172: la tarjeta elegida filtra la grilla. «Todos» al entrar.
+  const [filtro, setFiltro] = useState<Filtro>('todos')
 
   // FASE 4d: un reclamo con documentos sobre ESTA empresa («traspaso en
   // revisión»). Solo para la gente de la cuenta; si falla, no se enseña nada.
@@ -140,7 +145,7 @@ function Tablero() {
 
       {ve && datos && (
         <>
-          <div className="resumen-bandeja resumen-inicio">
+          <div className="resumen-bandeja resumen-inicio con-filtros">
             <div className="destacado">
               <span>Vendido en {mes}</span>
               <strong className="mono">S/ {soles(datos.vendido)}</strong>
@@ -149,21 +154,19 @@ function Tablero() {
                 {datos.vendidoUsd !== 0 && <> · y US$ {soles(datos.vendidoUsd)}</>}
               </span>
             </div>
-            <div className="bien">
-              <span>Aceptados por SUNAT</span>
-              <strong>{datos.aceptados}</strong>
-              <span>de {datos.emitidos}</span>
-            </div>
-            <div className="ojo">
-              <span>En camino</span>
-              <strong>{datos.enCamino}</strong>
-              <span>se actualizan solos</span>
-            </div>
-            <div className={datos.rechazados > 0 ? 'mal' : 'gris'}>
-              <span>Rechazados</span>
-              <strong>{datos.rechazados}</strong>
-              <span>{datos.rechazados > 0 ? 'revísalos' : 'ninguno este mes'}</span>
-            </div>
+            {/* e172: LAS TARJETAS SON FILTROS de la grilla de abajo. «Todos», elegida al entrar. */}
+            {TARJETAS.map(t => {
+              const n = t.cuenta(datos)
+              return (
+                <button key={t.clave} type="button" aria-pressed={filtro === t.clave}
+                        className={`tarjeta-filtro ${t.tono(n)}${filtro === t.clave ? ' elegida' : ''}`}
+                        onClick={() => setFiltro(t.clave)}>
+                  <span>{t.titulo}</span>
+                  <strong>{n}</strong>
+                  <span>{t.pie(n, datos)}</span>
+                </button>
+              )
+            })}
           </div>
 
           {datos.revisionPendiente && (
@@ -175,13 +178,14 @@ function Tablero() {
 
           <div className="inicio-cuerpo">
             <section className="bloque inicio-ultimos">
-              <div className="cabecera-bloque">
-                <h2>Últimos comprobantes</h2>
-                <Link to="/facturacion/comprobantes">Ver todos →</Link>
-              </div>
               {datos.ultimos.length === 0
-                ? <Vacio>Todavía no has emitido ningún comprobante.{emite && <> <Link to="/facturacion/comprobantes/nuevo">Emite el primero</Link>.</>}</Vacio>
-                : <Ultimos filas={datos.ultimos} />}
+                ? (
+                  <>
+                    <div className="cabecera-bloque"><h2>Comprobantes</h2></div>
+                    <Vacio>Todavía no has emitido ningún comprobante.{emite && <> <Link to="/facturacion/comprobantes/nuevo">Emite el primero</Link>.</>}</Vacio>
+                  </>
+                )
+                : <GrillaDelMes filtro={filtro} desde={datos.desde} mes={mes} refresco={datos} />}
             </section>
 
             <aside className="inicio-lado">
@@ -296,15 +300,8 @@ function Avisos({ datos, configura }: { datos: Resumen; configura: boolean }) {
 
   return (
     <>
-      {datos.ultimoRechazo && (
-        <div className="aviso error fila-aviso">
-          <span>
-            <strong className="mono">{datos.ultimoRechazo.numero ?? 'Un comprobante'}</strong> fue rechazado por SUNAT
-            {datos.ultimoRechazo.mensaje && <>: «{datos.ultimoRechazo.mensaje}»</>}. Corrígelo y emite uno nuevo.
-          </span>
-          <Link to={`/facturacion/comprobantes/${datos.ultimoRechazo.id}`}>Ver comprobante →</Link>
-        </div>
-      )}
+      {/* e172: el aviso del último rechazo ya no sale aquí: la tarjeta
+          «Rechazados» los lista todos en la grilla. */}
 
       {datos.conError > 0 && (
         <div className="aviso ojo fila-aviso">
@@ -332,41 +329,113 @@ function Avisos({ datos, configura }: { datos: Resumen; configura: boolean }) {
 }
 
 
-function Ultimos({ filas }: { filas: UltimoComprobante[] }) {
+// =============================================================================
+// e172 — LAS TARJETAS COMO FILTROS Y LA GRILLA DEL MES
+// =============================================================================
+
+type Filtro = 'todos' | 'aceptados' | 'encamino' | 'rechazados' | 'anulados'
+
+const TARJETAS: {
+  clave: Filtro; titulo: string; estado: string
+  cuenta: (d: Resumen) => number
+  tono: (n: number) => string
+  pie: (n: number, d: Resumen) => string
+}[] = [
+  { clave: 'todos', titulo: 'Todos', estado: 'emitidos', cuenta: d => d.emitidos, tono: () => 'gris',
+    pie: () => 'emitidos este mes' },
+  { clave: 'aceptados', titulo: 'Aceptados', estado: 'aceptados', cuenta: d => d.aceptados, tono: () => 'bien',
+    pie: (_n, d) => `por SUNAT, de ${d.emitidos}` },
+  { clave: 'encamino', titulo: 'En camino', estado: 'encolado', cuenta: d => d.enCamino, tono: () => 'ojo',
+    pie: () => 'se actualizan solos' },
+  { clave: 'rechazados', titulo: 'Rechazados', estado: 'rechazado', cuenta: d => d.rechazados, tono: n => n > 0 ? 'mal' : 'gris',
+    pie: n => n > 0 ? 'revísalos' : 'ninguno este mes' },
+  { clave: 'anulados', titulo: 'Anulados', estado: 'anulado', cuenta: d => d.anulados ?? 0, tono: () => 'gris',
+    pie: n => n > 0 ? 'con baja o anulación' : 'ninguno este mes' },
+]
+
+const POR_PAGINA = 10
+
+function GrillaDelMes({ filtro, desde, mes, refresco }: { filtro: Filtro; desde: string; mes: string; refresco: Resumen }) {
   const navegar = useNavigate()
+  const [q, setQ] = useState('')
+  const [buscado, setBuscado] = useState('')
+  // La página es la de ESTE filtro: al cambiar de tarjeta se vuelve a la 1.
+  const [pag, setPag] = useState<{ filtro: Filtro; n: number }>({ filtro, n: 1 })
+  const pagina = pag.filtro === filtro ? pag.n : 1
+  const setPagina = (n: number) => setPag({ filtro, n })
+  const [filas, setFilas] = useState<DocumentoEnLista[]>()
+  const [total, setTotal] = useState(0)
+  const [fallo, setFallo] = useState<string>()
+  const t = TARJETAS.find(x => x.clave === filtro)!
+
+  // Lo escrito se busca al dejar de escribir (no una llamada por tecla).
+  useEffect(() => {
+    const h = window.setTimeout(() => { setBuscado(q.trim()); setPag(p => ({ ...p, n: 1 })) }, 300)
+    return () => window.clearTimeout(h)
+  }, [q])
+
+  useEffect(() => {
+    let vivo = true
+    // «En camino» es de cualquier fecha (como su tarjeta); lo demás, del mes.
+    documentosServicio.listar(t.estado, buscado, pagina, undefined,
+      { desde: filtro === 'encamino' ? undefined : desde, porPagina: POR_PAGINA })
+      .then(r => { if (vivo) { setFilas(r.filas); setTotal(r.total); setFallo(undefined) } })
+      .catch(e => { if (vivo) setFallo(e instanceof ErrorApi ? e.message : 'No se pudo leer la lista.') })
+    return () => { vivo = false }
+  }, [t.estado, buscado, pagina, filtro, desde, refresco])
 
   return (
-    <div className="tabla-envoltura">
-      <table className="tabla tabla-clic">
-        <thead>
-          <tr><th>Número</th><th>Cliente</th><th>Cuándo</th><th className="derecha">Importe</th><th>Estado</th></tr>
-        </thead>
-        <tbody>
-          {filas.map(d => (
-            <tr key={d.id} onClick={() => navegar(`/facturacion/comprobantes/${d.id}`)}>
-              <td>
-                <Link to={`/facturacion/comprobantes/${d.id}`} className="principal mono sin-corte" onClick={e => e.stopPropagation()}>
-                  {d.serie && d.correlativo !== null
-                    ? `${d.serie}-${String(d.correlativo).padStart(8, '0')}`
-                    : `${TIPOS[d.tipo] ?? d.tipo} sin número`}
-                </Link>
-                <div className="secundario">{TIPOS[d.tipo] ?? d.tipo}</div>
-              </td>
-              <td>{d.cliente}</td>
-              <td className="secundario sin-corte">{cuando(d.creadoEn)}</td>
-              <td className="derecha mono sin-corte">
-                {d.tipo === '07' ? '−' : ''}{soles(d.importeTotal)}
-                {d.moneda !== 'PEN' && <span className="secundario"> {d.moneda}</span>}
-              </td>
-              <td><EstadoComprobante estado={d.estado} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="cabecera-bloque grilla-inicio-cabecera">
+        <h2>{filtro === 'todos' ? `Comprobantes de ${mes}` : `${t.titulo}${filtro === 'encamino' ? '' : ` en ${mes}`}`}</h2>
+        <input className="buscar-inicio" value={q} onChange={e => setQ(e.target.value)}
+               placeholder="Buscar RUC, razón social o número…" title="Ej.: 20512345678, HAMUTAY, F001-6" aria-label="Buscar comprobantes" />
+        <Link to="/facturacion/comprobantes">Ver todos →</Link>
+      </div>
+      {fallo && <Aviso>{fallo}</Aviso>}
+      {!filas && !fallo && <Cargando texto="Buscando…" />}
+      {filas && filas.length === 0 && (
+        <Vacio>{buscado ? <>Ningún comprobante con «{buscado}».</> : <>No hay comprobantes {t.titulo.toLowerCase()} {filtro === 'encamino' ? 'ahora' : `en ${mes}`}.</>}</Vacio>
+      )}
+      {filas && filas.length > 0 && (
+        <div className="tabla-envoltura">
+          <table className="tabla tabla-clic">
+            <thead>
+              <tr><th>Número</th><th>Cliente</th><th>Cuándo</th><th className="derecha">Importe</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+              {filas.map(d => (
+                <tr key={d.id} onClick={() => navegar(`/facturacion/comprobantes/${d.id}`)}>
+                  <td>
+                    <Link to={`/facturacion/comprobantes/${d.id}`} className="principal mono sin-corte" onClick={e => e.stopPropagation()}>
+                      {d.serie && d.correlativo !== null
+                        ? `${d.serie}-${String(d.correlativo).padStart(8, '0')}`
+                        : `${TIPOS[d.tipo] ?? d.tipo} sin número`}
+                    </Link>
+                    <div className="secundario">{TIPOS[d.tipo] ?? d.tipo}</div>
+                  </td>
+                  <td>
+                    <div>{d.cliente.razonSocial}</div>
+                    <div className="secundario mono">{d.cliente.numeroDocumento}</div>
+                  </td>
+                  <td className="secundario sin-corte">{d.creadoEn ? cuando(d.creadoEn) : fecha(d.fechaEmision)}</td>
+                  <td className="derecha mono sin-corte">
+                    {d.tipo === '07' ? '−' : ''}{soles(d.importeTotal)}
+                    {d.moneda !== 'PEN' && <span className="secundario"> {d.moneda}</span>}
+                  </td>
+                  <td><EstadoComprobante estado={d.estado} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {total > POR_PAGINA && (
+        <div className="lineas-pie"><Paginacion total={total} pagina={pagina} porPagina={POR_PAGINA} onCambiar={setPagina} /></div>
+      )}
+    </>
   )
 }
-
 
 function TuEmpresa({ datos, configura }: { datos: Resumen; configura: boolean }) {
   const { empresa } = useYo()

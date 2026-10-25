@@ -1359,3 +1359,25 @@ button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
 .aviso-version-cerrar:hover { opacity: 1; }
 @media (max-width: 560px) { .aviso-version { flex-wrap: wrap; top: 8px; } }
 .pasos-instalar { margin: 0 0 var(--e3); padding-left: 1.3em; display: grid; gap: 6px; }
+
+/* e172 — en el inicio, las tarjetas son filtros de la grilla. */
+.resumen-inicio.con-filtros { grid-template-columns: 1.5fr repeat(5, minmax(0, 1fr)); }
+.resumen-bandeja > button.tarjeta-filtro {
+  font: inherit; text-align: left; cursor: pointer; color: inherit;
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-grande);
+  padding: 14px 16px; display: grid; gap: 2px; align-content: start;
+  transition: border-color .12s, box-shadow .12s;
+}
+.resumen-bandeja > button.tarjeta-filtro:hover { border-color: var(--tinta-3); }
+.resumen-bandeja > button.tarjeta-filtro:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.resumen-bandeja > button.tarjeta-filtro.elegida { border-color: var(--acento); box-shadow: inset 0 0 0 1px var(--acento); background: var(--acento-suave); }
+.resumen-bandeja > button.tarjeta-filtro.bien strong { color: var(--bien); }
+.resumen-bandeja > button.tarjeta-filtro.ojo strong { color: var(--aviso); }
+.resumen-bandeja > button.tarjeta-filtro.gris strong { color: var(--tinta-2); }
+.resumen-bandeja > button.tarjeta-filtro.mal strong { color: var(--peligro); }
+.resumen-bandeja > button.tarjeta-filtro > span:first-child { font-size: 12.5px; color: var(--tinta-3); }
+.grilla-inicio-cabecera { display: flex; align-items: center; gap: var(--e3); flex-wrap: wrap; }
+.grilla-inicio-cabecera h2 { margin-right: auto; }
+.buscar-inicio { flex: 0 1 320px; min-width: 200px; min-height: 36px; padding: 0 10px; border: 1px solid var(--borde); border-radius: var(--radio); font: inherit; font-size: 14px; background: var(--superficie); }
+@media (max-width: 1280px) { .resumen-inicio.con-filtros { grid-template-columns: repeat(3, minmax(0, 1fr)); } .resumen-inicio.con-filtros .destacado { grid-column: 1 / -1; } }
+@media (max-width: 720px) { .resumen-inicio.con-filtros { grid-template-columns: 1fr 1fr; } .buscar-inicio { flex-basis: 100%; } }

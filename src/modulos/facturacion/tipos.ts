@@ -387,6 +387,8 @@ export interface DocumentoEnLista {
   correlativo: number | null
   estado: EstadoDocumento
   fechaEmision: string
+  /** e172: cuándo se hizo (para «hoy 03:26»). */
+  creadoEn?: string
   moneda: string
   importeTotal: number
   codigoSunat: string | null

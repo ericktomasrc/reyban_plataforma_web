@@ -19,6 +19,8 @@ export interface Resumen {
   aceptados: number
   enCamino: number
   rechazados: number
+  /** e172: los anulados del mes (baja o anulación aceptada). */
+  anulados?: number
   conError: number
 
   ultimoRechazo: { id: string; numero: string | null; mensaje: string | null } | null
