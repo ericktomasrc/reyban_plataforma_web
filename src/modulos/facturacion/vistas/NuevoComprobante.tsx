@@ -174,6 +174,16 @@ export function NuevoComprobante() {
   const [paginaLineas, setPaginaLineas] = useState(1)
   // e163: de 10 en 10 (el ojo de arriba enseña todas).
   const porPaginaLineas = LINEAS_POR_PAGINA
+  // e164: el aviso «ya estaba en la línea N: ahora son M», con «línea aparte».
+  const [sumado, setSumado] = useState<{
+    clave: string; numero: number; descripcion: string; antes: string; ahora: string; producto: ProductoEnLista
+  }>()
+  // Se va solo a los 8 segundos.
+  useEffect(() => {
+    if (!sumado) return
+    const t = setTimeout(() => setSumado(undefined), 8000)
+    return () => clearTimeout(t)
+  }, [sumado])
   // e162: el «ojito»: el detalle de una línea, solo lectura.
   const [verLinea, setVerLinea] = useState<string>()
   // 052: inventario. Lo disponible de los productos elegidos en la sucursal de
@@ -570,7 +580,11 @@ export function NuevoComprobante() {
    * Agrega el producto elegido en el buscador. Si la última línea está vacía
    * (una «Línea libre» sin escribir), la rellena en vez de dejarla colgando.
    */
-  function agregarProducto(p: ProductoEnLista) {
+  /**
+   * e164: `aparte` = agregarlo como línea nueva aunque ya esté (el enlace
+   * «Agregarlo como línea aparte» del aviso).
+   */
+  function agregarProducto(p: ProductoEnLista, aparte = false) {
     // ══════════════════════════════════════════════════════════════════════
     // MANDA LA DEL CLIENTE, Y SOLO SI NO TIENE, LA DEL PRODUCTO.
     //
@@ -609,6 +623,33 @@ export function NuevoComprobante() {
       tipoAfectacion: afectacion,
       valorUnitario: sinIgv.toFixed(6),
     }
+    // ══════════════════════════════════════════════════════════════════════
+    // e164: SI YA ESTÁ, SE SUMA (como la caja de Odoo). Solo si la línea que
+    // ya existe es «la misma venta»: mismo producto, mismo precio, sin
+    // descuento, misma afectación y misma unidad. Si algo cambió a mano, va
+    // en otra línea (marcada «repetido»), para no mezclar precios sin darse
+    // cuenta. Y siempre se puede pedir «línea aparte».
+    // ══════════════════════════════════════════════════════════════════════
+    if (!aparte) {
+      const iguales = lineas.findIndex(l =>
+        l.productoId === p.id &&
+        Math.abs(num(l.valorUnitario) - sinIgv) < 0.000001 &&
+        num(l.descuento) === 0 &&
+        l.tipoAfectacion === afectacion &&
+        l.unidadMedida === p.unidadMedida)
+      if (iguales >= 0) {
+        const l = lineas[iguales]
+        const nueva = String(Math.round((num(l.cantidad) + 1) * 10000) / 10000)
+        setLineas(ls => ls.map(x => x.clave === l.clave ? { ...x, cantidad: nueva } : x))
+        setBuscarLinea('')
+        setPaginaLineas(Math.floor(iguales / porPaginaLineas) + 1)
+        setSumado({ clave: l.clave, numero: iguales + 1, descripcion: l.descripcion, antes: l.cantidad, ahora: nueva, producto: p })
+        setEnfocar({ id: `cant-${l.clave}` })
+        return
+      }
+    }
+    setSumado(undefined)
+
     const ultima = lineas.at(-1)
     const clave = ultima && !ultima.productoId && !ultima.descripcion.trim() && !ultima.valorUnitario.trim()
       ? ultima.clave : crypto.randomUUID()
@@ -996,6 +1037,9 @@ export function NuevoComprobante() {
     }
   })
   const lineaVista = lineas.findIndex(l => l.clave === verLinea)
+  // e164: la primera línea de cada producto; las demás llevan «repetido».
+  const primeraDe = new Map<string, string>()
+  for (const l of lineas) if (l.productoId && !primeraDe.has(l.productoId)) primeraDe.set(l.productoId, l.clave)
 
   return (
     <div className="nc">
@@ -1238,6 +1282,22 @@ export function NuevoComprobante() {
           {lineas.length > 0 && <VerTodasLasLineas filas={filasDetalle} moneda={simbolo} />}
         </div>
 
+        {/* e164: ya estaba → se sumó; con la salida para ponerlo aparte. */}
+        {sumado && (
+          <div className="nc-sumado" role="status">
+            <span>
+              <strong>{sumado.descripcion}</strong> ya estaba en la línea {sumado.numero}: ahora son{' '}
+              <strong className="mono">{sumado.ahora}</strong>.
+            </span>
+            <button type="button" className="enlace" onClick={() => {
+              const s = sumado
+              setLineas(ls => ls.map(x => x.clave === s.clave ? { ...x, cantidad: s.antes } : x))
+              agregarProducto(s.producto, true)
+            }}>Agregarlo como línea aparte</button>
+            <button type="button" className="nc-sumado-cerrar" aria-label="Cerrar el aviso" onClick={() => setSumado(undefined)}>×</button>
+          </div>
+        )}
+
         {buscarLinea.trim() && (
           <p className="nota nc-filtro">
             {lineasFiltradas.length === 0 ? 'Ninguna línea con' : `${lineasFiltradas.length} de ${lineas.length} líneas con`} «{buscarLinea.trim()}».{' '}
@@ -1341,6 +1401,9 @@ export function NuevoComprobante() {
                       ))}
                     </select>
                   </label>
+                  {l.productoId && primeraDe.get(l.productoId) !== l.clave && (
+                    <span className="nc-repetido" title={`Este producto ya está en la línea ${lineas.findIndex(x => x.clave === primeraDe.get(l.productoId!)) + 1}`}>repetido</span>
+                  )}
                   {l.codigo && <span className="nc-dato">Código <span className="mono">{l.codigo}</span></span>}
                   {conIgv != null && <span className="nc-dato">Con IGV <span className="mono">{conIgv.toFixed(2)}</span> c/u</span>}
                   {p && !p.controla && <span className="nc-dato">No se cuenta en el inventario</span>}
