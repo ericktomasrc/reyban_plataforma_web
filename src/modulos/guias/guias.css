@@ -73,3 +73,23 @@ tr.inactivo td { color: var(--tinta-3); }
   .tabla-bienes td:first-child { grid-column: 1 / -1; }
   .tabla-bienes tr { border-bottom: 1px solid var(--borde); }
 }
+
+/* e168 — la guía con el diseño del comprobante (tarjetas nc-*, barra fija). */
+.nc.guia-form .nc-encabezado .segmentado { margin: 0; align-self: flex-start; }
+.nc.guia-form .nc-encabezado p.secundario { margin: var(--e2) 0 0; max-width: 760px; }
+.nc.guia-form .nc-titulo .secundario { font-weight: 400; font-size: 13px; }
+.nc.guia-form .tabla-bienes td:first-child { width: 36px; padding-top: 14px; }
+.nc.guia-form .tabla-bienes + .paginacion { margin-top: var(--e3); }
+.nc.guia-form .guia-antes { margin: 0 0 var(--e4); }
+@media (max-width: 560px) {
+  .nc.guia-form .tabla-bienes td:first-child { display: none; }
+  .nc.guia-form .tabla-bienes td:nth-child(2) { grid-column: 1 / -1; }
+}
+/* El botón «+ Documento relacionado (…)» no se sale de la pantalla en el celular. */
+.nc.guia-form .boton.plano { white-space: normal; text-align: left; max-width: 100%; }
+/* e168 — la guía emitida con el diseño del comprobante emitido. */
+.vc-detalle-guia { margin: var(--e2) 0 0; font-size: 13.5px; }
+.tarjetas-guia.en-detalle { margin-top: 0; }
+@media (max-width: 1280px) { .tarjetas-guia.en-detalle { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .tarjetas-guia.en-detalle { grid-template-columns: 1fr; } }
+.lineas-barra-guia .barra-lineas { padding: var(--e3) var(--e4) 0; margin: 0 0 var(--e3); }

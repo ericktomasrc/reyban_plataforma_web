@@ -17,6 +17,9 @@ import {
   type ConductorPeticion, type ContextoGuia, type Despacho, type DocumentoRelacionado, type PersonaDelPersonal,
   type PeticionGuia, type Transporte,
 } from '../servicios/guiasServicio'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { BarraLineas, usePaginaLineas, type FilaDetalle } from '../../facturacion/componentes/DetalleLineas'
+import '../../facturacion/comprobante.css'
 import '../guias.css'
 
 /**
@@ -34,6 +37,10 @@ import '../guias.css'
  * Se emite directo (no hay borrador). La clave nace al abrir la pantalla: dos
  * clics en «Emitir» son la misma guía. El transporte que se escriba se guarda
  * solo para la próxima.
+ *
+ * e168: EL MISMO DISEÑO QUE «NUEVO COMPROBANTE» (tarjetas numeradas, bienes de
+ * 10 en 10 con búsqueda y «Ver todo», barra fija con Emitir). Solo cambia cómo
+ * se ve: los campos, las reglas y lo que va a SUNAT, igual.
  */
 
 interface Bien {
@@ -297,10 +304,13 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
   }
 
   // --- bienes ---------------------------------------------------------------------
+  // e168: de 10 en 10, con búsqueda; al agregar uno se va a la última página.
+  const pl = usePaginaLineas(bienes)
+  const ponerBien = (b: Bien) => { setBienes(bs => [...bs, b]); pl.alFinal() }
   const cambiarBien = (k: string, cambio: Partial<Bien>) =>
     setBienes(bs => bs.map(b => b.clave === k ? { ...b, ...cambio } : b))
   const quitarBien = (k: string) => setBienes(bs => bs.filter(b => b.clave !== k))
-  const agregarBien = () => setBienes(bs => [...bs, { clave: claveFila(), descripcion: '', unidad: 'NIU', cantidad: '1' }])
+  const agregarBien = () => ponerBien({ clave: claveFila(), descripcion: '', unidad: 'NIU', cantidad: '1' })
 
   const sinDespachar = useMemo(() => {
     if (!despacho) return []
@@ -398,16 +408,39 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
     ? 'Guía del transportista'
     : despacho ? `Guía de remisión de ${despacho.numero}` : 'Nueva guía de remisión'
 
+  // e168: la barra de abajo: cuántos bienes, el peso y qué falta (solo avisa).
+  const pesoN = numero(peso)
+  const pendiente = bienes.length === 0 ? 'Falta lo que se traslada.'
+    : bienes.some(b => !b.descripcion.trim()) ? 'Falta la descripción de un bien.'
+    : bienes.some(b => !(numero(b.cantidad) > 0)) ? 'Falta la cantidad de un bien.'
+    : !entreLocales && !despacho?.cliente && (!destDoc.trim() || !destNombre.trim()) ? 'Falta el destinatario.'
+    : llegadaDir.trim().length < 5 ? 'Falta la dirección de llegada.'
+    : publico && (transRuc.length !== 11 || !transNombre.trim()) ? 'Falta la empresa de transporte.'
+    : conVehiculo && !placa ? 'Falta la placa.'
+    : conVehiculo && (!conductor.numeroDocumento.trim() || !conductor.licencia.trim() || !conductor.nombres.trim()) ? 'Faltan los datos del conductor.'
+    : !(pesoN > 0) ? 'Falta el peso bruto.'
+    : undefined
+  const filasBienes: FilaDetalle[] = bienes.map((b, i) => ({
+    numero: i + 1, codigo: b.codigo ?? null, descripcion: b.descripcion, cantidad: numero(b.cantidad),
+    unidad: b.unidad, valorUnitario: 0, descuento: 0, total: 0,
+  }))
+  const indice = new Map(bienes.map((b, i) => [b.clave, i + 1]))
+
   return (
-    <div className="guia-form">
-      <div className="encabezado-pagina">
+    <div className="nc guia-form">
+      <div className="nc-encabezado">
         <div>
+          <p className="vc-tipo">{tipo === '31' ? 'Guía del transportista' : 'Guía de remisión · remitente'}</p>
           <h1 className="titulo-pagina">{titulo}</h1>
+          <p className="nc-bajada">
+            <span className="nc-pastilla">{tipo === '31' ? 'Transportista (31)' : 'Remitente (09)'}</span>
+            {serie && <span className="mono">{serie}</span>}
+            {ctx.empresa.ambiente === 'beta' && <span className="nc-pastilla gris">prueba</span>}
+          </p>
           <p className="secundario">
             {tipo === '31'
               ? 'Para quien lleva carga ajena por encargo. Ampara la guía que emitió el dueño de la carga: van las dos, y las dos aceptadas antes de salir.'
               : 'La guía se emite ANTES del traslado. El vehículo sale cuando SUNAT la acepta (unos segundos).'}
-            {ctx.empresa.ambiente === 'beta' && <> <span className="etiqueta aviso">prueba</span></>}
           </p>
         </div>
         {ctx.empresa.transportaCarga && !despacho && (
@@ -433,8 +466,8 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
 
       {/* --- 1 ----------------------------------------------------------------- */}
       {tipo === '31' ? (
-        <section className="bloque">
-          <h2 className="subtitulo">1 · Quién te contrató y su guía</h2>
+        <section className="bloque nc-tarjeta">
+          <h2 className="nc-titulo"><span className="nc-paso">1</span>Quién te contrató y su guía</h2>
           <div className="rejilla-4">
             <Texto etiqueta="RUC del remitente" obligatorio value={remRuc} inputMode="numeric" pista="11 dígitos."
                    onChange={v => { const x = cambiarRuc(v, setRemNombre); setRemRuc(x.r) }}
@@ -468,8 +501,8 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
           </p>
         </section>
       ) : (
-        <section className="bloque">
-          <h2 className="subtitulo">1 · Desde dónde y por qué</h2>
+        <section className="bloque nc-tarjeta">
+          <h2 className="nc-titulo"><span className="nc-paso">1</span>Desde dónde y por qué</h2>
           {/* 24 oct: relacionarla con su factura o boleta desde aquí también. */}
           {despacho ? (
             <p className="secundario">
@@ -511,8 +544,8 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
       )}
 
       {/* --- 2 ----------------------------------------------------------------- */}
-      <section className="bloque">
-        <h2 className="subtitulo">2 · Destinatario y recorrido</h2>
+      <section className="bloque nc-tarjeta">
+        <h2 className="nc-titulo"><span className="nc-paso">2</span>Destinatario y recorrido</h2>
 
         {entreLocales ? (
           <p className="secundario">Entre tus locales: el destinatario eres tú mismo ({ctx.empresa.razonSocial}, RUC {ctx.empresa.ruc}).</p>
@@ -571,8 +604,8 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
       </section>
 
       {/* --- 3 ----------------------------------------------------------------- */}
-      <section className="bloque">
-        <h2 className="subtitulo">3 · {tipo === '31' ? 'Tu vehículo y tu conductor' : 'Quién lo lleva'}</h2>
+      <section className="bloque nc-tarjeta">
+        <h2 className="nc-titulo"><span className="nc-paso">3</span>{tipo === '31' ? 'Tu vehículo y tu conductor' : 'Quién lo lleva'}</h2>
 
         {tipo === '09' && (
           <div className="segmentado" role="tablist" aria-label="Quién lleva la carga">
@@ -669,26 +702,9 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
         )}
       </section>
 
-      {/* 24 oct: las casillas de SOL (para los dos tipos de guía). */}
-      <section className="bloque">
-        <h2 className="subtitulo">Indicadores del traslado (opcional)</h2>
-        <label className="casilla">
-          <input type="checkbox" checked={transbordo} onChange={e => setTransbordo(e.target.checked)} />
-          {' '}Realiza transbordo programado (el traslado cambia de vehículo en el camino, ya previsto)
-        </label>
-        <label className="casilla">
-          <input type="checkbox" checked={retorno === 'vacio'} onChange={e => setRetorno(e.target.checked ? 'vacio' : '')} />
-          {' '}Retorno de vehículo vacío
-        </label>
-        <label className="casilla">
-          <input type="checkbox" checked={retorno === 'envases'} onChange={e => setRetorno(e.target.checked ? 'envases' : '')} />
-          {' '}Retorno de vehículo con envases o embalajes vacíos
-        </label>
-      </section>
-
       {/* --- 4 ----------------------------------------------------------------- */}
-      <section className="bloque">
-        <h2 className="subtitulo">4 · Lo que se traslada</h2>
+      <section className="bloque nc-tarjeta">
+        <h2 className="nc-titulo"><span className="nc-paso">4</span>Lo que se traslada</h2>
         {despacho && (
           <p className="secundario">
             Sale de {despacho.numero} ({fecha(despacho.fechaEmision)}). Puedes bajar las cantidades: lo que no vaya ahora queda pendiente para otra guía.
@@ -696,15 +712,20 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
         )}
         {tipo === '31' && <p className="secundario">Se copian de la guía del remitente (o se escriben): no hace falta que sean productos tuyos.</p>}
 
+        {bienes.length > 0 && (
+          <BarraLineas cuantas={bienes.length} q={pl.q} onBuscar={pl.buscar} filas={filasBienes} moneda="" sinPrecios
+                       nombres={['bien', 'bienes']} />
+        )}
         <table className="tabla tabla-bienes">
           <thead>
-            <tr><th>Descripción</th><th>Unidad</th><th className="derecha">Cantidad</th><th aria-label="Quitar" /></tr>
+            <tr><th>#</th><th>Descripción</th><th>Unidad</th><th className="derecha">Cantidad</th><th aria-label="Quitar" /></tr>
           </thead>
           <tbody>
-            {bienes.map(b => {
+            {pl.visibles.map(b => {
               const excede = b.pendiente !== undefined && numero(b.cantidad) > b.pendiente
               return (
                 <tr key={b.clave}>
+                  <td className="secundario">{indice.get(b.clave)}</td>
                   <td>
                     <input value={b.descripcion} aria-label="Descripción" maxLength={500} readOnly={!!b.documentoLineaId}
                            onChange={e => cambiarBien(b.clave, { descripcion: e.target.value })} />
@@ -727,24 +748,28 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
                 </tr>
               )
             })}
+            {pl.visibles.length === 0 && bienes.length > 0 && (
+              <tr><td colSpan={5} className="vacio">Ningún bien con «{pl.q.trim()}».</td></tr>
+            )}
           </tbody>
         </table>
+        {pl.hayMas && <Paginacion {...pl.paginacion} />}
 
         <div className="acciones-linea">
           {!despacho && tipo === '09' && (
             <div className="buscador-bien">
-              <BuscadorProducto onElegir={p => setBienes(bs => [...bs, {
+              <BuscadorProducto onElegir={p => ponerBien({
                 clave: claveFila(), descripcion: p.descripcion, unidad: p.unidadMedida === 'ZZ' ? 'NIU' : p.unidadMedida,
                 cantidad: '1', codigo: p.codigo, productoId: p.id,
-              }])} />
+              })} />
             </div>
           )}
           {!despacho && <Boton estilo="secundario" onClick={agregarBien}>+ Escribir un bien</Boton>}
           {sinDespachar.map(l => (
-            <Boton key={l.id} estilo="plano" onClick={() => setBienes(bs => [...bs, {
+            <Boton key={l.id} estilo="plano" onClick={() => ponerBien({
               clave: claveFila(), descripcion: l.descripcion, unidad: l.unidad, cantidad: String(l.pendiente),
               codigo: l.codigo, productoId: l.productoId, documentoLineaId: l.id, pendiente: l.pendiente,
-            }])}>+ {l.descripcion}</Boton>
+            })}>+ {l.descripcion}</Boton>
           ))}
         </div>
 
@@ -793,15 +818,39 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
         )}
       </section>
 
+      {/* 24 oct: las casillas de SOL (para los dos tipos de guía). */}
+      <section className="bloque nc-tarjeta">
+        <h2 className="nc-titulo"><span className="nc-paso">5</span>Indicadores del traslado <span className="secundario">(opcional)</span></h2>
+        <label className="casilla">
+          <input type="checkbox" checked={transbordo} onChange={e => setTransbordo(e.target.checked)} />
+          {' '}Realiza transbordo programado (el traslado cambia de vehículo en el camino, ya previsto)
+        </label>
+        <label className="casilla">
+          <input type="checkbox" checked={retorno === 'vacio'} onChange={e => setRetorno(e.target.checked ? 'vacio' : '')} />
+          {' '}Retorno de vehículo vacío
+        </label>
+        <label className="casilla">
+          <input type="checkbox" checked={retorno === 'envases'} onChange={e => setRetorno(e.target.checked ? 'envases' : '')} />
+          {' '}Retorno de vehículo con envases o embalajes vacíos
+        </label>
+      </section>
+
+      <p className="nota guia-antes">
+        {tipo === '31'
+          ? <>La guía del remitente debe estar emitida antes que esta. Sale el camión cuando <strong>las dos digan «Aceptada»</strong>.</>
+          : <>Sale con la serie <strong className="mono">{serie || '—'}</strong>{!seriesLocal.some(s => s.serie === serie) && serie ? ' (se crea al emitir)' : ''}. El transporte que escribas queda guardado para la próxima.</>}
+      </p>
+
       {fallo && <Aviso>{fallo}</Aviso>}
 
-      <div className="bloque pie-guia">
-        <span className="secundario">
-          {tipo === '31'
-            ? <>La guía del remitente debe estar emitida antes que esta. Sale el camión cuando <strong>las dos digan «Aceptada»</strong>.</>
-            : <>Sale con la serie <strong className="mono">{serie || '—'}</strong>{!seriesLocal.some(s => s.serie === serie) && serie ? ' (se crea al emitir)' : ''}. El transporte que escribas queda guardado para la próxima.</>}
-        </span>
-        <div className="acciones-guia">
+      {/* --- e168: la barra de abajo, fija -------------------------------- */}
+      <div className="nc-barra">
+        <div className="nc-barra-total">
+          <span className="secundario">{bienes.length} {bienes.length === 1 ? 'bien' : 'bienes'} · peso</span>
+          <strong className="mono">{pesoN > 0 ? `${pesoN} ${unidadPeso === 'TNE' ? 't' : 'kg'}` : '—'}</strong>
+        </div>
+        {pendiente && <span className="nc-barra-falta" title={pendiente}>{pendiente}</span>}
+        <div className="nc-barra-botones">
           <Boton estilo="secundario" onClick={() => navegar(despacho ? `/facturacion/comprobantes/${despacho.id}` : '/guias')}>Cancelar</Boton>
           <Boton onClick={() => void emitir()} ocupado={emitiendo} textoOcupado="Emitiendo…"
                  disabled={!!despacho && !despacho.puede}>

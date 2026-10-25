@@ -9,10 +9,13 @@ import { Permisos } from '../../../nucleo/autorizacion/permisos'
 import { fecha } from '../../../nucleo/formato/fechas'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
-import { explicarEstadoGuia } from '../componentes/EstadoGuia'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { BarraLineas, usePaginaLineas } from '../../facturacion/componentes/DetalleLineas'
+import { EstadoGuia, explicarEstadoGuia } from '../componentes/EstadoGuia'
 import { RechazoGuia } from '../componentes/RechazoGuia'
 import { RegistrarEvento } from '../componentes/RegistrarEvento'
 import { guiasServicio, nombreUnidad, type GuiaCompleta } from '../servicios/guiasServicio'
+import '../../facturacion/comprobante.css'
 import '../guias.css'
 
 const TIPOS_DOC: Record<string, string> = { '6': 'RUC', '1': 'DNI', '4': 'C.E.', '7': 'Pasaporte', '0': 'Doc.' }
@@ -23,6 +26,10 @@ const TIPOS_DOC: Record<string, string> = { '6': 'RUC', '1': 'DNI', '4': 'C.E.',
  * Lo primero que se ve es si el vehículo puede salir. Mientras esté «en
  * camino», la pantalla le pregunta al servicio cada pocos segundos (por si el
  * aviso tarda) y se para sola cuando SUNAT responde.
+ *
+ * e168: el mismo diseño que el comprobante emitido (lo principal a la
+ * izquierda; archivos y acciones en la columna de la derecha; bienes de 10 en
+ * 10 con búsqueda y «Ver todo»). Solo cambia cómo se ve.
  */
 export function VerGuia() {
   const { id } = useParams()
@@ -75,6 +82,9 @@ export function VerGuia() {
     return () => clearInterval(t)
   }, [id, g?.estado, cargar])
 
+  // e168: los bienes de 10 en 10, con búsqueda.
+  const pb = usePaginaLineas(g?.bienes ?? [])
+
   if (error) return <Aviso>{error}</Aviso>
   if (!g) return <Cargando />
 
@@ -117,29 +127,32 @@ export function VerGuia() {
     <>
       <Link to="/guias" className="enlace-volver">← Guías de remisión</Link>
 
-      <div className="encabezado-pagina">
+      <div className="encabezado-pagina vc-encabezado">
         <div>
-          <h1 className="titulo-pagina"><span className={`mono${g.estado === 'anulado' ? ' tachado' : ''}`}>{g.numero ?? `${g.serie} (sin número)`}</span></h1>
-          <p className="secundario">
+          <p className="vc-tipo">{g.tipo === '31' ? 'Guía del transportista' : 'Guía de remisión · remitente'}</p>
+          <h1 className="titulo-pagina">
+            <span className={`mono${g.estado === 'anulado' ? ' tachado' : ''}`}>{g.numero ?? `${g.serie} (sin número)`}</span>
+            {g.ambiente === 'beta' && <> <span className="etiqueta aviso" title="SUNAT beta: sin valor legal">prueba</span></>}
+          </h1>
+          <p className="vc-resumen">
+            <EstadoGuia estado={g.estado} />
+            <span>{g.destinatario.razonSocial}</span>
+            <span>Traslado {fecha(g.fechaTraslado)}</span>
+            <strong className="mono">{g.pesoBruto.toFixed(2)} {p?.unidadPeso === 'TNE' ? 't' : 'kg'}</strong>
+          </p>
+          <p className="secundario vc-detalle-guia">
             {g.tipo === '31' ? 'Guía del transportista' : 'Guía del remitente'} · {g.motivoNombre}
             {g.motivoDescripcion && g.motivo === '13' && <> ({g.motivoDescripcion})</>}
             {g.documento && <> · de la {g.documento.tipo === '03' ? 'boleta' : 'factura'} <Link className="mono" to={`/facturacion/comprobantes/${g.documento.id}`}>{g.documento.numero}</Link></>}
             {g.tipo === '31' && g.documentoRelacionado && <> · ampara la guía <span className="mono">{g.documentoRelacionado}</span></>}
             {g.sucursal && <> · desde {g.sucursal}</>}
-            {g.ambiente === 'beta' && <> <span className="etiqueta aviso" title="SUNAT beta: sin valor legal">prueba</span></>}
           </p>
         </div>
-        <div className="acciones-guia">
-          {g.numero && g.estado !== 'error' && (
-            <Boton onClick={() => void bajar('pdf')} ocupado={ocupado === 'pdf'} textoOcupado="Generando…">PDF para el conductor</Boton>
-          )}
-          {g.numero && g.estado !== 'error' && (
-            <Boton estilo="secundario" onClick={() => void bajar('xml')} ocupado={ocupado === 'xml'}>XML</Boton>
-          )}
-          {aceptada && <Boton estilo="secundario" onClick={() => void bajar('cdr')} ocupado={ocupado === 'cdr'}>CDR</Boton>}
-        </div>
+        <Boton estilo="secundario" onClick={() => navegar('/guias')}>Volver</Boton>
       </div>
 
+      <div className="vc-cuerpo">
+        <div className="vc-principal">
       {/* --- ¿Puede salir? ----------------------------------------------------- */}
       {aceptada && (
         <Aviso tono="bien">
@@ -194,7 +207,7 @@ export function VerGuia() {
       )}
 
       {/* --- recorrido, destinatario, transporte ------------------------------- */}
-      <div className="tarjetas-guia">
+      <div className="tarjetas-guia en-detalle">
         <section className="bloque">
           <h2 className="rotulo">Recorrido</h2>
           <p><strong>Sale:</strong> {g.partida.direccion}{g.partida.lugar && <span className="secundario"> · {g.partida.lugar}</span>}</p>
@@ -229,23 +242,33 @@ export function VerGuia() {
         </section>
       </div>
 
-      <div className="bloque sin-relleno">
+      <div className="bloque sin-relleno lineas-emitidas">
+        <div className="lineas-barra-guia">
+          <BarraLineas cuantas={g.bienes.length} q={pb.q} onBuscar={pb.buscar} moneda="" sinPrecios nombres={['bien', 'bienes']}
+                       filas={g.bienes.map(b => ({ numero: b.numero, codigo: b.codigo, descripcion: b.descripcion, cantidad: b.cantidad,
+                                                   unidad: b.unidad, valorUnitario: 0, descuento: 0, total: 0 }))} />
+        </div>
         <table className="tabla">
-          <thead><tr><th>Producto</th><th>Unidad</th><th className="derecha">Cantidad</th></tr></thead>
+          <thead><tr><th>#</th><th>Producto</th><th>Unidad</th><th className="derecha">Cantidad</th></tr></thead>
           <tbody>
-            {g.bienes.map(b => (
+            {pb.visibles.map(b => (
               <tr key={b.numero}>
+                <td className="secundario">{b.numero}</td>
                 <td>{b.descripcion}{b.codigo && <div className="secundario mono">{b.codigo}</div>}</td>
                 <td>{nombreUnidad(b.unidad)}</td>
                 <td className="derecha mono">{b.cantidad}</td>
               </tr>
             ))}
+            {pb.visibles.length === 0 && (
+              <tr><td colSpan={4} className="vacio">Ningún bien con «{pb.q.trim()}».</td></tr>
+            )}
             <tr className="fila-total">
-              <td><strong>Peso bruto total</strong></td><td>{p?.unidadPeso === 'TNE' ? 'toneladas' : 'kg'}</td>
+              <td /><td><strong>Peso bruto total</strong></td><td>{p?.unidadPeso === 'TNE' ? 'toneladas' : 'kg'}</td>
               <td className="derecha mono"><strong>{g.pesoBruto.toFixed(2)}</strong>{g.bultos != null && <> · {g.bultos} bultos</>}</td>
             </tr>
           </tbody>
         </table>
+        {pb.hayMas && <div className="lineas-pie"><Paginacion {...pb.paginacion} /></div>}
       </div>
 
       {p?.observaciones && <p className="secundario">Observaciones: {p.observaciones}</p>}
@@ -284,35 +307,56 @@ export function VerGuia() {
           </ul>
         </div>
       )}
-      {aceptada && puede(Permisos.Guias.Emitir) && (
-        <div className="bloque fila-aviso">
-          <span className="secundario">
-            <strong>¿Pasó algo en el camino?</strong> Si no se pudo llegar o hubo que pasar la carga a otro vehículo, se emite una
-            GRE por evento en SOL (SUNAT no la recibe por sistema) antes de seguir. Después regístrala aquí.
-          </span>
-          <Boton estilo="secundario" onClick={() => setConEvento(true)}>Registrar evento hecho en SOL</Boton>
         </div>
-      )}
+
+        <aside className="vc-lado">
+          {/* --- Archivos ------------------------------------------------------- */}
+          {g.numero && g.estado !== 'error' && (
+            <div className="bloque vc-tarjeta">
+              <h2 className="subtitulo">Archivos</h2>
+              <div className="vc-botones">
+                <Boton onClick={() => void bajar('pdf')} ocupado={ocupado === 'pdf'} textoOcupado="Generando…">PDF para el conductor</Boton>
+                <Boton estilo="secundario" onClick={() => void bajar('xml')} ocupado={ocupado === 'xml'}>XML</Boton>
+                {aceptada && <Boton estilo="secundario" onClick={() => void bajar('cdr')} ocupado={ocupado === 'cdr'}>CDR</Boton>}
+              </div>
+            </div>
+          )}
+
+          {/* --- Acciones: evento (051), anulación y otra guía ------------------ */}
+          <div className="bloque vc-tarjeta">
+            <h2 className="subtitulo">Acciones</h2>
+            <div className="vc-botones">
+              {aceptada && puede(Permisos.Guias.Emitir) && (
+                <Boton estilo="secundario" onClick={() => setConEvento(true)}>Registrar evento hecho en SOL</Boton>
+              )}
+              {aceptada && puede(Permisos.Guias.Anular) && (
+                <Boton estilo="secundario" onClick={() => { setAnulando(true); setFalloAnular(undefined) }}>Registrar anulación hecha en SOL</Boton>
+              )}
+              <Boton estilo="secundario" onClick={() => navegar(g.tipo === '31' ? '/guias/transportista' : '/guias/nueva')}>Hacer otra guía</Boton>
+            </div>
+            <ul className="vc-explica">
+              {aceptada && puede(Permisos.Guias.Emitir) && (
+                <li>
+                  <strong>¿Pasó algo en el camino?</strong> Si no se pudo llegar o hubo que pasar la carga a otro vehículo, se emite una
+                  GRE por evento en SOL (SUNAT no la recibe por sistema) antes de seguir. Después regístrala aquí.
+                </li>
+              )}
+              {aceptada && puede(Permisos.Guias.Anular) && (
+                <li>
+                  <strong>¿Hay que anularla?</strong> SUNAT no tiene servicio para dar de baja guías: se anula en SOL (Clave SOL ›
+                  Guía de remisión electrónica). Después regístralo aquí para que deje de figurar viva.
+                </li>
+              )}
+              <li><strong>Estado:</strong> {explicarEstadoGuia(g.estado)}</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+
       {conEvento && (
         <RegistrarEvento guiaId={g.id} numero={g.numero} abierto={conEvento} onCerrar={() => setConEvento(false)}
           onHecho={m => { setConEvento(false); mensaje.bien(m); void cargar() }} />
       )}
-
-      {/* --- anular ------------------------------------------------------------ */}
-      {aceptada && puede(Permisos.Guias.Anular) && (
-        <div className="bloque fila-aviso">
-          <span className="secundario">
-            <strong>¿Hay que anularla?</strong> SUNAT no tiene servicio para dar de baja guías: se anula en SOL (Clave SOL ›
-            Guía de remisión electrónica). Después regístralo aquí para que deje de figurar viva.
-          </span>
-          <Boton estilo="secundario" onClick={() => { setAnulando(true); setFalloAnular(undefined) }}>Registrar anulación hecha en SOL</Boton>
-        </div>
-      )}
-
-      <p className="secundario">
-        {explicarEstadoGuia(g.estado)}{' '}
-        <Boton estilo="plano" onClick={() => navegar(g.tipo === '31' ? '/guias/transportista' : '/guias/nueva')}>Hacer otra guía</Boton>
-      </p>
 
       <Dialogo titulo="Registrar anulación hecha en SOL" abierto={anulando} onCerrar={() => setAnulando(false)}
         acciones={<>

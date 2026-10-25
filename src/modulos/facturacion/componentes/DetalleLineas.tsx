@@ -47,11 +47,13 @@ export function filtrarLineas<T extends { descripcion: string; codigo: string | 
 }
 
 /** El botón del ojo (arriba de la grilla) y la ventana con todas las líneas. */
-export function VerTodasLasLineas({ filas, moneda, etiquetaUnitario = 'V. unitario' }: {
+export function VerTodasLasLineas({ filas, moneda, etiquetaUnitario = 'V. unitario', sinPrecios = false }: {
   filas: FilaDetalle[]
   moneda: string
   /** e167: en las notas el unitario es el precio con IGV del comprobante. */
   etiquetaUnitario?: string
+  /** e168: la guía no lleva precios: solo descripción, unidad y cantidad. */
+  sinPrecios?: boolean
 }) {
   const [abierto, setAbierto] = useState(false)
   const [q, setQ] = useState('')
@@ -59,7 +61,7 @@ export function VerTodasLasLineas({ filas, moneda, etiquetaUnitario = 'V. unitar
   const suma = (k: 'valorVenta' | 'igv' | 'total') => visibles.reduce((s, f) => s + (f[k] ?? 0), 0)
   // e167: las columnas de valor de venta e IGV, solo si se conocen.
   const conDesglose = filas.some(f => f.igv !== undefined && f.valorVenta !== undefined)
-  const columnas = conDesglose ? 8 : 6
+  const columnas = sinPrecios ? 3 : conDesglose ? 8 : 6
 
   return (
     <>
@@ -79,9 +81,11 @@ export function VerTodasLasLineas({ filas, moneda, etiquetaUnitario = 'V. unitar
               <thead>
                 <tr>
                   <th>#</th><th>Descripción</th><th className="derecha">Cantidad</th>
-                  <th className="derecha">{etiquetaUnitario}</th><th className="derecha">Desc.</th>
-                  {conDesglose && <><th className="derecha">Valor venta</th><th className="derecha">IGV</th></>}
-                  <th className="derecha">Total</th>
+                  {!sinPrecios && <>
+                    <th className="derecha">{etiquetaUnitario}</th><th className="derecha">Desc.</th>
+                    {conDesglose && <><th className="derecha">Valor venta</th><th className="derecha">IGV</th></>}
+                    <th className="derecha">Total</th>
+                  </>}
                 </tr>
               </thead>
               <tbody>
@@ -93,20 +97,22 @@ export function VerTodasLasLineas({ filas, moneda, etiquetaUnitario = 'V. unitar
                       <div className="secundario">{[f.codigo, f.afectacion].filter(Boolean).join(' · ')}</div>
                     </td>
                     <td className="derecha mono">{cant(f.cantidad)} {f.unidad}</td>
-                    <td className="derecha mono">{f.valorUnitario.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</td>
-                    <td className="derecha mono">{f.descuento ? n2(f.descuento) : '—'}</td>
-                    {conDesglose && <>
-                      <td className="derecha mono">{n2(f.valorVenta ?? 0)}</td>
-                      <td className="derecha mono">{n2(f.igv ?? 0)}</td>
+                    {!sinPrecios && <>
+                      <td className="derecha mono">{f.valorUnitario.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</td>
+                      <td className="derecha mono">{f.descuento ? n2(f.descuento) : '—'}</td>
+                      {conDesglose && <>
+                        <td className="derecha mono">{n2(f.valorVenta ?? 0)}</td>
+                        <td className="derecha mono">{n2(f.igv ?? 0)}</td>
+                      </>}
+                      <td className="derecha mono"><strong>{n2(f.total)}</strong></td>
                     </>}
-                    <td className="derecha mono"><strong>{n2(f.total)}</strong></td>
                   </tr>
                 ))}
                 {visibles.length === 0 && (
                   <tr><td colSpan={columnas} className="vacio">Ninguna línea con «{q.trim()}».</td></tr>
                 )}
               </tbody>
-              {visibles.length > 0 && (
+              {visibles.length > 0 && !sinPrecios && (
                 <tfoot>
                   <tr>
                     <td colSpan={5}>{q.trim() ? `${visibles.length} de ${filas.length} líneas` : `${filas.length} líneas`}</td>
@@ -206,23 +212,28 @@ export function usePaginaLineas<T extends { descripcion: string; codigo?: string
     visibles: filtradas.slice((real - 1) * porPagina, real * porPagina),
     hayMas: lista.length > porPagina,
     paginacion: { total: filtradas.length, pagina: real, porPagina, onCambiar: setPagina },
+    /** e168: ir a la última página (para ver la fila que se acaba de agregar). */
+    alFinal: () => { setQ(''); setPagina(Number.MAX_SAFE_INTEGER) },
   }
 }
 
 /** e167 — La barra de arriba de una grilla de líneas: cuántas, buscar y «Ver todo». */
-export function BarraLineas({ cuantas, q, onBuscar, filas, moneda, etiquetaUnitario }: {
+export function BarraLineas({ cuantas, q, onBuscar, filas, moneda, etiquetaUnitario, sinPrecios, nombres = ['línea', 'líneas'] }: {
   cuantas: number
   q: string
   onBuscar: (v: string) => void
   filas: FilaDetalle[]
   moneda: string
   etiquetaUnitario?: string
+  sinPrecios?: boolean
+  /** e168: cómo se llaman (en la guía, «bien» y «bienes»). */
+  nombres?: [string, string]
 }) {
   return (
     <div className="barra-lineas">
-      <strong>{cuantas} {cuantas === 1 ? 'línea' : 'líneas'}</strong>
-      <input value={q} onChange={e => onBuscar(e.target.value)} placeholder="Buscar en las líneas…" aria-label="Buscar en las líneas" />
-      <VerTodasLasLineas filas={filas} moneda={moneda} etiquetaUnitario={etiquetaUnitario} />
+      <strong>{cuantas} {cuantas === 1 ? nombres[0] : nombres[1]}</strong>
+      <input value={q} onChange={e => onBuscar(e.target.value)} placeholder={`Buscar en ${nombres[1] === 'líneas' ? 'las líneas' : `los ${nombres[1]}`}…`} aria-label="Buscar en las líneas" />
+      <VerTodasLasLineas filas={filas} moneda={moneda} etiquetaUnitario={etiquetaUnitario} sinPrecios={sinPrecios} />
     </div>
   )
 }
