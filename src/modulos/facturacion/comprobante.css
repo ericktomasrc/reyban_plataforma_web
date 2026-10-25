@@ -206,6 +206,7 @@
   .nc-detalle, .nc-linea .inv-falta { margin-left: 0; }
   .nc-pie-lineas { flex-direction: column-reverse; align-items: stretch; }
   .nc-totales { min-width: 0; }
+  .nc-totales-col { min-width: 0; max-width: none; }
   .nc-agregar { flex-direction: column; align-items: stretch; }
   .nc-agregar .buscador.en-linea { max-width: none; }
   .nc-barra { flex-wrap: wrap; margin-inline: calc(-1 * var(--e4)); border-radius: 0; }
@@ -404,18 +405,19 @@
 .nota .nota-tabla input.correccion-nota { width: 100%; }
 
 /* e169 — los regalos (operaciones gratuitas). La casilla, apagada hasta que se marca. */
-.nc-es-regalo { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; padding: 2px 6px; border-radius: 6px;
+.nc-es-regalo { display: inline-flex; align-items: center; gap: 5px; min-width: 104px; padding: 2px 6px 2px 0; border-radius: 6px;
   font-size: 12.5px; color: var(--tinta-3); opacity: .55; cursor: pointer; user-select: none; }
 .nc-es-regalo:hover, .nc-es-regalo:focus-within { opacity: 1; }
 .nc-es-regalo input { margin: 0; accent-color: #9a5b00; }
 .nc-es-regalo input:disabled { cursor: not-allowed; }
-.nc-es-regalo.marcado { margin-left: 0; opacity: 1; color: #9a5b00; font-weight: 600; }
+.nc-es-regalo.marcado { opacity: 1; color: #9a5b00; font-weight: 600; }
 .nc-linea.nc-regalo { background: #fffaf2; border-radius: var(--radio); }
 .nc-motivo-regalo select { min-height: 30px; padding: 3px 8px; font-size: 12.5px; width: auto; max-width: 320px;
   border-color: #f0c98a; background: #fff5e5; color: #5c3b06; }
 .nc-vale { display: block; text-decoration: line-through; color: var(--tinta-3); font-size: 11.5px; font-weight: 400; }
 .nc-totales .nc-gratuito dt, .nc-totales .nc-gratuito dd { color: #9a5b00; }
-.nc-nota-regalo { margin-top: var(--e2); text-align: right; }
+.nc-totales-col { display: grid; gap: var(--e2); min-width: 300px; max-width: 380px; }
+.nc-nota-regalo { margin: 0; font-size: 12.5px; }
 .pastilla-regalo { display: inline-block; font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px;
   background: #fff5e5; color: #9a5b00; border: 1px solid #f0c98a; vertical-align: middle; }
 .datos.totales .fila.gratuito dt, .datos.totales .fila.gratuito dd { color: #9a5b00; }

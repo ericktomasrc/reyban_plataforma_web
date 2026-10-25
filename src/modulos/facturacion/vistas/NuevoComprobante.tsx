@@ -1645,12 +1645,22 @@ export function NuevoComprobante() {
                       <label className="nc-motivo-regalo">
                         <span className="solo-lector">¿Por qué regalas la línea {i + 1}?</span>
                         <select value={regalo.motivo} onChange={e => motivoRegalo(l.clave, e.target.value as MotivoRegalo)}>
-                          {motivosPara(regalo.base).map(m => <option key={m.codigo} value={m.codigo}>¿Por qué? {m.nombre}</option>)}
+                          {motivosPara(regalo.base).map(m => <option key={m.codigo} value={m.codigo}>{m.nombre}</option>)}
                         </select>
                       </label>
-                      <span className="nc-dato">va a SUNAT como <span className="mono">{l.tipoAfectacion}</span> · {NOMBRE_REGALO[l.tipoAfectacion]}</span>
+                      <span className="nc-dato" title={`Va a SUNAT con la afectación ${l.tipoAfectacion}: ${NOMBRE_REGALO[l.tipoAfectacion]}`}>SUNAT <span className="mono">{l.tipoAfectacion}</span> · {NOMBRE_REGALO[l.tipoAfectacion]}</span>
                     </>
                   ) : (
+                    <>
+                    {/* e169: «Es regalo», apagada hasta que se marca. En el mismo sitio que la marcada. */}
+                    <label className="nc-es-regalo"
+                           title={sePuedeRegalar(l.tipoAfectacion)
+                             ? 'Marca si esta línea se entrega gratis (bonificación, premio, muestra…). El cliente no la paga.'
+                             : 'La exportación y el IVAP no se pueden entregar como regalo.'}>
+                      <input type="checkbox" checked={false} disabled={!sePuedeRegalar(l.tipoAfectacion)}
+                             onChange={() => marcarRegalo(l.clave, true)} aria-label={`La línea ${i + 1} es regalo`} />
+                      Es regalo
+                    </label>
                     <label className={desajustada ? 'nc-afectacion desajustada' : 'nc-afectacion'}>
                       <span className="solo-lector">Afectación del IGV de la línea {i + 1}</span>
                       <select value={l.tipoAfectacion} onChange={e => cambiar(l.clave, 'tipoAfectacion', e.target.value)}>
@@ -1660,6 +1670,7 @@ export function NuevoComprobante() {
                         ))}
                       </select>
                     </label>
+                    </>
                   )}
                   {enCeroLinea && (
                     <span className="nc-stock mal" title={regalo ? 'SUNAT pide cuánto vale el regalo (error 2367).' : 'SUNAT rechaza una línea sin valor (error 3105).'}>
@@ -1686,7 +1697,7 @@ export function NuevoComprobante() {
                     </span>
                   )}
                   {conIgv != null && (regalo
-                    ? <span className="nc-dato">Vale con IGV <span className="mono">{conIgv.toFixed(2)}</span> c/u · <strong>no se cobra</strong></span>
+                    ? <span className="nc-dato">Vale <span className="mono">{conIgv.toFixed(2)}</span> c/u con IGV · <strong>no se cobra</strong></span>
                     : <span className="nc-dato">Con IGV <span className="mono">{conIgv.toFixed(2)}</span> c/u</span>)}
                   {regalo && conIgv == null && <span className="nc-dato"><strong>No se cobra</strong>: el valor es lo que vale</span>}
                   {p && !p.controla && <span className="nc-dato">No se cuenta en el inventario</span>}
@@ -1695,17 +1706,6 @@ export function NuevoComprobante() {
                   )}
                   {p && p.controla && falta && (
                     <span className={disp?.bloquea ? 'nc-stock mal' : 'nc-stock ojo'}>Hay <strong className="mono">{cantidad(p.disponible)}</strong> disponibles</span>
-                  )}
-                  {/* e169: «Es regalo», apagada hasta que se marca. */}
-                  {!regalo && (
-                    <label className="nc-es-regalo"
-                           title={sePuedeRegalar(l.tipoAfectacion)
-                             ? 'Marca si esta línea se entrega gratis (bonificación, premio, muestra…). El cliente no la paga.'
-                             : 'La exportación y el IVAP no se pueden entregar como regalo.'}>
-                      <input type="checkbox" checked={false} disabled={!sePuedeRegalar(l.tipoAfectacion)}
-                             onChange={() => marcarRegalo(l.clave, true)} aria-label={`La línea ${i + 1} es regalo`} />
-                      Es regalo
-                    </label>
                   )}
                 </div>
 
@@ -1754,6 +1754,7 @@ export function NuevoComprobante() {
             a SUNAT lo calcula el servicio de facturación al emitir, y es el que quedará guardado.
           </p>
 
+          <div className="nc-totales-col">
           <dl className="nc-totales">
             {totales.descuentos > 0 && (
               <div><dt>Descuentos</dt><dd className="mono">−{dinero(totales.descuentos)}</dd></div>
@@ -1773,10 +1774,11 @@ export function NuevoComprobante() {
           </dl>
           {totales.igvRegalo > 0 && (
             <p className="nota nc-nota-regalo">
-              IGV de lo regalado: <strong className="mono">{simbolo} {dinero(totales.igvRegalo)}</strong>. Lo asumes tú, no el
+              🎁 IGV de lo regalado: <strong className="mono">{simbolo} {dinero(totales.igvRegalo)}</strong>. Lo asumes tú, no el
               cliente (tu contador lo declara como retiro de bienes).
             </p>
           )}
+          </div>
         </div>
       </section>
 
