@@ -72,6 +72,10 @@ export const consultasSunatServicio = {
   estado: () =>
     api.obtener<EstadoConsultas>('/api/admin/consultas-sunat'),
 
+  /** e163: suelta una carga que quedó colgada (nadie la está haciendo). */
+  destrabar: () =>
+    api.crear<{ mensaje: string }>('/api/admin/consultas-sunat/padron/destrabar'),
+
   cambiarModo: (modo: ModoConsultas) =>
     api.cambiar<{ modo: ModoConsultas; mensaje: string }>('/api/admin/consultas-sunat/modo', { modo }),
 

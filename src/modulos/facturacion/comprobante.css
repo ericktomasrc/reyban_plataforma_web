@@ -318,3 +318,29 @@
 .vc-lado p { font-size: 14px; }
 .vc-lado .acciones-linea > * { flex: none; }
 .archivo-boton { white-space: nowrap; }
+
+/* e163 — el ojo de arriba («Ver todo») y la grilla del emitido con búsqueda y páginas. */
+.ojo-lineas {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 42px; padding: 0 14px;
+  font: inherit; font-size: 14px; color: var(--acento); cursor: pointer; white-space: nowrap;
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio);
+}
+.ojo-lineas:hover:not(:disabled) { border-color: var(--acento); background: var(--acento-suave); }
+.ojo-lineas:disabled { color: var(--tinta-3); cursor: default; }
+.nc-agregar .ojo-lineas { flex: none; }
+.nc-agregar .nc-buscar-linea { margin-left: auto; }
+
+.detalle-lineas { display: grid; gap: var(--e3); }
+.detalle-lineas-buscar { min-height: 40px; padding: 8px 12px; font: inherit; border: 1px solid var(--borde); border-radius: var(--radio); }
+.detalle-lineas-buscar:focus { outline: 2px solid var(--acento); outline-offset: -1px; border-color: var(--acento); }
+.detalle-lineas-tabla { max-height: 60vh; overflow: auto; border: 1px solid var(--borde); border-radius: var(--radio-grande); }
+.detalle-lineas-tabla .tabla thead th { position: sticky; top: 0; z-index: 1; }
+.detalle-lineas-tabla .tabla tfoot td { position: sticky; bottom: 0; background: var(--acento-suave); font-weight: 600; border-top: 1px solid var(--borde); }
+
+.lineas-emitidas .lineas-barra { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e3); padding: var(--e3) var(--e4); border-bottom: 1px solid var(--borde); }
+.lineas-emitidas .lineas-barra > strong { margin-right: auto; font-size: 14px; }
+.lineas-emitidas .lineas-barra input { min-height: 40px; min-width: 220px; padding: 8px 12px; font: inherit; font-size: 14px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--papel); }
+.lineas-emitidas .lineas-barra input:focus { outline: 2px solid var(--acento); outline-offset: -1px; border-color: var(--acento); background: var(--superficie); }
+.lineas-emitidas .lineas-barra .ojo-lineas { min-height: 40px; }
+.lineas-emitidas .lineas-pie { padding: var(--e2) var(--e4); border-top: 1px solid var(--borde-sutil); }
+.lineas-emitidas .lineas-pie .paginacion { margin: 0; }

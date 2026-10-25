@@ -10,6 +10,7 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha, fechaYHora } from '../../../nucleo/formato/fechas'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { ArchivosComprobante } from '../componentes/ArchivosComprobante'
+import { LineasEmitidas } from '../componentes/DetalleLineas'
 import { EstadoComprobante } from '../componentes/EstadoComprobante'
 import { nombreDetraccion } from '../componentes/PagoYDetraccion'
 import { PanelWhatsapp } from '../componentes/PanelWhatsapp'
@@ -363,32 +364,11 @@ export function VerComprobante() {
             </dl>
           </div>
 
-          {/* --- Líneas -------------------------------------------------------- */}
-          <div className="bloque sin-relleno">
-            <table className="tabla">
-              <thead>
-                <tr>
-                  <th>Descripción</th>
-                  <th className="derecha">Cantidad</th>
-                  <th className="derecha">Valor unitario</th>
-                  <th className="derecha">Importe</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.lineas.map(l => (
-                  <tr key={l.id ?? l.numero}>
-                    <td>
-                      <div className="principal">{l.descripcion}</div>
-                      {l.codigo && <div className="secundario mono">{l.codigo}</div>}
-                    </td>
-                    <td className="derecha mono">{l.cantidad} {l.unidadMedida}</td>
-                    <td className="derecha mono">{l.valorUnitario.toFixed(4)}</td>
-                    <td className="derecha mono">{l.valorVenta.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* --- Líneas: e163, con búsqueda, de 10 en 10 y el ojo con todas ------ */}
+          <LineasEmitidas moneda={d.moneda} filas={d.lineas.map(l => ({
+            numero: l.numero, codigo: l.codigo, descripcion: l.descripcion, cantidad: l.cantidad, unidad: l.unidadMedida,
+            valorUnitario: l.valorUnitario, descuento: l.descuento, valorVenta: l.valorVenta, igv: l.igv, total: l.importeTotal,
+          }))} />
 
           {/* --- Totales ------------------------------------------------------- */}
           <div className="bloque">

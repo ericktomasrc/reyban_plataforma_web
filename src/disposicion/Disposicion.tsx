@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { EVENTO_FICHA_INCOMPLETA } from '../nucleo/api/cliente'
 import { fecha } from '../nucleo/formato/fechas'
 import { useMensaje } from '../nucleo/mensajes/ProveedorMensajes'
@@ -41,6 +41,7 @@ export function Disposicion() {
   const { salir, puede } = useSesion()
   const { usuario, empresa, cuenta, menu, roles, alcance, ficha } = useYo()
   const ruta = useLocation()
+  const navegar = useNavigate()
   const [menuAbierto, setMenuAbierto] = useState(false)
   const mensaje = useMensaje()
 
@@ -159,7 +160,12 @@ export function Disposicion() {
             <Link to="/perfil" role="menuitem">Mi cuenta</Link>
             <Link to="/perfil?pestana=seguridad" role="menuitem">Seguridad</Link>
             <hr />
-            <button type="button" role="menuitem" onClick={() => void salir()}>Salir</button>
+            <button type="button" role="menuitem" onClick={() => {
+              // e163: se vuelve al inicio ANTES de salir, para que quien entre
+              // después no aparezca en la última pantalla del anterior.
+              navegar('/', { replace: true })
+              void salir()
+            }}>Salir</button>
           </div>
         )}
         </div>

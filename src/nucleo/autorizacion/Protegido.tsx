@@ -37,6 +37,14 @@ export function Protegido({ permiso, modulo, soloSuperAdmin, children }: Props) 
     return <Navigate to="/" replace />
   }
 
+  // e163: EL SUPER ADMINISTRADOR SIN EMPRESA NO ENTRA A LAS PANTALLAS DE UNA
+  // EMPRESA. Pasaba al entrar después de otro usuario: el navegador seguía en
+  // la última dirección (un comprobante de esa empresa) y se le enseñaba. Para
+  // dar soporte está «Ver como», que sí le pone la empresa.
+  if (modulo && yo.usuario.esSuperAdmin && !yo.empresa) {
+    return <Navigate to="/" replace />
+  }
+
   // El super administrador entra a todo: su trabajo es dar soporte a empresas
   // que sí lo contrataron.
   if (modulo && !yo.usuario.esSuperAdmin && !yo.menu.some(m => m.codigo === modulo)) {

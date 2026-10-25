@@ -81,7 +81,8 @@ export function ConsultasSunatPagina() {
   useEffect(() => {
     if (!estado) return
     if (enMarcha) {
-      activo.current = estado.avance?.padron ?? activo.current ?? (estado.padron.anexos?.enCurso ? 'anexos' : 'ruc')
+      const deAvance = estado.avance?.padron === 'anexos' || estado.avance?.padron === 'ruc' ? estado.avance.padron : undefined
+      activo.current = deAvance ?? activo.current ?? (estado.padron.anexos?.enCurso ? 'anexos' : 'ruc')
       return
     }
     const cual = activo.current
@@ -160,6 +161,21 @@ export function ConsultasSunatPagina() {
 
   const p = estado?.padron
 
+  /** e163: ¿este padrón tiene una carga suya en marcha (o una subida)? */
+  const corre = (cual: TipoPadron, datos: EstadoPadron) =>
+    datos.enCurso || subida?.padron === cual || (!!estado?.avance && (estado.avance.padron ?? 'ruc') === cual)
+
+  /** e163: soltar una carga que se quedó colgada. */
+  async function destrabar() {
+    try {
+      const r = await consultasSunatServicio.destrabar()
+      mensaje.bien(r.mensaje)
+    } catch (e) {
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo destrabar.')
+    }
+    await cargar()
+  }
+
   return (
     <>
       <h1 className="titulo-pagina">Consultas SUNAT</h1>
@@ -197,11 +213,13 @@ export function ConsultasSunatPagina() {
           {/* --- Los dos padrones ------------------------------------------- */}
           <BloquePadron
             padron="ruc" datos={p} estado={estado} enMarcha={enMarcha} ocupado={ocupado} subida={subida}
+            otroCorriendo={!!p.anexos && corre('anexos', p.anexos)} onDestrabar={() => void destrabar()}
             onDescargar={() => void descargar('ruc')} onSubir={a => void subir('ruc', a)} />
 
           {p.anexos ? (
             <BloquePadron
               padron="anexos" datos={p.anexos} estado={estado} enMarcha={enMarcha} ocupado={ocupado} subida={subida}
+              otroCorriendo={corre('ruc', p)} onDestrabar={() => void destrabar()}
               onDescargar={() => void descargar('anexos')} onSubir={a => void subir('anexos', a)} />
           ) : (
             <div className="bloque">
@@ -220,11 +238,14 @@ export function ConsultasSunatPagina() {
 // 045 — UN PADRÓN: su estado, sus botones, su barra y sus cargas.
 // =============================================================================
 
-function BloquePadron({ padron, datos, estado, enMarcha, ocupado, subida, onDescargar, onSubir }: {
+function BloquePadron({ padron, datos, estado, enMarcha, ocupado, subida, onDescargar, onSubir, otroCorriendo, onDestrabar }: {
   padron: TipoPadron
   datos: EstadoPadron
   estado: EstadoConsultas
   enMarcha: boolean
+  /** e163: el OTRO padrón tiene una carga en marcha (entonces este espera de verdad). */
+  otroCorriendo: boolean
+  onDestrabar: () => void
   ocupado: string | null
   subida: { padron: TipoPadron; enviados: number; total: number } | null
   onDescargar: () => void
@@ -245,11 +266,11 @@ function BloquePadron({ padron, datos, estado, enMarcha, ocupado, subida, onDesc
           <h2 className="subtitulo">{t.titulo}</h2>
           <div className="botonera">
             <Boton estilo="secundario" ocupado={ocupado === `descargar-${padron}`} textoOcupado="Empezando…"
-                   disabled={ocupado !== null || enMarcha} onClick={onDescargar}>
+                   disabled={ocupado !== null || (enMarcha && (corriendo || otroCorriendo))} onClick={onDescargar}>
               Descargar ahora
             </Boton>
             <Boton estilo="secundario" ocupado={ocupado === `subir-${padron}`} textoOcupado="Subiendo…"
-                   disabled={ocupado !== null || enMarcha} onClick={() => elegir.current?.click()}>
+                   disabled={ocupado !== null || (enMarcha && (corriendo || otroCorriendo))} onClick={() => elegir.current?.click()}>
               Subir archivo…
             </Boton>
             <input ref={elegir} type="file" accept=".zip,.txt" hidden
@@ -261,8 +282,18 @@ function BloquePadron({ padron, datos, estado, enMarcha, ocupado, subida, onDesc
           <ProgresoPadron padron={padron} subida={miSubida} avance={null} />
         ) : corriendo ? (
           <ProgresoPadron padron={padron} subida={null} avance={avanceMio} />
-        ) : enMarcha ? (
+        ) : enMarcha && otroCorriendo ? (
           <Aviso tono="ojo">Esperando: se está cargando el otro padrón. Las cargas van de una en una.</Aviso>
+        ) : enMarcha ? (
+          // e163: se ve «en marcha» pero no hay ninguna carga detrás (la plataforma se
+          // reinició a mitad, o el avance se quedó colgado). Antes los botones se
+          // quedaban apagados para siempre; ahora se puede soltar.
+          <Aviso tono="ojo">
+            <strong>Hay una carga anotada como «en marcha», pero no se ve ninguna trabajando.</strong>{' '}
+            Pasa si la plataforma se reinició a mitad de una carga.{' '}
+            <button type="button" className="enlace" onClick={onDestrabar}>Destrabar</button>{' '}
+            (si de verdad hay una trabajando, no la toca).
+          </Aviso>
         ) : ultima?.estado === 'error' ? (
           <Aviso>
             <strong>La última carga falló</strong> ({fechaYHora(ultima.iniciadaEn)}): {ultima.motivo}

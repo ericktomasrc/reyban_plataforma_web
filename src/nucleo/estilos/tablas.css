@@ -798,3 +798,9 @@ body:has(dialog[open]) { overflow: hidden; }
 .acciones-linea .boton { padding-left: 18px; }
 .acciones-linea .boton.plano { padding-left: 0; }
 .acciones-linea > span.secundario { flex: 1 1 260px; font-size: 13px; }
+
+/* e163 — LOS BOTONES DE UNA FILA SE PARTEN EN VARIAS LÍNEAS si no caben, en
+   vez de empujar la tabla fuera de la pantalla (Cuentas, Empresas). */
+.tabla td.acciones { white-space: normal; }
+.tabla td.acciones .boton { white-space: nowrap; margin: 2px 0 2px var(--e1); }
+.tabla td.acciones .boton + .boton { margin-left: var(--e1); }

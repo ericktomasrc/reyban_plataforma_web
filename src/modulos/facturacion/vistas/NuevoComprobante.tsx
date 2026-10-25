@@ -12,6 +12,7 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { BuscadorCliente } from '../componentes/BuscadorCliente'
 import { whatsappLegible } from '../componentes/PanelWhatsapp'
 import { BuscadorProducto } from '../componentes/BuscadorProducto'
+import { LINEAS_POR_PAGINA, VerTodasLasLineas, type FilaDetalle } from '../componentes/DetalleLineas'
 import {
   PagoYDetraccion, detraccionInicial, montoDetraccion, netoPendiente, nombreDetraccion,
   pagoInicial, revisarPago,
@@ -171,7 +172,8 @@ export function NuevoComprobante() {
   // e162: con muchas líneas, buscar entre ellas y verlas de 20 en 20.
   const [buscarLinea, setBuscarLinea] = useState('')
   const [paginaLineas, setPaginaLineas] = useState(1)
-  const [porPaginaLineas, setPorPaginaLineas] = useState(20)
+  // e163: de 10 en 10 (el ojo de arriba enseña todas).
+  const porPaginaLineas = LINEAS_POR_PAGINA
   // e162: el «ojito»: el detalle de una línea, solo lectura.
   const [verLinea, setVerLinea] = useState<string>()
   // 052: inventario. Lo disponible de los productos elegidos en la sucursal de
@@ -980,8 +982,19 @@ export function NuevoComprobante() {
   const lineasVisibles = lineasFiltradas.slice((paginaLineasReal - 1) * porPaginaLineas, paginaLineasReal * porPaginaLineas)
   const paginacionLineas = {
     total: lineasFiltradas.length, pagina: paginaLineasReal, porPagina: porPaginaLineas,
-    onCambiar: setPaginaLineas, onPorPagina: (n: number) => { setPorPaginaLineas(n); setPaginaLineas(1) },
+    onCambiar: setPaginaLineas,
   }
+  // e163: para la ventana del ojo, todas las líneas con sus importes.
+  const filasDetalle: FilaDetalle[] = lineas.map((l, i) => {
+    const vv = r2(Math.max(0, num(l.cantidad) * num(l.valorUnitario) - num(l.descuento)))
+    const tasa = l.tipoAfectacion === '10' ? IGV : l.tipoAfectacion === '17' ? 0.04 : 0
+    const ig = r2(vv * tasa)
+    return {
+      numero: i + 1, codigo: l.codigo || null, descripcion: l.descripcion, cantidad: num(l.cantidad), unidad: l.unidadMedida,
+      valorUnitario: num(l.valorUnitario), descuento: num(l.descuento), valorVenta: vv, igv: ig, total: vv + ig,
+      afectacion: nombreAfectacion(l.tipoAfectacion),
+    }
+  })
   const lineaVista = lineas.findIndex(l => l.clave === verLinea)
 
   return (
@@ -1215,13 +1228,14 @@ export function NuevoComprobante() {
         <div className="nc-agregar">
           <BuscadorProducto onElegir={agregarProducto} placeholder="+ Agregar producto: busca por código o nombre…" />
           <Boton estilo="secundario" onClick={lineaLibre}>Línea libre</Boton>
-          {lineas.length > 5 && (
+          {lineas.length > 0 && (
             <label className="nc-buscar-linea">
               <span className="solo-lector">Buscar entre las líneas</span>
               <input value={buscarLinea} placeholder="Buscar en lo agregado…" autoComplete="off"
                      onChange={e => { setBuscarLinea(e.target.value); setPaginaLineas(1) }} />
             </label>
           )}
+          {lineas.length > 0 && <VerTodasLasLineas filas={filasDetalle} moneda={simbolo} />}
         </div>
 
         {buscarLinea.trim() && (
