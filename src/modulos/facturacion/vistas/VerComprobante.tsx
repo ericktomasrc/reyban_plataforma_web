@@ -15,6 +15,7 @@ import { nombreDetraccion } from '../componentes/PagoYDetraccion'
 import { PanelWhatsapp } from '../componentes/PanelWhatsapp'
 import { documentosServicio } from '../servicios/facturacionServicio'
 import { GuiasDelComprobante } from '../../guias/componentes/GuiasDelComprobante'
+import '../comprobante.css'
 import type { DocumentoCompleto } from '../tipos'
 
 const TIPOS: Record<string, string> = { '01': 'Factura', '03': 'Boleta de venta', '07': 'Nota de crédito', '08': 'Nota de débito' }
@@ -193,11 +194,20 @@ export function VerComprobante() {
 
   return (
     <>
-      <div className="encabezado-pagina">
-        <h1 className="titulo-pagina">
-          {d.numero}
-          {d.ambiente === 'beta' && <> <span className="etiqueta aviso" title="Emitido en SUNAT beta: sin valor legal">prueba</span></>}
-        </h1>
+      <div className="encabezado-pagina vc-encabezado">
+        <div>
+          <p className="vc-tipo">{TIPOS[d.tipo] ?? d.tipo}</p>
+          <h1 className="titulo-pagina">
+            {d.numero}
+            {d.ambiente === 'beta' && <> <span className="etiqueta aviso" title="Emitido en SUNAT beta: sin valor legal">prueba</span></>}
+          </h1>
+          <p className="vc-resumen">
+            <EstadoComprobante estado={d.estado} />
+            {d.cliente && <span>{d.cliente.razonSocial}</span>}
+            <span>{fecha(d.fechaEmision)}</span>
+            <strong className="mono">{d.moneda} {d.totales.importeTotal.toFixed(2)}</strong>
+          </p>
+        </div>
         <Boton estilo="secundario" onClick={() => navegar('/facturacion/comprobantes')}>
           Volver
         </Boton>
@@ -205,192 +215,363 @@ export function VerComprobante() {
 
       {error && <Aviso>{error}</Aviso>}
 
-      {/* --- Estado -------------------------------------------------------- */}
-      <div className="bloque">
-        <h2 className="subtitulo">Estado</h2>
+      <div className="vc-cuerpo">
+        <div className="vc-principal">
+          {/* --- Estado -------------------------------------------------------- */}
+          <div className="bloque">
+            <h2 className="subtitulo">Estado</h2>
 
-        <EstadoComprobante estado={d.estado} conAyuda />
-        {conNotas && (
-          <p><span className="etiqueta aviso">{saldo <= 0 ? 'Anulado con nota de crédito' : 'Con nota de crédito'}</span></p>
-        )}
-
-        {d.mensajeSunat && (
-          <p className="nota">
-            {d.codigoSunat && <strong>[{d.codigoSunat}] </strong>}
-            {d.mensajeSunat}
-          </p>
-        )}
-
-        {d.observaciones && d.observaciones.length > 0 && (
-          <ul className="lista-observaciones">
-            {d.observaciones.map((o, i) => <li key={i}>{o}</li>)}
-          </ul>
-        )}
-
-        {d.estado === 'error' && d.sePuedeEditar && (
-          <div className="acciones-linea">
-            {esNota ? (
-              <Boton onClick={() => void reintentarNota()} ocupado={ocupado} textoOcupado="Enviando…">
-                Reintentar
-              </Boton>
-            ) : (
-              <Boton onClick={() => navegar(`/facturacion/comprobantes/${d.id}/editar`)}>
-                Reintentar
-              </Boton>
+            <EstadoComprobante estado={d.estado} conAyuda />
+            {conNotas && (
+              <p><span className="etiqueta aviso">{saldo <= 0 ? 'Anulado con nota de crédito' : 'Con nota de crédito'}</span></p>
             )}
-          </div>
-        )}
 
-        {/* 18 OCT: el 1033 en palabras simples. */}
-        {numero1033 && (
-          <Aviso>
-            <strong>Ese número ya existe en SUNAT.</strong> SUNAT ya tiene un {d.numero} emitido antes
-            (código 1033), así que este no vale. No se duplicó nada. Revisa cuál fue el
-            <strong> último número que realmente emitiste</strong> en la serie {serie} (por ejemplo, en tu
-            consulta de SUNAT SOL) y ajústalo: el siguiente comprobante saldrá con el número que sigue.
-            {puede(Permisos.Facturacion.CredencialesGestionar) && serie && (
+            {d.mensajeSunat && (
+              <p className="nota">
+                {d.codigoSunat && <strong>[{d.codigoSunat}] </strong>}
+                {d.mensajeSunat}
+              </p>
+            )}
+
+            {d.observaciones && d.observaciones.length > 0 && (
+              <ul className="lista-observaciones">
+                {d.observaciones.map((o, i) => <li key={i}>{o}</li>)}
+              </ul>
+            )}
+
+            {d.estado === 'error' && d.sePuedeEditar && (
               <div className="acciones-linea">
-                <Boton onClick={() => abrir('ajustar')}>Ajustar la serie {serie}</Boton>
+                {esNota ? (
+                  <Boton onClick={() => void reintentarNota()} ocupado={ocupado} textoOcupado="Enviando…">
+                    Reintentar
+                  </Boton>
+                ) : (
+                  <Boton onClick={() => navegar(`/facturacion/comprobantes/${d.id}/editar`)}>
+                    Reintentar
+                  </Boton>
+                )}
               </div>
             )}
-          </Aviso>
-        )}
 
-        {/* 23 oct: la baja / anulación ya pedida, esperando a SUNAT. */}
-        {bajaPedida && (
-          <Aviso tono="ojo">
-            <strong>Se pidió {textoAnular === 'Anular' ? 'la anulación' : 'la baja'} el {fechaYHora(bajaPedida)}.</strong>{' '}
-            Esperando la respuesta de SUNAT: mientras tanto no se pueden hacer notas. Si SUNAT la acepta, pasa a «anulado».
-          </Aviso>
-        )}
+            {/* 18 OCT: el 1033 en palabras simples. */}
+            {numero1033 && (
+              <Aviso>
+                <strong>Ese número ya existe en SUNAT.</strong> SUNAT ya tiene un {d.numero} emitido antes
+                (código 1033), así que este no vale. No se duplicó nada. Revisa cuál fue el
+                <strong> último número que realmente emitiste</strong> en la serie {serie} (por ejemplo, en tu
+                consulta de SUNAT SOL) y ajústalo: el siguiente comprobante saldrá con el número que sigue.
+                {puede(Permisos.Facturacion.CredencialesGestionar) && serie && (
+                  <div className="acciones-linea">
+                    <Boton onClick={() => abrir('ajustar')}>Ajustar la serie {serie}</Boton>
+                  </div>
+                )}
+              </Aviso>
+            )}
 
-        {/* 18 OCT: ANULAR, con el nombre que usa SUNAT. */}
-        {/* 031: NOTA DE CRÉDITO, sin plazo. Y dentro de los 7 días, también la baja. */}
-        {(puedeNota || puedeDebito || (anulable && dias <= 7)) && (
-          <div className="acciones-linea">
-            {puedeNota && (
-              <Boton onClick={() => navegar(`/facturacion/comprobantes/${d.id}/nota-credito`)}>
-                Hacer nota de crédito
-              </Boton>
+            {/* 23 oct: la baja / anulación ya pedida, esperando a SUNAT. */}
+            {bajaPedida && (
+              <Aviso tono="ojo">
+                <strong>Se pidió {textoAnular === 'Anular' ? 'la anulación' : 'la baja'} el {fechaYHora(bajaPedida)}.</strong>{' '}
+                Esperando la respuesta de SUNAT: mientras tanto no se pueden hacer notas. Si SUNAT la acepta, pasa a «anulado».
+              </Aviso>
             )}
-            {puedeDebito && (
-              <Boton estilo="secundario" onClick={() => navegar(`/facturacion/comprobantes/${d.id}/nota-debito`)}>
-                Hacer nota de débito
-              </Boton>
+
+            {aceptado && dias > 7 && (d.tipo === '01' || d.tipo === '03') && !conNotas && !bajaPedida && (
+              <Aviso tono="ojo">
+                <strong>Ya pasaron los 7 días para «{textoAnular}».</strong> Para anularlo o corregirlo, haz una
+                <strong> nota de crédito</strong>: es el camino que SUNAT acepta, sin plazo.
+              </Aviso>
             )}
-            {anulable && dias <= 7 && (
-              <Boton estilo="secundario" onClick={() => abrir('anular')}>{textoAnular}</Boton>
+            {anulable && esNota && dias > 7 && (
+              <p className="nota">Pasaron más de 7 días: esta nota de crédito ya no se puede dar de baja.</p>
             )}
-            <span className="secundario">
-              {anulable && dias <= 7
-                ? `«${textoAnular}»: solo si hubo un error o la venta no se concretó; quedan ${7 - dias} día(s).`
-                : ''}
-              {puedeNota ? ' La nota de crédito sirve siempre, también para devoluciones y descuentos.' : ''}
-            </span>
           </div>
-        )}
-        {aceptado && dias > 7 && (d.tipo === '01' || d.tipo === '03') && !conNotas && !bajaPedida && (
-          <Aviso tono="ojo">
-            <strong>Ya pasaron los 7 días para «{textoAnular}».</strong> Para anularlo o corregirlo, haz una
-            <strong> nota de crédito</strong>: es el camino que SUNAT acepta, sin plazo.
-          </Aviso>
-        )}
-        {anulable && esNota && dias > 7 && (
-          <p className="nota">Pasaron más de 7 días: esta nota de crédito ya no se puede dar de baja.</p>
-        )}
-      </div>
 
-      {/* --- 050: sus guías de remisión y «Hacer guía» ------------------------ */}
-      <GuiasDelComprobante documentoId={d.id} tipo={d.tipo} estado={d.estado} />
+          {/* --- Datos --------------------------------------------------------- */}
+          <div className="bloque">
+            <h2 className="subtitulo">{TIPOS[d.tipo] ?? d.tipo}</h2>
 
-      {/* 052: lo que hizo el inventario con este comprobante. */}
-      {d.inventario && (
-        <div className="bloque">
-          <h2 className="subtitulo">Inventario</h2>
-          {d.inventario.modo === 'reserva' ? (
-            <>
-              <p className="parrafo">
-                {d.inventario.aplicado ? 'Reservado' : 'Ya no reserva'} en <strong>{d.inventario.sucursal}</strong>: «se entrega después (con guía)».
-                La mercadería sale del almacén con cada guía de remisión.
+            <dl className="datos">
+              <div className="fila">
+                <dt>Cliente</dt>
+                <dd>
+                  {d.cliente?.razonSocial}
+                  <div className="secundario mono">{d.cliente?.numeroDocumento}</div>
+                  {d.cliente?.direccion && (
+                    <div className="secundario">{d.cliente.direccion}</div>
+                  )}
+                </dd>
+              </div>
+
+              <div className="fila">
+                <dt>Fecha de emisión</dt>
+                <dd className="secundario">{fecha(d.fechaEmision)}</dd>
+              </div>
+
+              {/* 031: una nota de crédito dice a qué comprobante afecta y por qué. */}
+              {esNota && d.afecta && (
+                <div className="fila">
+                  <dt>Modifica</dt>
+                  <dd>
+                    <Boton estilo="plano" onClick={() => navegar(`/facturacion/comprobantes/${d.afecta!.id}`)}>
+                      {d.afecta.numero}
+                    </Boton>
+                  </dd>
+                </div>
+              )}
+              {esNota && (
+                <div className="fila">
+                  <dt>Motivo</dt>
+                  <dd className="secundario">
+                    {motivos[d.tipoNota ?? ''] ?? d.tipoNota}
+                    {d.motivoNota && <div>{d.motivoNota}</div>}
+                  </dd>
+                </div>
+              )}
+
+              {/* 040: forma de pago y detracción. */}
+              {d.tipo === '01' && (
+                <div className="fila">
+                  <dt>Forma de pago</dt>
+                  <dd className="secundario">
+                    {d.formaPago === 'credito' ? 'Al crédito' : 'Al contado'}
+                    {(d.cuotas ?? []).map(c => (
+                      <div key={c.numero} className="mono">
+                        Cuota {c.numero}: {d.moneda} {c.monto.toFixed(2)} · vence {fecha(c.vence)}
+                      </div>
+                    ))}
+                  </dd>
+                </div>
+              )}
+              {d.detraccion && (
+                <div className="fila">
+                  <dt>Detracción</dt>
+                  <dd className="secundario">
+                    {nombreDetraccion(d.detraccion.codigo)} ({d.detraccion.codigo}) · {d.detraccion.porcentaje} %
+                    {d.detraccion.monto != null && <div className="mono">S/ {d.detraccion.monto.toFixed(2)}</div>}
+                    <div className="mono">Cuenta {d.detraccion.cuenta}</div>
+                  </dd>
+                </div>
+              )}
+
+              {Object.entries(d.datosExtra ?? {}).filter(([k]) => !k.startsWith('_')).map(([k, v]) => (
+                <div className="fila" key={k}>
+                  <dt>{NOMBRES_EXTRA[k] ?? k}</dt>
+                  <dd className="secundario">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          {/* --- Líneas -------------------------------------------------------- */}
+          <div className="bloque sin-relleno">
+            <table className="tabla">
+              <thead>
+                <tr>
+                  <th>Descripción</th>
+                  <th className="derecha">Cantidad</th>
+                  <th className="derecha">Valor unitario</th>
+                  <th className="derecha">Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.lineas.map(l => (
+                  <tr key={l.id ?? l.numero}>
+                    <td>
+                      <div className="principal">{l.descripcion}</div>
+                      {l.codigo && <div className="secundario mono">{l.codigo}</div>}
+                    </td>
+                    <td className="derecha mono">{l.cantidad} {l.unidadMedida}</td>
+                    <td className="derecha mono">{l.valorUnitario.toFixed(4)}</td>
+                    <td className="derecha mono">{l.valorVenta.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* --- Totales ------------------------------------------------------- */}
+          <div className="bloque">
+            <dl className="datos totales">
+              {d.totales.totalDescuentos > 0 && (
+                <div className="fila">
+                  <dt>Descuentos</dt>
+                  <dd className="mono">−{d.totales.totalDescuentos.toFixed(2)}</dd>
+                </div>
+              )}
+              <div className="fila">
+                <dt>Gravado</dt>
+                <dd className="mono">{d.totales.totalGravado.toFixed(2)}</dd>
+              </div>
+              <div className="fila">
+                <dt>IGV</dt>
+                <dd className="mono">{d.totales.totalIgv.toFixed(2)}</dd>
+              </div>
+              <div className="fila grande">
+                <dt>Total</dt>
+                <dd className="mono">{d.moneda} {d.totales.importeTotal.toFixed(2)}</dd>
+              </div>
+            </dl>
+
+            {d.estado !== 'borrador' && (
+              <p className="nota">
+                Este importe es el que devolvió el servicio de facturación: el que se
+                firmó y viajó a SUNAT.
               </p>
+            )}
+          </div>
+
+          {/* --- 050: sus guías de remisión y «Hacer guía» ------------------------ */}
+          <GuiasDelComprobante documentoId={d.id} tipo={d.tipo} estado={d.estado} />
+
+          {/* 052: lo que hizo el inventario con este comprobante. */}
+          {d.inventario && (
+            <div className="bloque">
+              <h2 className="subtitulo">Inventario</h2>
+              {d.inventario.modo === 'reserva' ? (
+                <>
+                  <p className="parrafo">
+                    {d.inventario.aplicado ? 'Reservado' : 'Ya no reserva'} en <strong>{d.inventario.sucursal}</strong>: «se entrega después (con guía)».
+                    La mercadería sale del almacén con cada guía de remisión.
+                  </p>
+                  <table className="tabla">
+                    <thead><tr><th>Producto</th><th>Reservado</th><th>Salió con guía</th><th>Liberado</th><th>Falta despachar</th></tr></thead>
+                    <tbody>
+                      {d.inventario.reservas.map(r => (
+                        <tr key={r.productoId}>
+                          <td>{r.descripcion}</td>
+                          <td className="mono">{r.reservada.toLocaleString('es-PE')}</td>
+                          <td className="mono">{r.despachada.toLocaleString('es-PE')}</td>
+                          <td className="mono">{r.liberada.toLocaleString('es-PE')}</td>
+                          <td className="mono"><strong>{r.pendiente.toLocaleString('es-PE')}</strong></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              ) : d.inventario.modo === 'nota' ? (
+                <p className="parrafo">{d.inventario.aplicado ? 'La mercadería devuelta entró' : 'La devolución se aplica cuando SUNAT acepte la nota'} en <strong>{d.inventario.sucursal}</strong>.</p>
+              ) : (
+                <p className="parrafo">{d.inventario.aplicado ? 'Salió del stock de' : 'Ya no descuenta de'} <strong>{d.inventario.sucursal}</strong> (venta directa).</p>
+              )}
+            </div>
+          )}
+
+          {/* --- 031: sus notas de crédito y lo que queda ------------------------ */}
+          {notas.length > 0 && (
+            <div className="bloque">
+              <h2 className="subtitulo">Notas de crédito</h2>
               <table className="tabla">
-                <thead><tr><th>Producto</th><th>Reservado</th><th>Salió con guía</th><th>Liberado</th><th>Falta despachar</th></tr></thead>
+                <thead>
+                  <tr><th>Nota</th><th>Motivo</th><th>Fecha</th><th className="derecha">Monto</th><th>Estado</th></tr>
+                </thead>
                 <tbody>
-                  {d.inventario.reservas.map(r => (
-                    <tr key={r.productoId}>
-                      <td>{r.descripcion}</td>
-                      <td className="mono">{r.reservada.toLocaleString('es-PE')}</td>
-                      <td className="mono">{r.despachada.toLocaleString('es-PE')}</td>
-                      <td className="mono">{r.liberada.toLocaleString('es-PE')}</td>
-                      <td className="mono"><strong>{r.pendiente.toLocaleString('es-PE')}</strong></td>
+                  {notas.map(n => (
+                    <tr key={n.id}>
+                      <td className="mono">
+                        <Boton estilo="plano" onClick={() => navegar(`/facturacion/comprobantes/${n.id}`)}>{n.numero}</Boton>
+                      </td>
+                      <td>{MOTIVOS_NOTA[n.tipoNota ?? ''] ?? n.tipoNota}</td>
+                      <td className="secundario">{fecha(n.fechaEmision)}</td>
+                      <td className="derecha mono">{n.importeTotal.toFixed(2)}</td>
+                      <td>
+                        <EstadoComprobante estado={n.estado} />
+                        {!n.cuenta && <div className="secundario">no resta: no vale ante SUNAT</div>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </>
-          ) : d.inventario.modo === 'nota' ? (
-            <p className="parrafo">{d.inventario.aplicado ? 'La mercadería devuelta entró' : 'La devolución se aplica cuando SUNAT acepte la nota'} en <strong>{d.inventario.sucursal}</strong>.</p>
-          ) : (
-            <p className="parrafo">{d.inventario.aplicado ? 'Salió del stock de' : 'Ya no descuenta de'} <strong>{d.inventario.sucursal}</strong> (venta directa).</p>
+              <p className="nota">
+                Queda: <strong className="mono">{d.moneda} {Math.max(0, saldo).toFixed(2)}</strong> de {d.moneda} {d.totales.importeTotal.toFixed(2)}.
+              </p>
+            </div>
           )}
-        </div>
-      )}
 
-      {/* --- 031: sus notas de crédito y lo que queda ------------------------ */}
-      {notas.length > 0 && (
-        <div className="bloque">
-          <h2 className="subtitulo">Notas de crédito</h2>
-          <table className="tabla">
-            <thead>
-              <tr><th>Nota</th><th>Motivo</th><th>Fecha</th><th className="derecha">Monto</th><th>Estado</th></tr>
-            </thead>
-            <tbody>
-              {notas.map(n => (
-                <tr key={n.id}>
-                  <td className="mono">
-                    <Boton estilo="plano" onClick={() => navegar(`/facturacion/comprobantes/${n.id}`)}>{n.numero}</Boton>
-                  </td>
-                  <td>{MOTIVOS_NOTA[n.tipoNota ?? ''] ?? n.tipoNota}</td>
-                  <td className="secundario">{fecha(n.fechaEmision)}</td>
-                  <td className="derecha mono">{n.importeTotal.toFixed(2)}</td>
-                  <td>
-                    <EstadoComprobante estado={n.estado} />
-                    {!n.cuenta && <div className="secundario">no resta: no vale ante SUNAT</div>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="nota">
-            Queda: <strong className="mono">{d.moneda} {Math.max(0, saldo).toFixed(2)}</strong> de {d.moneda} {d.totales.importeTotal.toFixed(2)}.
-          </p>
-        </div>
-      )}
+          {/* --- 22 oct: sus notas de débito --------------------------------------- */}
+          {notasDebito.length > 0 && (
+            <div className="bloque">
+              <h2 className="subtitulo">Notas de débito</h2>
+              <table className="tabla">
+                <thead>
+                  <tr><th>Nota</th><th>Motivo</th><th>Fecha</th><th className="derecha">Monto</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                  {notasDebito.map(n => (
+                    <tr key={n.id}>
+                      <td className="mono">
+                        <Boton estilo="plano" onClick={() => navegar(`/facturacion/comprobantes/${n.id}`)}>{n.numero}</Boton>
+                      </td>
+                      <td>{MOTIVOS_DEBITO[n.tipoNota ?? ''] ?? n.tipoNota}</td>
+                      <td className="secundario">{fecha(n.fechaEmision)}</td>
+                      <td className="derecha mono">+ {n.importeTotal.toFixed(2)}</td>
+                      <td><EstadoComprobante estado={n.estado} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-      {/* --- 22 oct: sus notas de débito --------------------------------------- */}
-      {notasDebito.length > 0 && (
-        <div className="bloque">
-          <h2 className="subtitulo">Notas de débito</h2>
-          <table className="tabla">
-            <thead>
-              <tr><th>Nota</th><th>Motivo</th><th>Fecha</th><th className="derecha">Monto</th><th>Estado</th></tr>
-            </thead>
-            <tbody>
-              {notasDebito.map(n => (
-                <tr key={n.id}>
-                  <td className="mono">
-                    <Boton estilo="plano" onClick={() => navegar(`/facturacion/comprobantes/${n.id}`)}>{n.numero}</Boton>
-                  </td>
-                  <td>{MOTIVOS_DEBITO[n.tipoNota ?? ''] ?? n.tipoNota}</td>
-                  <td className="secundario">{fecha(n.fechaEmision)}</td>
-                  <td className="derecha mono">+ {n.importeTotal.toFixed(2)}</td>
-                  <td><EstadoComprobante estado={n.estado} /></td>
-                </tr>
+          {/* --- Historial ----------------------------------------------------- */}
+          <div className="bloque">
+            <h2 className="subtitulo">Historial</h2>
+
+            <ol className="linea-tiempo">
+              {d.historial.map((h, i) => (
+                <li key={i}>
+                  <div className="cuando">{fechaYHora(h.ocurridoEn)}</div>
+                  <div>
+                    <strong>{h.estadoNuevo}</strong>
+                    {h.estadoAnterior && <span className="secundario"> · desde {h.estadoAnterior}</span>}
+                    <div className="secundario">
+                      {h.origen === 'webhook' ? 'Lo avisó el servicio de facturación'
+                        : h.origen === 'usuario' ? 'Desde la plataforma'
+                        : h.origen === 'consulta' ? 'Se consultó a SUNAT'
+                        : 'Automático'}
+                    </div>
+                    {h.mensaje && <div className="secundario detalle">{h.mensaje}</div>}
+                  </div>
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ol>
+          </div>
         </div>
-      )}
+
+        <aside className="vc-lado">
+          {/* e162: LAS ACCIONES, en su tarjeta y una debajo de otra. */}
+          {(puedeNota || puedeDebito || (anulable && dias <= 7)) && (
+            <div className="bloque vc-tarjeta">
+              <h2 className="subtitulo">Acciones</h2>
+              <div className="vc-botones">
+                {puedeNota && (
+                  <Boton onClick={() => navegar(`/facturacion/comprobantes/${d.id}/nota-credito`)}>
+                    Hacer nota de crédito
+                  </Boton>
+                )}
+                {puedeDebito && (
+                  <Boton estilo="secundario" onClick={() => navegar(`/facturacion/comprobantes/${d.id}/nota-debito`)}>
+                    Hacer nota de débito
+                  </Boton>
+                )}
+                {anulable && dias <= 7 && (
+                  <Boton estilo="secundario" onClick={() => abrir('anular')}>{textoAnular}</Boton>
+                )}
+              </div>
+              <ul className="vc-explica">
+                {puedeNota && <li><strong>Nota de crédito:</strong> sirve siempre, también para devoluciones y descuentos.</li>}
+                {puedeDebito && <li><strong>Nota de débito:</strong> para cobrar de más (intereses, penalidades, un error a favor).</li>}
+                {anulable && dias <= 7 && <li><strong>{textoAnular}:</strong> solo si hubo un error o la venta no se concretó. Quedan {7 - dias} día(s).</li>}
+              </ul>
+            </div>
+          )}
+          {/* --- Archivos: XML, CDR y PDF, los que existan ---------------------- */}
+          <ArchivosComprobante d={d} recienEmitido={recienEmitido} />
+
+          {/* --- 043: WhatsApp ----------------------------------------------------- */}
+          <PanelWhatsapp d={d} autoAbrir={abrirWhatsapp} onCambio={cargar} />
+        </aside>
+      </div>
 
       <Dialogo titulo={`${textoAnular} ${d.numero}`} abierto={ventana === 'anular'} onCerrar={() => setVentana(null)}
                acciones={<>
@@ -431,169 +612,6 @@ export function VerComprobante() {
         {falloVentana && <Aviso>{falloVentana}</Aviso>}
       </Dialogo>
 
-      {/* --- Archivos: XML, CDR y PDF, los que existan ---------------------- */}
-      <ArchivosComprobante d={d} recienEmitido={recienEmitido} />
-
-      {/* --- 043: WhatsApp ----------------------------------------------------- */}
-      <PanelWhatsapp d={d} autoAbrir={abrirWhatsapp} onCambio={cargar} />
-
-      {/* --- Datos --------------------------------------------------------- */}
-      <div className="bloque">
-        <h2 className="subtitulo">{TIPOS[d.tipo] ?? d.tipo}</h2>
-
-        <dl className="datos">
-          <div className="fila">
-            <dt>Cliente</dt>
-            <dd>
-              {d.cliente?.razonSocial}
-              <div className="secundario mono">{d.cliente?.numeroDocumento}</div>
-              {d.cliente?.direccion && (
-                <div className="secundario">{d.cliente.direccion}</div>
-              )}
-            </dd>
-          </div>
-
-          <div className="fila">
-            <dt>Fecha de emisión</dt>
-            <dd className="secundario">{fecha(d.fechaEmision)}</dd>
-          </div>
-
-          {/* 031: una nota de crédito dice a qué comprobante afecta y por qué. */}
-          {esNota && d.afecta && (
-            <div className="fila">
-              <dt>Modifica</dt>
-              <dd>
-                <Boton estilo="plano" onClick={() => navegar(`/facturacion/comprobantes/${d.afecta!.id}`)}>
-                  {d.afecta.numero}
-                </Boton>
-              </dd>
-            </div>
-          )}
-          {esNota && (
-            <div className="fila">
-              <dt>Motivo</dt>
-              <dd className="secundario">
-                {motivos[d.tipoNota ?? ''] ?? d.tipoNota}
-                {d.motivoNota && <div>{d.motivoNota}</div>}
-              </dd>
-            </div>
-          )}
-
-          {/* 040: forma de pago y detracción. */}
-          {d.tipo === '01' && (
-            <div className="fila">
-              <dt>Forma de pago</dt>
-              <dd className="secundario">
-                {d.formaPago === 'credito' ? 'Al crédito' : 'Al contado'}
-                {(d.cuotas ?? []).map(c => (
-                  <div key={c.numero} className="mono">
-                    Cuota {c.numero}: {d.moneda} {c.monto.toFixed(2)} · vence {fecha(c.vence)}
-                  </div>
-                ))}
-              </dd>
-            </div>
-          )}
-          {d.detraccion && (
-            <div className="fila">
-              <dt>Detracción</dt>
-              <dd className="secundario">
-                {nombreDetraccion(d.detraccion.codigo)} ({d.detraccion.codigo}) · {d.detraccion.porcentaje} %
-                {d.detraccion.monto != null && <div className="mono">S/ {d.detraccion.monto.toFixed(2)}</div>}
-                <div className="mono">Cuenta {d.detraccion.cuenta}</div>
-              </dd>
-            </div>
-          )}
-
-          {Object.entries(d.datosExtra ?? {}).filter(([k]) => !k.startsWith('_')).map(([k, v]) => (
-            <div className="fila" key={k}>
-              <dt>{NOMBRES_EXTRA[k] ?? k}</dt>
-              <dd className="secundario">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-
-      {/* --- Líneas -------------------------------------------------------- */}
-      <div className="bloque sin-relleno">
-        <table className="tabla">
-          <thead>
-            <tr>
-              <th>Descripción</th>
-              <th className="derecha">Cantidad</th>
-              <th className="derecha">Valor unitario</th>
-              <th className="derecha">Importe</th>
-            </tr>
-          </thead>
-          <tbody>
-            {d.lineas.map(l => (
-              <tr key={l.id ?? l.numero}>
-                <td>
-                  <div className="principal">{l.descripcion}</div>
-                  {l.codigo && <div className="secundario mono">{l.codigo}</div>}
-                </td>
-                <td className="derecha mono">{l.cantidad} {l.unidadMedida}</td>
-                <td className="derecha mono">{l.valorUnitario.toFixed(4)}</td>
-                <td className="derecha mono">{l.valorVenta.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* --- Totales ------------------------------------------------------- */}
-      <div className="bloque">
-        <dl className="datos totales">
-          {d.totales.totalDescuentos > 0 && (
-            <div className="fila">
-              <dt>Descuentos</dt>
-              <dd className="mono">−{d.totales.totalDescuentos.toFixed(2)}</dd>
-            </div>
-          )}
-          <div className="fila">
-            <dt>Gravado</dt>
-            <dd className="mono">{d.totales.totalGravado.toFixed(2)}</dd>
-          </div>
-          <div className="fila">
-            <dt>IGV</dt>
-            <dd className="mono">{d.totales.totalIgv.toFixed(2)}</dd>
-          </div>
-          <div className="fila grande">
-            <dt>Total</dt>
-            <dd className="mono">{d.moneda} {d.totales.importeTotal.toFixed(2)}</dd>
-          </div>
-        </dl>
-
-        {d.estado !== 'borrador' && (
-          <p className="nota">
-            Este importe es el que devolvió el servicio de facturación: el que se
-            firmó y viajó a SUNAT.
-          </p>
-        )}
-      </div>
-
-      {/* --- Historial ----------------------------------------------------- */}
-      <div className="bloque">
-        <h2 className="subtitulo">Historial</h2>
-
-        <ol className="linea-tiempo">
-          {d.historial.map((h, i) => (
-            <li key={i}>
-              <div className="cuando">{fechaYHora(h.ocurridoEn)}</div>
-              <div>
-                <strong>{h.estadoNuevo}</strong>
-                {h.estadoAnterior && <span className="secundario"> · desde {h.estadoAnterior}</span>}
-                <div className="secundario">
-                  {h.origen === 'webhook' ? 'Lo avisó el servicio de facturación'
-                    : h.origen === 'usuario' ? 'Desde la plataforma'
-                    : h.origen === 'consulta' ? 'Se consultó a SUNAT'
-                    : 'Automático'}
-                </div>
-                {h.mensaje && <div className="secundario detalle">{h.mensaje}</div>}
-              </div>
-            </li>
-          ))}
-        </ol>
-      </div>
     </>
   )
 }

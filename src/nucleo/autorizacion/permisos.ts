@@ -82,4 +82,6 @@ export const Permisos = {
 
 export const Modulos = {
   Facturacion: 'facturacion',
+  /** 053: se contrata aparte; sin él no sale nada de inventario. */
+  Inventario: 'inventario',
 } as const

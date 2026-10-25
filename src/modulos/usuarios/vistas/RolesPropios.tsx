@@ -24,13 +24,24 @@ import { rolesServicio, type PermisoAsignable, type RolCompleto } from '../servi
  * un ajuste «vuelve al original».
  */
 
-const GRUPOS: { titulo: string; incluye: (codigo: string) => boolean }[] = [
-  { titulo: 'Facturación', incluye: c => c.startsWith('facturacion.') },
-  { titulo: 'Guías de remisión', incluye: c => c.startsWith('guias.') },
-  { titulo: 'Reportes · Mi negocio', incluye: c => ['reportes.mi_dia', 'reportes.tablero_ventas', 'reportes.ventas_cliente', 'reportes.ventas_producto', 'reportes.ventas_vendedor'].includes(c) },
-  { titulo: 'Reportes · SUNAT y contabilidad', incluye: c => c.startsWith('reportes.') && !['reportes.mi_dia', 'reportes.tablero_ventas', 'reportes.ventas_cliente', 'reportes.ventas_producto', 'reportes.ventas_vendedor'].includes(c) },
-  { titulo: 'Usuarios', incluye: c => c.startsWith('usuarios.') },
+// e162: AGRUPADOS COMO EL MENÚ, para que se entienda qué abre cada uno. Antes
+// faltaba Inventario (sus permisos existían pero no salían aquí). Lo que no
+// encaje en ningún grupo cae en «Otros»: así un permiso nuevo nunca se queda
+// sin poder asignarse.
+const MI_NEGOCIO = ['reportes.mi_dia', 'reportes.tablero_ventas', 'reportes.ventas_cliente', 'reportes.ventas_producto', 'reportes.ventas_vendedor']
+const COMPROBANTES = ['facturacion.ver', 'facturacion.emitir', 'facturacion.notas_credito', 'facturacion.anular', 'facturacion.descargar']
+const CATALOGO = ['facturacion.clientes_gestionar', 'facturacion.productos_gestionar']
+const GRUPOS: { titulo: string; menu: string; modulo?: string; incluye: (codigo: string) => boolean }[] = [
+  { titulo: 'Comprobantes', menu: 'Comprobantes: facturas, boletas, notas de crédito y débito', incluye: c => COMPROBANTES.includes(c) },
+  { titulo: 'Clientes y productos', menu: 'Clientes · Productos', incluye: c => CATALOGO.includes(c) },
+  { titulo: 'Empresa y sucursales', menu: 'Sucursales · Configuración', incluye: c => c.startsWith('facturacion.') && !COMPROBANTES.includes(c) && !CATALOGO.includes(c) },
+  { titulo: 'Guías de remisión', menu: 'Guías de remisión', incluye: c => c.startsWith('guias.') },
+  { titulo: 'Inventario', menu: 'Inventario: stock, ingresos, traslados, ajustes y conteos', modulo: 'inventario', incluye: c => c.startsWith('inventario.') },
+  { titulo: 'Reportes · Mi negocio', menu: 'Reportes', incluye: c => MI_NEGOCIO.includes(c) },
+  { titulo: 'Reportes · SUNAT y contabilidad', menu: 'Reportes', incluye: c => c.startsWith('reportes.') && !MI_NEGOCIO.includes(c) },
+  { titulo: 'Personal y seguridad', menu: 'Personal · Auditoría', incluye: c => c.startsWith('usuarios.') },
 ]
+const enAlgunGrupo = (c: string) => GRUPOS.some(g => g.incluye(c))
 
 interface Edicion {
   id?: string
@@ -42,7 +53,7 @@ interface Edicion {
 }
 
 export function RolesPropios() {
-  const { empresa } = useYo()
+  const { empresa, menu } = useYo()
   const mensaje = useMensaje()
   const roles = useCargar<RolCompleto[]>(() => rolesServicio.todos())
   const catalogo = useCargar<PermisoAsignable[]>(() => rolesServicio.permisos())
@@ -95,6 +106,14 @@ export function RolesPropios() {
     setFallo(undefined)
     setEdicion({ id: r.id, nombre: r.nombre, descripcion: r.descripcion ?? '', permisos: new Set(r.permisos) })
   }
+
+  /** e162: marcar o desmarcar todo un grupo (sin tocar lo que es solo del Administrador). */
+  const alternarGrupo = (codigos: string[], marcar: boolean) => setEdicion(e => {
+    if (!e) return e
+    const p = new Set(e.permisos)
+    for (const c of codigos) { if (marcar) p.add(c); else p.delete(c) }
+    return { ...e, permisos: p }
+  })
 
   const alternar = (codigo: string) => setEdicion(e => {
     if (!e) return e
@@ -217,7 +236,7 @@ export function RolesPropios() {
       </p>
 
       <Dialogo titulo={edicion?.ajuste ? `${edicion.ajuste.nombre} · permisos para ${empresa?.nombre ?? 'tu empresa'}`
-                     : edicion?.id ? `Rol «${edicion.nombre}»` : 'Nuevo rol'} abierto={!!edicion}
+                     : edicion?.id ? `Rol «${edicion.nombre}»` : 'Nuevo rol'} abierto={!!edicion} ancho="grande"
                onCerrar={() => setEdicion(undefined)}
                acciones={<>
                  <Boton estilo="secundario" onClick={() => setEdicion(undefined)} disabled={guardando}>Cancelar</Boton>
@@ -247,12 +266,27 @@ export function RolesPropios() {
 
             {catalogo.cargando && !catalogo.datos ? <Cargando /> : (
               <div className="grupos-permisos">
-                {GRUPOS.map(g => {
+                {[...GRUPOS, { titulo: 'Otros', menu: 'Lo demás', modulo: undefined, incluye: (c: string) => !enAlgunGrupo(c) }].map(g => {
                   const lista = (catalogo.datos ?? []).filter(p => g.incluye(p.codigo))
                   if (lista.length === 0) return null
+                  const elegibles = lista.filter(p => !p.soloAdministrador).map(p => p.codigo)
+                  const marcados = elegibles.filter(c => edicion.permisos.has(c)).length
+                  const sinModulo = !!g.modulo && !menu.some(m => m.codigo === g.modulo)
                   return (
                     <fieldset key={g.titulo} className="grupo-permisos">
                       <legend>{g.titulo}</legend>
+                      <div className="grupo-permisos-cabecera">
+                        <span className="secundario">Menú: {g.menu} · {marcados} de {elegibles.length}</span>
+                        {elegibles.length > 1 && (
+                          <span className="grupo-permisos-todos">
+                            <button type="button" className="enlace" onClick={() => alternarGrupo(elegibles, true)} disabled={marcados === elegibles.length}>Todos</button>
+                            <button type="button" className="enlace" onClick={() => alternarGrupo(elegibles, false)} disabled={marcados === 0}>Ninguno</button>
+                          </span>
+                        )}
+                      </div>
+                      {sinModulo && (
+                        <p className="nota grupo-permisos-nota">Tu empresa todavía no tiene este módulo. Puedes dejarlos listos: valen cuando se active.</p>
+                      )}
                       {lista.map(p => (
                         <label key={p.codigo} className={`permiso-casilla${p.soloAdministrador ? ' apagada' : ''}`}>
                           <input type="checkbox" disabled={p.soloAdministrador}

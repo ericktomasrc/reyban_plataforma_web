@@ -27,6 +27,8 @@ export interface SucursalInventario {
 }
 
 export interface EstadoInventario {
+  /** 053: la empresa tiene el módulo de inventario contratado. */
+  contratado?: boolean
   encendido: boolean
   modo: ModoInventario
   permitirSinStock: boolean

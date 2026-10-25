@@ -87,7 +87,9 @@ export function Disposicion() {
   // e147: «Ventas por sucursal», solo con más de un local.
   const reportes = REPORTES.filter(r => puede(r.permiso) && (!r.conSucursales || (alcance?.total ?? 0) > 1))
   // 036: «Reportes» lo abre y lo cierra MenuDesplegable.
-  const otrosModulos = menu.filter(m => m.codigo !== 'facturacion')
+  // 053: el inventario se contrata aparte y tiene su propio menú desplegable.
+  const inventario = menu.some(m => m.codigo === 'inventario')
+  const otrosModulos = menu.filter(m => m.codigo !== 'facturacion' && m.codigo !== 'inventario')
 
   const pagina = nombreDePagina(ruta.pathname)
   const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil'].includes(ruta.pathname)
@@ -252,8 +254,8 @@ export function Disposicion() {
                   ] }]} />
               )}
 
-              {/* 052: inventario por sucursal. */}
-              {facturacion && puede(Permisos.Inventario.Ver) && (
+              {/* 052: inventario por sucursal. 053: solo si la empresa lo contrató. */}
+              {facturacion && inventario && puede(Permisos.Inventario.Ver) && (
                 <MenuDesplegable icono="▦" titulo="Inventario" inicio="/inventario" prefijos={['/inventario']}
                   grupos={[{ titulo: '', items: [
                     { ruta: '/inventario', nombre: 'Stock', exacto: true },

@@ -225,3 +225,96 @@
 .nc-cliente-datos dt { color: var(--tinta-3); }
 .nc-cliente-datos dd { margin: 0; color: var(--tinta-2); overflow-wrap: anywhere; }
 .nc-totales > div:not(.total) dd { font-weight: 500; color: var(--tinta); }
+
+/* e162 — la boleta propone «Público en general» en vez de ponerlo sola. */
+.nc-sugerencia {
+  display: flex; flex-wrap: wrap; gap: var(--e2); align-items: center; justify-content: space-between;
+  margin: calc(-1 * var(--e2)) 0 var(--e4); padding: var(--e2) var(--e3);
+  border: 1px dashed var(--borde); border-radius: var(--radio); background: var(--papel); font-size: 13px; color: var(--tinta-2);
+}
+
+/* e162 — el buscador arriba, buscar entre las líneas, páginas y el «ojito». */
+.nc-agregar { margin: 0 0 var(--e4); flex-wrap: wrap; }
+.nc-buscar-linea { margin-left: auto; }
+.nc-buscar-linea input {
+  min-height: 42px; min-width: 220px; padding: 9px 12px; font: inherit; font-size: 14px;
+  border: 1px solid var(--borde); border-radius: var(--radio); background: var(--papel);
+}
+.nc-buscar-linea input:focus { outline: 2px solid var(--acento); outline-offset: -1px; border-color: var(--acento); background: var(--superficie); }
+.nc-filtro { margin: calc(-1 * var(--e2)) 0 var(--e3); }
+.nc-lineas + .paginacion { margin-top: var(--e3); }
+.nc-fila { grid-template-columns: 28px minmax(200px, 1fr) 96px 92px 130px 104px 112px 64px; }
+.nc-quitar { display: flex; justify-content: flex-end; gap: 2px; }
+.nc-quitar button.ver { font-size: 0; display: grid; place-items: center; }
+.nc-quitar button.ver:hover { background: var(--acento-suave); color: var(--acento); }
+@media (max-width: 1180px) {
+  .nc-fila { grid-template-columns: 28px minmax(160px, 1fr) 84px 84px 116px 92px 100px 64px; }
+}
+@media (max-width: 900px) {
+  .nc-buscar-linea { margin-left: 0; }
+  .nc-buscar-linea input { width: 100%; }
+}
+
+.nc-detalle-linea { display: grid; gap: var(--e4); }
+.nc-detalle-titulo { display: grid; gap: 2px; }
+.nc-detalle-titulo strong { font-size: 17px; }
+.nc-detalle-datos { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--e3) var(--e5); }
+.nc-detalle-datos > div { display: grid; gap: 2px; padding-bottom: var(--e2); border-bottom: 1px solid var(--borde-sutil); }
+.nc-detalle-datos dt { font-size: 12.5px; color: var(--tinta-3); }
+.nc-detalle-datos dd { margin: 0; font-size: 15px; }
+.nc-detalle-importes { margin-left: auto; min-width: 320px; }
+.nc-detalle-stock { display: flex; flex-wrap: wrap; gap: var(--e2) var(--e4); padding: var(--e3); border-radius: var(--radio-grande); background: var(--papel); font-size: 14px; }
+.nc-detalle-linea .nota { margin: 0; }
+
+/* =============================================================================
+   e162 — EL DETALLE DE UN COMPROBANTE: el documento a la izquierda y, a la
+   derecha, lo que se hace con él (acciones, archivos, WhatsApp), una tarjeta
+   bajo otra y con los botones a lo ancho.
+   ============================================================================= */
+.contenido > .vc-encabezado, .contenido > .vc-cuerpo { max-width: 1180px; }
+.vc-encabezado { align-items: flex-start; }
+.vc-tipo { margin: 0 0 2px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--acento); }
+.vc-encabezado .titulo-pagina { margin-bottom: var(--e2); }
+.vc-resumen { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e2) var(--e4); margin: 0; font-size: 14px; color: var(--tinta-2); }
+.vc-resumen strong { font-size: 16px; color: var(--tinta); }
+
+.vc-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: var(--e5); align-items: start; }
+.vc-principal > .bloque, .vc-principal > div > .bloque { margin-bottom: var(--e4); }
+.vc-lado { display: grid; gap: var(--e4); align-content: start; align-self: start; position: sticky; top: var(--e4); }
+.vc-lado > .bloque, .vc-lado > div > .bloque { margin: 0; }
+.vc-lado .bloque { padding: var(--e4); }
+@media (max-width: 1100px) {
+  .vc-cuerpo { grid-template-columns: 1fr; }
+  .vc-lado { position: static; order: -1; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+}
+
+.vc-botones { display: grid; gap: var(--e2); }
+.vc-botones .boton { width: 100%; min-height: 40px; }
+.vc-explica { list-style: none; margin: var(--e3) 0 0; padding: 0; display: grid; gap: 6px; font-size: 12.5px; color: var(--tinta-3); line-height: 1.45; }
+.vc-explica strong { color: var(--tinta-2); font-weight: 600; }
+
+/* Archivos: imprimir arriba, descargas en rejilla. */
+.vc-lado .boton.ancho { min-height: 40px; }
+.archivos-titulo { display: block; margin: var(--e4) 0 var(--e2); font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); }
+.archivos-rejilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e2); }
+.archivo-boton {
+  display: flex; align-items: center; gap: var(--e2); min-height: 40px; padding: 6px 10px; text-align: left;
+  font: inherit; font-size: 13px; color: var(--tinta); cursor: pointer;
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio);
+}
+.archivo-boton:hover { border-color: var(--acento); background: var(--acento-suave); }
+.archivo-icono {
+  flex: none; display: inline-grid; place-items: center; min-width: 30px; height: 22px; padding: 0 4px; border-radius: 3px;
+  background: var(--hundido); color: var(--tinta-2); font-size: 10px; font-weight: 700; letter-spacing: .02em;
+}
+.vc-lado .impresion-equipo { display: grid; gap: var(--e2); margin-top: var(--e4); padding-top: var(--e3); border-top: 1px solid var(--borde-sutil); font-size: 13px; }
+.vc-lado .impresion-equipo label:first-child { display: grid; gap: 4px; }
+.vc-lado .impresion-equipo select { width: 100%; padding: 6px 8px; border: 1px solid var(--borde); border-radius: var(--radio); font: inherit; }
+
+/* WhatsApp en la columna: los botones uno bajo otro. */
+.vc-lado .acciones-linea { flex-direction: column; align-items: stretch; }
+.vc-lado .acciones-linea .boton, .vc-lado .acciones-linea a.boton { width: 100%; justify-content: center; }
+.vc-lado .acciones-linea > span.secundario { font-size: 12.5px; flex: none; }
+.vc-lado p { font-size: 14px; }
+.vc-lado .acciones-linea > * { flex: none; }
+.archivo-boton { white-space: nowrap; }

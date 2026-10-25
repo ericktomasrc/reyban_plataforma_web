@@ -18,6 +18,9 @@ interface Props {
    * es peor que no tener aspa.
    */
   obligatorio?: boolean
+
+  /** e162: «grande» para lo que necesita aire (permisos de un rol, detalle de una línea). */
+  ancho?: 'normal' | 'grande'
 }
 
 /**
@@ -36,7 +39,7 @@ interface Props {
  * interceptarlo, el <dialog> se cerraría solo y React seguiría creyendo que
  * está abierto — y la segunda vez ya no abriría.
  */
-export function Dialogo({ titulo, abierto, onCerrar, children, acciones, obligatorio }: Props) {
+export function Dialogo({ titulo, abierto, onCerrar, children, acciones, obligatorio, ancho = 'normal' }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -50,7 +53,7 @@ export function Dialogo({ titulo, abierto, onCerrar, children, acciones, obligat
   return (
     <dialog
       ref={ref}
-      className="dialogo"
+      className={ancho === 'grande' ? 'dialogo grande' : 'dialogo'}
       onCancel={e => { e.preventDefault(); if (!obligatorio) onCerrar() }}
     >
       <header className="dialogo-cabecera">

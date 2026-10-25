@@ -4,6 +4,8 @@ import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Asterisco, Campo } from '../../../componentes/Campo'
 import { Cargando } from '../../../componentes/Cargando'
+import { Dialogo } from '../../../componentes/Dialogo'
+import { Paginacion } from '../../../componentes/Paginacion'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
@@ -166,6 +168,12 @@ export function NuevoComprobante() {
   const [lineas, setLineas] = useState<LineaEnEdicion[]>([])
   // A qué campo saltar después de agregar una línea (cantidad o descripción).
   const [enfocar, setEnfocar] = useState<{ id: string }>()
+  // e162: con muchas líneas, buscar entre ellas y verlas de 20 en 20.
+  const [buscarLinea, setBuscarLinea] = useState('')
+  const [paginaLineas, setPaginaLineas] = useState(1)
+  const [porPaginaLineas, setPorPaginaLineas] = useState(20)
+  // e162: el «ojito»: el detalle de una línea, solo lectura.
+  const [verLinea, setVerLinea] = useState<string>()
   // 052: inventario. Lo disponible de los productos elegidos en la sucursal de
   // la serie, y «se entrega después» (null = el modo de la empresa).
   const [disp, setDisp] = useState<Disponible>()
@@ -526,7 +534,14 @@ export function NuevoComprobante() {
   function lineaLibre() {
     const n = vacia()
     setLineas(ls => [...ls, n])
+    irAlFinal(lineas.length + 1)
     setEnfocar({ id: `desc-${n.clave}` })
+  }
+
+  /** e162: la línea recién agregada se ve: sin filtro y en la última página. */
+  function irAlFinal(total: number) {
+    setBuscarLinea('')
+    setPaginaLineas(Math.max(1, Math.ceil(total / porPaginaLineas)))
   }
 
   /** El tipo cambia la serie, el cliente por defecto y lo que es solo de facturas. */
@@ -537,9 +552,10 @@ export function NuevoComprobante() {
     // Dejar «F001» en una boleta es un rechazo seguro, y el mensaje de SUNAT
     // no menciona la serie.
     setSerie(seriesDeSucursal.find(s => s.tipo === v)?.serie ?? (v === '01' ? 'F001' : 'B001'))
-    // 17 oct: boleta sin cliente → «Público en general»; de vuelta a factura,
-    // ese cliente no sirve y se quita.
-    if (v === '03' && !cliente) void ponerPublicoGeneral()
+    // e162: YA NO SE PONE SOLO «Público en general» al pasar a boleta: se
+    // propone con un botón en la tarjeta del cliente. Puesto solo, parecía que
+    // la pantalla elegía por uno. De vuelta a factura, ese cliente no sirve y
+    // se quita.
     // 040: crédito y detracción, solo en facturas.
     if (v === '03') {
       setPago(pagoInicial())
@@ -597,6 +613,7 @@ export function NuevoComprobante() {
     setLineas(ls => ls.some(l => l.clave === clave)
       ? ls.map(l => l.clave === clave ? { ...l, ...delProducto } : l)
       : [...ls, { ...vacia(), clave, ...delProducto }])
+    irAlFinal(clave === ultima?.clave ? lineas.length : lineas.length + 1)
     setEnfocar({ id: `cant-${clave}` })
   }
 
@@ -952,6 +969,21 @@ export function NuevoComprobante() {
     : undefined)
   const hayEntrega = !!disp?.encendido
 
+  // e162: buscar entre las líneas y paginarlas. El número de línea es siempre
+  // el del comprobante (i + 1), aunque se esté viendo una página o un filtro.
+  const texto = buscarLinea.trim().toLocaleLowerCase('es')
+  const lineasFiltradas = lineas
+    .map((l, i) => ({ l, i }))
+    .filter(({ l }) => !texto || l.descripcion.toLocaleLowerCase('es').includes(texto) || l.codigo.toLocaleLowerCase('es').includes(texto))
+  const paginasLineas = Math.max(1, Math.ceil(lineasFiltradas.length / porPaginaLineas))
+  const paginaLineasReal = Math.min(paginaLineas, paginasLineas)
+  const lineasVisibles = lineasFiltradas.slice((paginaLineasReal - 1) * porPaginaLineas, paginaLineasReal * porPaginaLineas)
+  const paginacionLineas = {
+    total: lineasFiltradas.length, pagina: paginaLineasReal, porPagina: porPaginaLineas,
+    onCambiar: setPaginaLineas, onPorPagina: (n: number) => { setPorPaginaLineas(n); setPaginaLineas(1) },
+  }
+  const lineaVista = lineas.findIndex(l => l.clave === verLinea)
+
   return (
     <div className="nc">
       {/* --- Encabezado ---------------------------------------------------- */}
@@ -1104,6 +1136,14 @@ export function NuevoComprobante() {
 
           <BuscadorCliente elegido={cliente} onElegir={c => { setCliente(c); setPorWhatsapp(null) }} />
 
+          {/* e162: en boleta, «Público en general» se propone, no se impone. */}
+          {tipo === '03' && !cliente && (
+            <div className="nc-sugerencia">
+              <span>¿Venta sin identificar al cliente (hasta S/ 700)?</span>
+              <button type="button" className="enlace" onClick={() => void ponerPublicoGeneral()}>Usar «Público en general»</button>
+            </div>
+          )}
+
           {cliente && (cliente.direccion || cliente.correo || cliente.whatsapp) && (
             <dl className="nc-cliente-datos">
               {cliente.direccion && <div><dt>Dirección</dt><dd>{cliente.direccion}</dd></div>}
@@ -1171,6 +1211,26 @@ export function NuevoComprobante() {
           </Aviso>
         )}
 
+        {/* e162: ARRIBA, para no tener que bajar al final con veinte líneas. */}
+        <div className="nc-agregar">
+          <BuscadorProducto onElegir={agregarProducto} placeholder="+ Agregar producto: busca por código o nombre…" />
+          <Boton estilo="secundario" onClick={lineaLibre}>Línea libre</Boton>
+          {lineas.length > 5 && (
+            <label className="nc-buscar-linea">
+              <span className="solo-lector">Buscar entre las líneas</span>
+              <input value={buscarLinea} placeholder="Buscar en lo agregado…" autoComplete="off"
+                     onChange={e => { setBuscarLinea(e.target.value); setPaginaLineas(1) }} />
+            </label>
+          )}
+        </div>
+
+        {buscarLinea.trim() && (
+          <p className="nota nc-filtro">
+            {lineasFiltradas.length === 0 ? 'Ninguna línea con' : `${lineasFiltradas.length} de ${lineas.length} líneas con`} «{buscarLinea.trim()}».{' '}
+            <button type="button" className="enlace" onClick={() => setBuscarLinea('')}>Ver todas</button>
+          </p>
+        )}
+
         <div className="nc-lineas" role="table" aria-label="Líneas del comprobante">
           {lineas.length > 0 && (
             <div className="nc-fila nc-cabecera" role="row">
@@ -1188,11 +1248,11 @@ export function NuevoComprobante() {
           {lineas.length === 0 && (
             <div className="nc-vacio">
               <strong>Todavía no hay nada que facturar.</strong>
-              <span>Busca un producto de tu catálogo abajo, o agrega una línea libre para algo que no está (un flete, una instalación).</span>
+              <span>Busca un producto de tu catálogo arriba, o agrega una línea libre para algo que no está (un flete, una instalación).</span>
             </div>
           )}
 
-          {lineas.map((l, i) => {
+          {lineasVisibles.map(({ l, i }) => {
             const bruto = num(l.cantidad) * num(l.valorUnitario)
             const importe = Math.max(0, bruto - num(l.descuento))
             const conIgv = l.tipoAfectacion === '10' && num(l.valorUnitario) > 0 ? num(l.valorUnitario) * (1 + IGV) : null
@@ -1249,6 +1309,10 @@ export function NuevoComprobante() {
                     <span className="mono">{dinero(importe)}</span>
                   </div>
                   <div className="nc-quitar" role="cell">
+                    <button type="button" className="ver" title="Ver el detalle" aria-label={`Ver el detalle de la línea ${i + 1}`}
+                            onClick={() => setVerLinea(l.clave)}>
+                      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor" strokeWidth="1.8" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" /></svg>
+                    </button>
                     <button type="button" title="Quitar la línea" aria-label={`Quitar la línea ${i + 1}`}
                             onClick={() => setLineas(ls => ls.filter(x => x.clave !== l.clave))}>×</button>
                   </div>
@@ -1292,10 +1356,7 @@ export function NuevoComprobante() {
           })}
         </div>
 
-        <div className="nc-agregar">
-          <BuscadorProducto onElegir={agregarProducto} placeholder="+ Agregar producto: busca por código o nombre…" />
-          <Boton estilo="secundario" onClick={lineaLibre}>Línea libre</Boton>
-        </div>
+        {lineas.length > porPaginaLineas && <Paginacion {...paginacionLineas} />}
 
         {/* --- Los totales, al pie de las líneas, como en el papel ---------- */}
         <div className="nc-pie-lineas">
@@ -1443,6 +1504,49 @@ export function NuevoComprobante() {
       </div>
 
       {confirmacion}
+
+      {/* e162: EL OJITO. El detalle de una línea, solo para mirar: los importes
+          con y sin IGV, la afectación y el stock, sin el resto del formulario. */}
+      {lineaVista >= 0 && (() => {
+        const l = lineas[lineaVista]
+        const bruto = num(l.cantidad) * num(l.valorUnitario)
+        const valorVenta = r2(Math.max(0, bruto - num(l.descuento)))
+        const tasa = l.tipoAfectacion === '10' ? IGV : l.tipoAfectacion === '17' ? 0.04 : 0
+        const igvLinea = r2(valorVenta * tasa)
+        const p = l.productoId && disp?.encendido ? disp.productos?.find(x => x.productoId === l.productoId) : undefined
+        const unidad = unidades.find(u => u.codigo === l.unidadMedida)
+        return (
+          <Dialogo titulo={`Línea ${lineaVista + 1}`} abierto onCerrar={() => setVerLinea(undefined)} ancho="grande"
+                   acciones={<Boton onClick={() => setVerLinea(undefined)}>Cerrar</Boton>}>
+            <div className="nc-detalle-linea">
+              <div className="nc-detalle-titulo">
+                <strong>{l.descripcion || '(sin descripción)'}</strong>
+                {l.codigo && <span className="secundario mono">{l.codigo}</span>}
+              </div>
+              <dl className="nc-detalle-datos">
+                <div><dt>Cantidad</dt><dd className="mono">{l.cantidad || '0'} {l.unidadMedida}{unidad ? ` · ${unidad.nombre}` : ''}</dd></div>
+                <div><dt>Valor unitario sin IGV</dt><dd className="mono">{simbolo} {num(l.valorUnitario).toFixed(6)}</dd></div>
+                {tasa > 0 && <div><dt>Precio unitario con {l.tipoAfectacion === '17' ? 'IVAP' : 'IGV'}</dt><dd className="mono">{simbolo} {dinero(num(l.valorUnitario) * (1 + tasa))}</dd></div>}
+                <div><dt>Descuento</dt><dd className="mono">{simbolo} {dinero(num(l.descuento))}</dd></div>
+                <div><dt>Afectación</dt><dd>{nombreAfectacion(l.tipoAfectacion)}</dd></div>
+              </dl>
+              <dl className="nc-totales nc-detalle-importes">
+                <div><dt>Valor de venta</dt><dd className="mono">{dinero(valorVenta)}</dd></div>
+                <div><dt>{l.tipoAfectacion === '17' ? 'IVAP (4 %)' : tasa > 0 ? 'IGV (18 %)' : 'IGV'}</dt><dd className="mono">{dinero(igvLinea)}</dd></div>
+                <div className="total"><dt>Total de la línea</dt><dd className="mono">{simbolo} {dinero(valorVenta + igvLinea)}</dd></div>
+              </dl>
+              {p?.controla && (
+                <div className="nc-detalle-stock">
+                  <span className="secundario">Stock disponible</span>
+                  <span>Aquí: <strong className="mono">{cantidad(p.disponible)}</strong></span>
+                  {p.otras.map(o => <span key={o.sucursalId}>{o.codigo} {o.nombre}: <strong className="mono">{cantidad(o.disponible)}</strong></span>)}
+                </div>
+              )}
+              <p className="nota">Estimación de pantalla. El importe que va a SUNAT lo calcula el servicio al emitir.</p>
+            </div>
+          </Dialogo>
+        )
+      })()}
 
       {capa && (
         <div className="capa-ocupado" role="status" aria-live="assertive" aria-busy="true">

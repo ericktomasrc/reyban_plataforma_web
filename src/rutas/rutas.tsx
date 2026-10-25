@@ -328,15 +328,15 @@ export function Rutas() {
         <Route path="/guias/:id" element={<Protegido permiso={Permisos.Guias.Ver} modulo={Modulos.Facturacion}><VerGuia /></Protegido>} />
 
         {/* 052: inventario por sucursal. */}
-        <Route path="/inventario" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Facturacion}><Stock /></Protegido>} />
-        <Route path="/inventario/kardex/:id" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Facturacion}><Kardex /></Protegido>} />
-        <Route path="/inventario/ingresos" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Facturacion}><Ingresos /></Protegido>} />
-        <Route path="/inventario/ingresos/nuevo" element={<Protegido permiso={Permisos.Inventario.Ingresar} modulo={Modulos.Facturacion}><NuevoIngreso /></Protegido>} />
-        <Route path="/inventario/operaciones/:id" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Facturacion}><VerOperacion /></Protegido>} />
-        <Route path="/inventario/ajustes" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Facturacion}><AjustesConteos /></Protegido>} />
-        <Route path="/inventario/traslados" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Facturacion}><Traslados /></Protegido>} />
-        <Route path="/inventario/proveedores" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Facturacion}><Proveedores /></Protegido>} />
-        <Route path="/inventario/configuracion" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Facturacion}><ConfiguracionInventario /></Protegido>} />
+        <Route path="/inventario" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Stock /></Protegido>} />
+        <Route path="/inventario/kardex/:id" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Kardex /></Protegido>} />
+        <Route path="/inventario/ingresos" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Ingresos /></Protegido>} />
+        <Route path="/inventario/ingresos/nuevo" element={<Protegido permiso={Permisos.Inventario.Ingresar} modulo={Modulos.Inventario}><NuevoIngreso /></Protegido>} />
+        <Route path="/inventario/operaciones/:id" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><VerOperacion /></Protegido>} />
+        <Route path="/inventario/ajustes" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><AjustesConteos /></Protegido>} />
+        <Route path="/inventario/traslados" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Traslados /></Protegido>} />
+        <Route path="/inventario/proveedores" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Proveedores /></Protegido>} />
+        <Route path="/inventario/configuracion" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><ConfiguracionInventario /></Protegido>} />
 
         {/* 044: sucursales (locales del mismo RUC), sus series y sus usuarios. */}
         <Route

@@ -787,3 +787,14 @@ body:has(dialog[open]) { overflow: hidden; }
   font-size: 13px;
   color: var(--tinta-2);
 }
+/* e162 — diálogo ancho. */
+.dialogo.grande { width: min(880px, calc(100vw - var(--e5) * 2)); }
+
+/* e162 — LOS BOTONES EN FILA. `.acciones-linea .boton { padding-left: 0 }`
+   era para un botón plano bajo un dato; aplicado a botones normales los dejaba
+   pegados y sin relleno (Hacer nota de crédito, Archivos, WhatsApp). Ahora la
+   fila tiene su separación y solo el plano pierde el relleno. */
+.acciones-linea { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e2); }
+.acciones-linea .boton { padding-left: 18px; }
+.acciones-linea .boton.plano { padding-left: 0; }
+.acciones-linea > span.secundario { flex: 1 1 260px; font-size: 13px; }

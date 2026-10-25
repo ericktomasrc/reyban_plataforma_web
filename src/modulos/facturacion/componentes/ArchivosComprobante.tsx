@@ -174,25 +174,34 @@ export function ArchivosComprobante({ d, recienEmitido = false }: {
     <div className="bloque">
       <h2 className="subtitulo">Archivos</h2>
 
+      {/* e162: imprimir arriba y ancho; las descargas en una rejilla ordenada. */}
+      {hayPdf && (
+        <Boton ancho onClick={() => void imprimir()} ocupado={imprimiendo} textoOcupado="Preparando…">
+          Imprimir · {NOMBRE_FORMATO[formato]}
+        </Boton>
+      )}
       {archivos.length > 0 && (
-        <div className="acciones-linea">
-          {hayPdf && (
-            <Boton onClick={() => void imprimir()} ocupado={imprimiendo} textoOcupado="Preparando…">
-              Imprimir ({NOMBRE_FORMATO[formato]})
-            </Boton>
-          )}
-          {archivos.map(a => (
-            <Boton key={a} estilo="secundario" onClick={() => void bajar(a)}>
-              {ETIQUETAS[a]}
-            </Boton>
-          ))}
-          {hayPdf && (
-            <>
-              <Boton estilo="secundario" onClick={() => void bajar('pdf', 'ticket80')}>Ticket 80 mm</Boton>
-              <Boton estilo="secundario" onClick={() => void bajar('pdf', 'ticket58')}>Ticket 58 mm</Boton>
-            </>
-          )}
-        </div>
+        <>
+          <span className="archivos-titulo">Descargar</span>
+          <div className="archivos-rejilla">
+            {archivos.map(a => (
+              <button key={a} type="button" className="archivo-boton" onClick={() => void bajar(a)}>
+                <span className="archivo-icono" aria-hidden="true">{a === 'pdf' ? 'PDF' : a === 'xml' ? 'XML' : 'ZIP'}</span>
+                <span title={ETIQUETAS[a]}>{a === 'pdf' ? 'PDF A4' : a === 'xml' ? 'XML firmado' : 'CDR SUNAT'}</span>
+              </button>
+            ))}
+            {hayPdf && (
+              <>
+                <button type="button" className="archivo-boton" onClick={() => void bajar('pdf', 'ticket80')}>
+                  <span className="archivo-icono" aria-hidden="true">80</span>Ticket 80
+                </button>
+                <button type="button" className="archivo-boton" onClick={() => void bajar('pdf', 'ticket58')}>
+                  <span className="archivo-icono" aria-hidden="true">58</span>Ticket 58
+                </button>
+              </>
+            )}
+          </div>
+        </>
       )}
 
       {hayPdf && (
