@@ -7,6 +7,7 @@
 
 /** GET /api/admin/empresas */
 export interface EmpresaEnLista {
+  creadoEn?: string   // 24 oct
   id: string
 
   /** El nombre para mostrar. Es el que se ve en toda la plataforma. */

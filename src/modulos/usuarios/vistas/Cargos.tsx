@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { contiene, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
@@ -41,6 +43,12 @@ export function Cargos({ deEstudio = false }: { deEstudio?: boolean }) {
   // dueño y los colaboradores administradores (lo decide la base igual).
   const ordena = deEstudio || puede(Permisos.Usuarios.RolesGestionar)
   const cargos = lista.datos ?? []
+  // 24 oct: buscar, estado y páginas (lo más nuevo arriba lo da el servidor).
+  const [q, setQ] = useState('')
+  const [estadoF, setEstadoF] = useState('todos')
+  const filtrados = cargos.filter(c => contiene(q, c.nombre) &&
+    (estadoF === 'todos' || (estadoF === 'activos' ? c.activo : !c.activo)))
+  const { visibles, paginacion } = usePaginaLocal(filtrados, `${q}|${estadoF}`)
   const volver = deEstudio ? '/colaboradores' : '/usuarios'
 
   async function activo(c: CargoEnLista, si: boolean) {
@@ -78,6 +86,17 @@ export function Cargos({ deEstudio = false }: { deEstudio?: boolean }) {
 
       {lista.error && <Aviso>{lista.error}</Aviso>}
 
+      {cargos.length > 1 && (
+        <div className="filtros-lista">
+          <label className="buscar"><span>Buscar</span>
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Nombre del cargo" /></label>
+          <label><span>Estado</span>
+            <select value={estadoF} onChange={e => setEstadoF(e.target.value)}>
+              <option value="todos">Todos</option><option value="activos">Activos</option><option value="inactivos">Desactivados</option>
+            </select></label>
+        </div>
+      )}
+
       <div className="bloque sin-relleno">
         {cargos.length === 0 ? (
           <div className="relleno"><Vacio>Todavía no hay cargos. Aparecen al escribirlos en la ficha de cada persona.</Vacio></div>
@@ -86,7 +105,7 @@ export function Cargos({ deEstudio = false }: { deEstudio?: boolean }) {
             <table className="tabla">
               <thead><tr><th>Cargo</th><th>Personas</th><th>Estado</th>{ordena && <th />}</tr></thead>
               <tbody>
-                {cargos.map(c => (
+                {visibles.map(c => (
                   <tr key={c.id} className={c.activo ? undefined : 'apagada'}>
                     <td>
                       <div className="principal">{c.nombre}</div>
@@ -128,6 +147,7 @@ export function Cargos({ deEstudio = false }: { deEstudio?: boolean }) {
           </div>
         )}
       </div>
+      <Paginacion {...paginacion} />
 
       {editando && (
         <DialogoCargo cargo={editando === 'nuevo' ? null : editando} deEstudio={deEstudio}

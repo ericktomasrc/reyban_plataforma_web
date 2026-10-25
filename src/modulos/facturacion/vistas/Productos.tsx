@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
+import { Paginacion } from '../../../componentes/Paginacion'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { Si } from '../../../nucleo/autorizacion/Protegido'
 import { Permisos } from '../../../nucleo/autorizacion/permisos'
@@ -25,7 +26,14 @@ export function Productos() {
   const mensaje = useMensaje()
 
   const [q, setQ] = useState('')
-  const [inactivos, setInactivos] = useState(false)
+  // 24 oct: filtros, orden y páginas.
+  const [estado, setEstado] = useState('activos')
+  const [unidad, setUnidad] = useState('')
+  const [afectacion, setAfectacion] = useState('')
+  const [orden, setOrden] = useState('recientes')
+  const [pagina, setPagina] = useState(1)
+  const [porPagina, setPorPagina] = useState(20)
+  const [total, setTotal] = useState(0)
 
   const [productos, setProductos] = useState<ProductoEnLista[]>()
   const [catalogos, setCatalogos] = useState<CatalogosSunat>()
@@ -68,10 +76,12 @@ export function Productos() {
     return () => { vivo = false }
   }, [])
 
-  async function cargar(texto = q, conInactivos = inactivos) {
+  async function cargar() {
     setCargando(true)
     try {
-      setProductos(await productosServicio.listar(texto, conInactivos))
+      const r = await productosServicio.pagina({ q, unidad, afectacion, estado, orden, pagina, porPagina })
+      setProductos(r.filas)
+      setTotal(r.total)
       setErrorCarga(undefined)
     } catch (e) {
       setErrorCarga(e instanceof ErrorApi ? e.message : 'No se pudieron cargar los productos.')
@@ -89,14 +99,14 @@ export function Productos() {
   useEffect(() => {
     if (primeraCarga.current) {
       primeraCarga.current = false
-      void cargar(q, inactivos)
+      void cargar()
       return
     }
 
-    const t = setTimeout(() => { void cargar(q, inactivos) }, 300)
+    const t = setTimeout(() => { void cargar() }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, inactivos])
+  }, [q, estado, unidad, afectacion, orden, pagina, porPagina])
 
   const nombreAfectacion = (codigo: string) =>
     catalogos?.afectaciones.find(a => a.codigo === codigo)?.nombre ?? codigo
@@ -176,19 +186,41 @@ export function Productos() {
           <span>Buscar</span>
           <input
             value={q}
-            onChange={e => setQ(e.target.value)}
+            onChange={e => { setQ(e.target.value); setPagina(1) }}
             placeholder="Código o descripción"
             autoFocus
           />
         </label>
 
-        <label className="casilla-suelta">
-          <input
-            type="checkbox"
-            checked={inactivos}
-            onChange={e => setInactivos(e.target.checked)}
-          />
-          <span>Ver también los desactivados</span>
+        {/* 24 oct: filtros y orden */}
+        <label>
+          <span>Unidad</span>
+          <select value={unidad} onChange={e => { setUnidad(e.target.value); setPagina(1) }}>
+            <option value="">Todas</option>
+            {(catalogos?.unidades ?? []).map(u => <option key={u.codigo} value={u.codigo}>{u.nombre}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>IGV</span>
+          <select value={afectacion} onChange={e => { setAfectacion(e.target.value); setPagina(1) }}>
+            <option value="">Todos</option>
+            {(catalogos?.afectaciones ?? []).map(a => <option key={a.codigo} value={a.codigo}>{a.nombre}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Estado</span>
+          <select value={estado} onChange={e => { setEstado(e.target.value); setPagina(1) }}>
+            <option value="activos">Activos</option>
+            <option value="inactivos">Desactivados</option>
+            <option value="todos">Todos</option>
+          </select>
+        </label>
+        <label>
+          <span>Orden</span>
+          <select value={orden} onChange={e => { setOrden(e.target.value); setPagina(1) }}>
+            <option value="recientes">Más recientes</option>
+            <option value="az">A–Z</option>
+          </select>
         </label>
       </div>
 
@@ -276,13 +308,16 @@ export function Productos() {
         ) : (
           <div className="relleno">
             <Vacio>
-              {q
-                ? `Ningún producto cuadra con «${q}».`
+              {q || unidad || afectacion || estado !== 'activos'
+                ? 'Ningún producto cuadra con esos filtros.'
                 : 'Todavía no tienes productos. Crea el primero para poder facturar.'}
             </Vacio>
           </div>
         )}
       </div>
+
+      <Paginacion total={total} pagina={pagina} porPagina={porPagina}
+                  onCambiar={setPagina} onPorPagina={n => { setPorPagina(n); setPagina(1) }} />
 
       {confirmacion}
 

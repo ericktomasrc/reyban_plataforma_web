@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { FiltroFechas } from '../../../componentes/FiltrosComunes'
+import { contiene, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
@@ -41,6 +44,10 @@ export function ListaEmpresas() {
   const [suspendiendo, setSuspendiendo] = useState<EmpresaEnLista>()
   const [viendoComo, setViendoComo]     = useState<EmpresaEnLista>()
   const [facturacion, setFacturacion]   = useState<EmpresaEnLista>()
+  const [qE, setQE] = useState('')
+  const [estadoE, setEstadoE] = useState('todas')
+  const [desdeE, setDesdeE] = useState('')
+  const [hastaE, setHastaE] = useState('')
 
   const mensaje = useMensaje()
 
@@ -59,6 +66,13 @@ export function ListaEmpresas() {
     }
   }
 
+  // 24 oct: buscar, estado, fechas de alta y páginas (antes del «return»).
+  const filtradas = (empresas.datos ?? []).filter(e =>
+    contiene(qE, e.nombre, e.ruc, e.razonSocial) &&
+    (estadoE === 'todas' || (estadoE === 'suspendidas' ? !!e.suspendidaEn : estadoE === 'activas' ? e.activo && !e.suspendidaEn : !e.activo)) &&
+    (!desdeE || (e.creadoEn ?? '').slice(0, 10) >= desdeE) && (!hastaE || (e.creadoEn ?? '').slice(0, 10) <= hastaE))
+  const { visibles, paginacion } = usePaginaLocal(filtradas, `${qE}|${estadoE}|${desdeE}|${hastaE}`)
+
   if (empresas.cargando && !empresas.datos) return <Cargando />
 
   return (
@@ -71,6 +85,17 @@ export function ListaEmpresas() {
       {empresas.error && <Aviso>{empresas.error}</Aviso>}
 
       {empresas.datos && <CertificadosPorVencer empresas={empresas.datos} />}
+
+      <div className="filtros-lista">
+        <label className="buscar"><span>Buscar</span>
+          <input value={qE} onChange={e => setQE(e.target.value)} placeholder="Nombre, RUC o razón social" /></label>
+        <label><span>Estado</span>
+          <select value={estadoE} onChange={e => setEstadoE(e.target.value)}>
+            <option value="todas">Todas</option><option value="activas">Activas</option>
+            <option value="suspendidas">Suspendidas</option><option value="desactivadas">Desactivadas</option>
+          </select></label>
+        <FiltroFechas desde={desdeE} hasta={hastaE} onDesde={setDesdeE} onHasta={setHastaE} />
+      </div>
 
       <div className="bloque sin-relleno">
         {empresas.datos && empresas.datos.length > 0 ? (
@@ -87,7 +112,7 @@ export function ListaEmpresas() {
             </thead>
 
             <tbody>
-              {empresas.datos.map(e => {
+              {visibles.map(e => {
                 const suspendida = e.suspendidaEn !== null
 
                 return (
@@ -188,6 +213,7 @@ export function ListaEmpresas() {
           </div>
         )}
       </div>
+      <Paginacion {...paginacion} />
 
       <DialogoAltaEmpresa
         abierto={creando}

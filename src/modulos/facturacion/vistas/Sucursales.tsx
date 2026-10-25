@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { contiene, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
@@ -53,6 +55,13 @@ export function Sucursales() {
   const sucursales = lista.datos?.sucursales ?? []
   const gestiona = !!lista.datos?.puedeGestionar
   const todasLasSeries = sucursales.flatMap(s => s.series.map(x => x.serie))
+  // 24 oct: buscar, estado y páginas (lo más nuevo arriba lo da el servidor).
+  const [q, setQ] = useState('')
+  const [estadoF, setEstadoF] = useState('todos')
+  const { visibles, paginacion } = usePaginaLocal(
+    sucursales.filter(s => contiene(q, s.codigo, s.nombre, s.direccion, s.lugar) &&
+      (estadoF === 'todos' || (estadoF === 'activas' ? s.activo : !s.activo))),
+    `${q}|${estadoF}`)
 
   async function desactivar(s: Sucursal) {
     const seguro = await pedir({
@@ -133,6 +142,17 @@ export function Sucursales() {
         <Aviso tono="ojo">No se pudo consultar las series al servicio de facturación: pueden faltar en la lista.</Aviso>
       )}
 
+      {lista.datos && sucursales.length > 3 && (
+        <div className="filtros-lista">
+          <label className="buscar"><span>Buscar</span>
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Código, nombre o dirección" /></label>
+          <label><span>Estado</span>
+            <select value={estadoF} onChange={e => setEstadoF(e.target.value)}>
+              <option value="todos">Todas</option><option value="activas">Activas</option><option value="inactivas">Desactivadas</option>
+            </select></label>
+        </div>
+      )}
+
       {lista.datos && (
         <div className="bloque sin-relleno">
           <div className="tabla-envoltura">
@@ -144,7 +164,7 @@ export function Sucursales() {
                 </tr>
               </thead>
               <tbody>
-                {sucursales.map(s => (
+                {visibles.map(s => (
                   <tr key={s.id} className={s.activo ? undefined : 'apagada'}>
                     <td className="mono">{s.codigo}</td>
                     <td>
@@ -206,6 +226,7 @@ export function Sucursales() {
           </div>
         </div>
       )}
+      <Paginacion {...paginacion} />
 
       {lista.datos && sucursales.length <= 1 && (
         <div className="bloque">

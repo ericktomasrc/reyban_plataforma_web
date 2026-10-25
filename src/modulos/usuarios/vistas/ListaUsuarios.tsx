@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { contiene, masNuevoPrimero, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
@@ -62,6 +64,11 @@ export function ListaUsuarios() {
   const [ficha, setFicha]                 = useState<UsuarioEnLista | null | undefined>(undefined)
   const [menu, setMenu]                   = useState<string | null>(null)
   const [filtro, setFiltro]               = useState<string>('todos')
+  // 24 oct: buscar, rol, cargo y estado; y páginas.
+  const [q, setQ]                         = useState('')
+  const [rol, setRol]                     = useState('')
+  const [cargo, setCargo]                 = useState('')
+  const [estadoF, setEstadoF]             = useState('todos')
 
   const mensaje = useMensaje()
 
@@ -69,11 +76,18 @@ export function ListaUsuarios() {
   const nombreSucursal = useMemo(() => new Map(sucursales.map(s => [s.id, s.nombre])), [sucursales])
   const variasSucursales = (opciones.datos?.totalSucursales ?? 0) > 1
 
-  const todos = usuarios.datos ?? []
-  const visibles = todos.filter(u =>
-    filtro === 'todos' ? true
+  const todos = masNuevoPrimero(usuarios.datos ?? [])
+  const rolesHay = [...new Set(todos.flatMap(u => u.roles.map(r => r.nombre)))].sort()
+  const cargosHay = [...new Set(todos.map(u => u.cargo).filter((c): c is string => !!c))].sort()
+  const filtradas = todos.filter(u =>
+    (filtro === 'todos' ? true
       : filtro === 'incompleta' ? !!u.fichaIncompleta
-      : (u.sucursales ?? []).length === 0 || (u.sucursales ?? []).includes(filtro))
+      : (u.sucursales ?? []).length === 0 || (u.sucursales ?? []).includes(filtro)) &&
+    contiene(q, u.nombre, u.correo, u.numeroDocumento) &&
+    (!rol || u.roles.some(r => r.nombre === rol)) &&
+    (!cargo || u.cargo === cargo) &&
+    (estadoF === 'todos' || (estadoF === 'activos' ? u.activo : !u.activo)))
+  const { visibles, paginacion } = usePaginaLocal(filtradas, [filtro, q, rol, cargo, estadoF].join('|'))
 
   async function desactivar(u: UsuarioEnLista) {
     const seguro = await pedir({
@@ -262,6 +276,42 @@ export function ListaUsuarios() {
         </div>
       )}
 
+      {/* 24 oct: buscar y filtrar */}
+      {todos.length > 1 && (
+        <div className="filtros-lista">
+          <label className="buscar">
+            <span>Buscar</span>
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Nombre, correo o documento" />
+          </label>
+          {rolesHay.length > 1 && (
+            <label>
+              <span>Rol</span>
+              <select value={rol} onChange={e => setRol(e.target.value)}>
+                <option value="">Todos</option>
+                {rolesHay.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
+          )}
+          {cargosHay.length > 0 && (
+            <label>
+              <span>Cargo</span>
+              <select value={cargo} onChange={e => setCargo(e.target.value)}>
+                <option value="">Todos</option>
+                {cargosHay.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </label>
+          )}
+          <label>
+            <span>Estado</span>
+            <select value={estadoF} onChange={e => setEstadoF(e.target.value)}>
+              <option value="todos">Todos</option>
+              <option value="activos">Activos</option>
+              <option value="inactivos">Desactivados</option>
+            </select>
+          </label>
+        </div>
+      )}
+
       <div className="bloque sin-relleno lista-usuarios">
         {visibles.length > 0 ? (
           <div className="tabla-envoltura">
@@ -434,10 +484,11 @@ export function ListaUsuarios() {
           </div>
         ) : (
           <div className="relleno">
-            <Vacio>{filtro === 'todos' ? 'Todavía no hay nadie más en la empresa.' : 'Nadie con ese filtro.'}</Vacio>
+            <Vacio>{filtro === 'todos' && !q && !rol && !cargo && estadoF === 'todos' ? 'Todavía no hay nadie más en la empresa.' : 'Nadie con ese filtro.'}</Vacio>
           </div>
         )}
       </div>
+      <Paginacion {...paginacion} />
 
       <div className="bloque">
         <strong>Alcance: qué puede ver cada uno</strong>

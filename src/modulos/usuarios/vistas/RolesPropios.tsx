@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { contiene, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
@@ -126,6 +128,13 @@ export function RolesPropios() {
     }
   }
 
+  // 24 oct: buscar, estado y páginas.
+  const [q, setQ] = useState('')
+  const [estadoF, setEstadoF] = useState('todos')
+  const filtrados = (roles.datos ?? []).filter(r => contiene(q, r.nombre, r.descripcion) &&
+    (estadoF === 'todos' || (estadoF === 'activos' ? r.activo : !r.activo)))
+  const { visibles, paginacion } = usePaginaLocal(filtrados, `${q}|${estadoF}`)
+
   if (roles.cargando && !roles.datos) return <Cargando />
 
   return (
@@ -143,8 +152,20 @@ export function RolesPropios() {
 
       {roles.error && <Aviso>{roles.error}</Aviso>}
 
+      {/* 24 oct: buscar, estado y páginas (los propios, lo más nuevo arriba). */}
+      {(roles.datos ?? []).length > 1 && (
+        <div className="filtros-lista">
+          <label className="buscar"><span>Buscar</span>
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Nombre del rol" /></label>
+          <label><span>Estado</span>
+            <select value={estadoF} onChange={e => setEstadoF(e.target.value)}>
+              <option value="todos">Todos</option><option value="activos">Activos</option><option value="inactivos">Desactivados</option>
+            </select></label>
+        </div>
+      )}
+
       <div className="lista-roles">
-        {(roles.datos ?? []).map(r => (
+        {visibles.map(r => (
           <div key={r.id} className={`rol-tarjeta${r.activo ? '' : ' apagado'}`}>
             <div className="rol-texto">
               <div className="rol-nombre">
@@ -182,6 +203,7 @@ export function RolesPropios() {
           </div>
         ))}
       </div>
+      <Paginacion {...paginacion} />
 
       <div className="acciones-linea">
         <Boton onClick={() => { setFallo(undefined); setEdicion({ nombre: '', descripcion: '', permisos: new Set() }) }}>

@@ -4,6 +4,8 @@
 
 /** GET /api/usuarios — solo los de mi empresa; el aislamiento no deja más. */
 export interface UsuarioEnLista {
+  /** 24 oct: para «lo más nuevo arriba». */
+  creadoEn?: string
   id: string
   correo: string
   nombre: string

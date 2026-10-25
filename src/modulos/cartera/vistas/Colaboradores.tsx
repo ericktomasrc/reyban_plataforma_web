@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { contiene, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Asterisco, Campo } from '../../../componentes/Campo'
@@ -48,6 +50,9 @@ export function Colaboradores() {
   const [empresas, setEmpresas] = useState<EmpresaEquipo[]>([])
   const [fallo, setFallo] = useState<string | null>(null)
   const [abierta, setAbierta] = useState<PersonaEquipo | 'nueva' | null>(null)
+  const [qE, setQE] = useState('')
+  const [cargoE, setCargoE] = useState('')
+  const [estadoE, setEstadoE] = useState('todos')
 
   const dueno = cuenta?.nivel === 'dueno'
 
@@ -63,6 +68,14 @@ export function Colaboradores() {
   }, [])
 
   useEffect(() => { void cargar() }, [cargar])
+
+  // 24 oct: buscar, cargo, estado y páginas (antes de los «return»).
+  const filtradas = (personas ?? []).filter(c =>
+    contiene(qE, c.nombre, c.correo, c.numeroDocumento) &&
+    (!cargoE || c.cargo === cargoE) &&
+    (estadoE === 'todos' || (estadoE === 'activos' ? c.activo : !c.activo)))
+  const { visibles, paginacion } = usePaginaLocal(filtradas, `${qE}|${cargoE}|${estadoE}`)
+  const cargosHay = [...new Set((personas ?? []).map(c => c.cargo).filter((x): x is string => !!x))].sort()
 
   if (fallo) return <Aviso>{fallo}</Aviso>
   if (!personas) return <Cargando texto="Leyendo tu equipo…" />
@@ -119,6 +132,24 @@ export function Colaboradores() {
         <Boton onClick={() => setAbierta('nueva')}>Agregar a mi equipo</Boton>
       </div>
 
+      {personas.length > 1 && (
+        <div className="filtros-lista">
+          <label className="buscar"><span>Buscar</span>
+            <input value={qE} onChange={e => setQE(e.target.value)} placeholder="Nombre, correo o documento" /></label>
+          {cargosHay.length > 0 && (
+            <label><span>Cargo</span>
+              <select value={cargoE} onChange={e => setCargoE(e.target.value)}>
+                <option value="">Todos</option>
+                {cargosHay.map(c => <option key={c} value={c}>{c}</option>)}
+              </select></label>
+          )}
+          <label><span>Estado</span>
+            <select value={estadoE} onChange={e => setEstadoE(e.target.value)}>
+              <option value="todos">Todos</option><option value="activos">Activos</option><option value="inactivos">Desactivados</option>
+            </select></label>
+        </div>
+      )}
+
       <div className="bloque sin-relleno">
         <div className="tabla-envoltura">
           <table className="tabla">
@@ -126,7 +157,7 @@ export function Colaboradores() {
               <tr><th>Persona</th><th>Cargo</th><th>Empresas · rol · alcance</th><th>Estado</th><th /></tr>
             </thead>
             <tbody>
-              {personas.map(c => (
+              {visibles.map(c => (
                 <tr key={c.id} className={!c.activo ? 'apagada' : undefined}>
                   <td>
                     <div className="principal">
@@ -166,6 +197,7 @@ export function Colaboradores() {
           </table>
         </div>
       </div>
+      <Paginacion {...paginacion} />
 
       <p className="nota">
         Un solo correo y una sola contraseña para todas sus empresas. Arriba elige en cuál trabaja («Trabajando en»).

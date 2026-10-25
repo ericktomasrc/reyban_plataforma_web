@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
+import { Paginacion } from '../../../componentes/Paginacion'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { Si } from '../../../nucleo/autorizacion/Protegido'
 import { Permisos } from '../../../nucleo/autorizacion/permisos'
@@ -32,7 +33,13 @@ export function Clientes() {
   const mensaje = useMensaje()
 
   const [q, setQ] = useState('')
-  const [inactivos, setInactivos] = useState(false)
+  // 24 oct: filtros, orden y páginas.
+  const [estado, setEstado] = useState('activos')
+  const [tipoDoc, setTipoDoc] = useState('')
+  const [orden, setOrden] = useState('recientes')
+  const [pagina, setPagina] = useState(1)
+  const [porPagina, setPorPagina] = useState(20)
+  const [total, setTotal] = useState(0)
 
   const [clientes, setClientes] = useState<ClienteEnLista[]>()
   const [catalogos, setCatalogos] = useState<CatalogosSunat>()
@@ -75,10 +82,12 @@ export function Clientes() {
     return () => { vivo = false }
   }, [])
 
-  async function cargar(texto = q, conInactivos = inactivos) {
+  async function cargar() {
     setCargando(true)
     try {
-      setClientes(await clientesServicio.listar(texto, conInactivos))
+      const r = await clientesServicio.pagina({ q, tipoDocumento: tipoDoc, estado, orden, pagina, porPagina })
+      setClientes(r.filas)
+      setTotal(r.total)
       setErrorCarga(undefined)
     } catch (e) {
       setErrorCarga(e instanceof ErrorApi ? e.message : 'No se pudieron cargar los clientes.')
@@ -99,14 +108,14 @@ export function Clientes() {
   useEffect(() => {
     if (primeraCarga.current) {
       primeraCarga.current = false
-      void cargar(q, inactivos)
+      void cargar()
       return
     }
 
-    const t = setTimeout(() => { void cargar(q, inactivos) }, 300)
+    const t = setTimeout(() => { void cargar() }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, inactivos])
+  }, [q, estado, tipoDoc, orden, pagina, porPagina])
 
   const nombreAfectacion = (codigo: string) =>
     catalogos?.afectaciones.find(a => a.codigo === codigo)?.nombre ?? codigo
@@ -180,19 +189,34 @@ export function Clientes() {
           <span>Buscar</span>
           <input
             value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="RUC, razón social o nombre comercial"
+            onChange={e => { setQ(e.target.value); setPagina(1) }}
+            placeholder="RUC, DNI, razón social o nombre comercial"
             autoFocus
           />
         </label>
 
-        <label className="casilla-suelta">
-          <input
-            type="checkbox"
-            checked={inactivos}
-            onChange={e => setInactivos(e.target.checked)}
-          />
-          <span>Ver también los desactivados</span>
+        {/* 24 oct: filtros y orden */}
+        <label>
+          <span>Documento</span>
+          <select value={tipoDoc} onChange={e => { setTipoDoc(e.target.value); setPagina(1) }}>
+            <option value="">Todos</option>
+            {Object.entries(TIPOS).map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Estado</span>
+          <select value={estado} onChange={e => { setEstado(e.target.value); setPagina(1) }}>
+            <option value="activos">Activos</option>
+            <option value="inactivos">Desactivados</option>
+            <option value="todos">Todos</option>
+          </select>
+        </label>
+        <label>
+          <span>Orden</span>
+          <select value={orden} onChange={e => { setOrden(e.target.value); setPagina(1) }}>
+            <option value="recientes">Más recientes</option>
+            <option value="az">A–Z</option>
+          </select>
         </label>
       </div>
 
@@ -265,13 +289,16 @@ export function Clientes() {
         ) : (
           <div className="relleno">
             <Vacio>
-              {q
-                ? `Ningún cliente cuadra con «${q}».`
+              {q || tipoDoc || estado !== 'activos'
+                ? 'Ningún cliente cuadra con esos filtros.'
                 : 'Todavía no tienes clientes. Crea el primero para poder facturar.'}
             </Vacio>
           </div>
         )}
       </div>
+
+      <Paginacion total={total} pagina={pagina} porPagina={porPagina}
+                  onCambiar={setPagina} onPorPagina={n => { setPorPagina(n); setPagina(1) }} />
 
       {confirmacion}
 

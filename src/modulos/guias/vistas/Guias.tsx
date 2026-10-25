@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { SoloEnSol } from '../../../componentes/SoloEnSol'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { FiltroFechas, FiltroSucursal } from '../../../componentes/FiltrosComunes'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { Si } from '../../../nucleo/autorizacion/Protegido'
@@ -25,6 +27,11 @@ export function Guias() {
   const [estado, setEstado] = useState('')
   const [q, setQ] = useState('')
   const [pagina, setPagina] = useState(1)
+  // 24 oct: fechas, sucursal y cuántos por página.
+  const [desde, setDesde] = useState('')
+  const [hasta, setHasta] = useState('')
+  const [sucursal, setSucursal] = useState('')
+  const [porPagina, setPorPagina] = useState(20)
   const [datos, setDatos] = useState<PaginaGuias>()
   const [error, setError] = useState<string>()
   const [cargando, setCargando] = useState(true)
@@ -33,7 +40,7 @@ export function Guias() {
   async function cargar() {
     setCargando(true)
     try {
-      setDatos(await guiasServicio.listar({ tipo, estado, q, pagina }))
+      setDatos(await guiasServicio.listar({ tipo, estado, q, pagina, desde, hasta, sucursalId: sucursal, porPagina }))
       setError(undefined)
     } catch (e) {
       setError(e instanceof ErrorApi ? e.message : 'No se pudieron cargar las guías.')
@@ -47,7 +54,7 @@ export function Guias() {
     const t = setTimeout(() => { void cargar() }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipo, estado, q, pagina])
+  }, [tipo, estado, q, pagina, desde, hasta, sucursal, porPagina])
 
   // Mientras alguna esté en camino, se recarga sola (y se para cuando no queda ninguna).
   const hayEnCamino = datos?.filas.some(g => g.estado === 'encolado') ?? false
@@ -56,9 +63,8 @@ export function Guias() {
     const t = setInterval(() => { void cargar() }, 5000)
     return () => clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hayEnCamino, tipo, estado, q, pagina])
+  }, [hayEnCamino, tipo, estado, q, pagina, desde, hasta, sucursal, porPagina])
 
-  const paginas = datos ? Math.ceil(datos.total / datos.porPagina) : 0
   const c = datos?.conteo
 
   const filtro = (t: string, e: string, texto: string, n?: number, peligro?: boolean) => (
@@ -100,6 +106,12 @@ export function Guias() {
         </div>
         <input className="buscar-bandeja" value={q} placeholder="Número, destinatario, RUC o placa"
                onChange={e => { setQ(e.target.value); setPagina(1) }} aria-label="Buscar guías" />
+      </div>
+      {/* 24 oct: fechas y sucursal */}
+      <div className="filtros-lista">
+        <FiltroFechas desde={desde} hasta={hasta}
+                      onDesde={v => { setDesde(v); setPagina(1) }} onHasta={v => { setHasta(v); setPagina(1) }} />
+        <FiltroSucursal valor={sucursal} onCambio={v => { setSucursal(v); setPagina(1) }} />
       </div>
 
       <div className="bloque sin-relleno">
@@ -157,14 +169,9 @@ export function Guias() {
         )}
       </div>
 
-      {paginas > 1 && datos && (
-        <div className="paginacion">
-          <span>{datos.total} guías · página {datos.pagina} de {paginas}</span>
-          <div>
-            <Boton estilo="secundario" disabled={pagina <= 1} onClick={() => setPagina(p => p - 1)}>Anterior</Boton>
-            <Boton estilo="secundario" disabled={pagina >= paginas} onClick={() => setPagina(p => p + 1)}>Siguiente</Boton>
-          </div>
-        </div>
+      {datos && (
+        <Paginacion total={datos.total} pagina={datos.pagina} porPagina={datos.porPagina}
+                    onCambiar={setPagina} onPorPagina={n => { setPorPagina(n); setPagina(1) }} />
       )}
 
       {/* 24 oct: lo que no se hace aquí sino en el portal de SUNAT. */}

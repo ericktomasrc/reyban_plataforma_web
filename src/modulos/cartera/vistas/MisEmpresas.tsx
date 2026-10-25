@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Link, useNavigate } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
@@ -98,6 +100,16 @@ export function MisEmpresas() {
 
   const enRevision = (id: string) => reclamos.some(r => r.empresaId === id)
 
+  // 24 oct: páginas (lo más nuevo arriba lo da el servidor). Antes de los
+  // «return» de abajo: un hook no puede quedar detrás de uno.
+  const textoB = buscar.trim().toLowerCase()
+  const filtradas = (empresas ?? [])
+    .filter(e => filtro === 'todas' ? true : filtro === 'pausa' ? !!e.pausadaEn
+                 : ['falta', 'rechazos', 'certificado'].includes(estadoDe(e)))
+    .filter(e => !textoB || e.nombre.toLowerCase().includes(textoB)
+                 || (e.razonSocial ?? '').toLowerCase().includes(textoB) || (e.ruc ?? '').includes(textoB))
+  const { visibles, paginacion } = usePaginaLocal(filtradas, `${textoB}|${filtro}`)
+
   if (fallo) return <Aviso>{fallo}</Aviso>
   if (!empresas) return <Cargando texto="Leyendo tu cartera…" />
 
@@ -105,10 +117,6 @@ export function MisEmpresas() {
   const pausadas = empresas.filter(e => e.pausadaEn)
   const listas = empresas.filter(e => estadoDe(e) === 'lista')
 
-  const texto = buscar.trim().toLowerCase()
-  const visibles = (filtro === 'todas' ? empresas : filtro === 'pausa' ? pausadas : atencion)
-    .filter(e => !texto || e.nombre.toLowerCase().includes(texto)
-                 || (e.razonSocial ?? '').toLowerCase().includes(texto) || (e.ruc ?? '').includes(texto))
 
   return (
     <>
@@ -216,6 +224,7 @@ export function MisEmpresas() {
               </tbody>
             </table>
           </div>
+          <Paginacion {...paginacion} />
 
           <p className="nota">
             Una empresa en pausa no emite y no se borra nada. Reanudarla la devuelve tal cual estaba.

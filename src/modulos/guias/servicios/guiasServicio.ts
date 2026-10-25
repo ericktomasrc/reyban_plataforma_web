@@ -215,12 +215,18 @@ export interface ConfiguracionGuias {
 export type ClaseTransporte = 'vehiculos' | 'conductores' | 'transportistas'
 
 export const guiasServicio = {
-  listar: (f: { tipo?: string; estado?: string; q?: string; pagina?: number }) => {
+  listar: (f: { tipo?: string; estado?: string; q?: string; pagina?: number
+                desde?: string; hasta?: string; sucursalId?: string; porPagina?: number }) => {
     const p = new URLSearchParams()
     if (f.tipo) p.set('tipo', f.tipo)
     if (f.estado) p.set('estado', f.estado)
     if (f.q) p.set('q', f.q)
     if (f.pagina) p.set('pagina', String(f.pagina))
+    // 24 oct: fechas, sucursal y cuántos por página.
+    if (f.desde) p.set('desde', f.desde)
+    if (f.hasta) p.set('hasta', f.hasta)
+    if (f.sucursalId) p.set('sucursalId', f.sucursalId)
+    if (f.porPagina) p.set('porPagina', String(f.porPagina))
     return api.obtener<PaginaGuias>(`/api/guias?${p}`)
   },
   contexto: () => api.obtener<ContextoGuia>('/api/guias/contexto'),

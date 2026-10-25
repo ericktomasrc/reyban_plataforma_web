@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { FiltroFechas } from '../../../componentes/FiltrosComunes'
+import { contiene, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Aviso } from '../../../componentes/Aviso'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
 import { ErrorApi } from '../../../nucleo/api/errores'
@@ -25,6 +28,9 @@ export function ListaCuentas() {
   const mensaje = useMensaje()
 
   const [filtro, setFiltro] = useState<Filtro>('todas')
+  const [qC, setQC] = useState('')
+  const [desdeC, setDesdeC] = useState('')
+  const [hastaC, setHastaC] = useState('')
   const [suspendiendo, setSuspendiendo] = useState<CuentaEnLista>()
   const [cambiandoTope, setCambiandoTope] = useState<CuentaEnLista>()
 
@@ -38,8 +44,7 @@ export function ListaCuentas() {
     }
   }
 
-  if (cuentas.cargando && !cuentas.datos) return <Cargando />
-
+  // 24 oct: buscar, fechas y páginas (antes del «return»).
   const todas = cuentas.datos ?? []
   const hoy = new Date().toDateString()
   const cuenta = (f: Filtro) => todas.filter(c =>
@@ -47,8 +52,12 @@ export function ListaCuentas() {
     : f === 'hoy' ? new Date(c.creadoEn).toDateString() === hoy
     : f === 'pendientes' ? c.estado === 'pendiente'
     : c.estado === 'suspendida')
+  const filtradas = cuenta(filtro).filter(c =>
+    contiene(qC, c.titularNombre, c.titularDocumento, c.usuario?.correo) &&
+    (!desdeC || c.creadoEn.slice(0, 10) >= desdeC) && (!hastaC || c.creadoEn.slice(0, 10) <= hastaC))
+  const { visibles, paginacion } = usePaginaLocal(filtradas, `${filtro}|${qC}|${desdeC}|${hastaC}`)
 
-  const visibles = cuenta(filtro)
+  if (cuentas.cargando && !cuentas.datos) return <Cargando />
 
   const filtros: [Filtro, string][] = [
     ['todas', 'Todas'], ['hoy', 'Hoy'], ['pendientes', 'Sin confirmar'], ['suspendidas', 'Suspendidas'],
@@ -73,6 +82,12 @@ export function ListaCuentas() {
             {texto} · {cuenta(f).length}
           </button>
         ))}
+      </div>
+
+      <div className="filtros-lista">
+        <label className="buscar"><span>Buscar</span>
+          <input value={qC} onChange={e => setQC(e.target.value)} placeholder="Titular, RUC/DNI o correo" /></label>
+        <FiltroFechas desde={desdeC} hasta={hastaC} onDesde={setDesdeC} onHasta={setHastaC} />
       </div>
 
       {cuentas.error && <Aviso>{cuentas.error}</Aviso>}
@@ -155,10 +170,11 @@ export function ListaCuentas() {
           </div>
         ) : (
           <div className="relleno">
-            <Vacio>{filtro === 'todas' ? 'Todavía no hay cuentas.' : 'Ninguna cuenta con este filtro.'}</Vacio>
+            <Vacio>{filtro === 'todas' && !qC && !desdeC && !hastaC ? 'Todavía no hay cuentas.' : 'Ninguna cuenta con este filtro.'}</Vacio>
           </div>
         )}
       </div>
+      <Paginacion {...paginacion} />
 
       {suspendiendo && (
         <DialogoSuspenderCuenta

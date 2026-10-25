@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Paginacion } from '../../../componentes/Paginacion'
+import { contiene, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
@@ -45,6 +47,13 @@ export function TransporteGuardado() {
   const [guardando, setGuardando] = useState(false)
   const [fallo, setFallo] = useState<string>()
 
+  // 24 oct: buscar (placa, conductor, RUC…) y páginas en cada pestaña.
+  const [q, setQ] = useState('')
+  const activos = <T extends { activo: boolean }>(xs: T[]) => ver === 'todos' ? xs : xs.filter(x => x.activo)
+  const vehiculos = usePaginaLocal(activos(datos.datos?.vehiculos ?? []).filter(v => contiene(q, v.placa, v.descripcion, v.tuc)), `${q}|${ver}`)
+  const conductores = usePaginaLocal(activos(datos.datos?.conductores ?? []).filter(c => contiene(q, `${c.nombres} ${c.apellidos}`, c.numeroDoc, c.licencia)), `${q}|${ver}`)
+  const empresas = usePaginaLocal(activos(datos.datos?.transportistas ?? []).filter(x => contiene(q, x.razonSocial, x.ruc, x.mtc)), `${q}|${ver}`)
+
   if (datos.error) return <Aviso>{datos.error}</Aviso>
   if (!datos.datos) return <Cargando />
   const t = datos.datos
@@ -73,7 +82,6 @@ export function TransporteGuardado() {
     catch (e) { mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo cambiar.') }
   }
 
-  const filtrar = <T extends { activo: boolean }>(xs: T[]) => ver === 'todos' ? xs : xs.filter(x => x.activo)
   const n = (xs: { activo: boolean }[]) => xs.filter(x => x.activo).length
 
   const acciones = (clase: ClaseTransporte, id: string, activo: boolean, editar: () => void) => gestiona && (
@@ -102,17 +110,19 @@ export function TransporteGuardado() {
           <button type="button" className={pestana === 'conductores' ? 'elegido' : ''} onClick={() => setPestana('conductores')}>Conductores ({n(t.conductores)})</button>
           <button type="button" className={pestana === 'transportistas' ? 'elegido' : ''} onClick={() => setPestana('transportistas')}>Empresas de transporte ({n(t.transportistas)})</button>
         </div>
+        <input className="buscar-bandeja" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar en transporte guardado"
+               placeholder={pestana === 'vehiculos' ? 'Placa o descripción' : pestana === 'conductores' ? 'Nombre, documento o licencia' : 'Razón social o RUC'} />
         <label className="casilla">
           <input type="checkbox" checked={ver === 'todos'} onChange={e => setVer(e.target.checked ? 'todos' : 'activos')} /> Ver también los desactivados
         </label>
       </div>
 
       <div className="bloque sin-relleno">
-        {pestana === 'vehiculos' && (filtrar(t.vehiculos).length === 0 ? <div className="relleno"><Vacio>Todavía no hay vehículos. Se guardan solos al emitir una guía con tu vehículo.</Vacio></div> : (
+        {pestana === 'vehiculos' && (vehiculos.paginacion.total === 0 ? <div className="relleno"><Vacio>Todavía no hay vehículos. Se guardan solos al emitir una guía con tu vehículo.</Vacio></div> : (
           <table className="tabla">
             <thead><tr><th>Placa</th><th>Descripción</th><th>Certificado (TUC)</th><th>Uso</th>{gestiona && <th aria-label="Acciones" />}</tr></thead>
             <tbody>
-              {filtrar(t.vehiculos).map((v: VehiculoGuardado) => (
+              {vehiculos.visibles.map((v: VehiculoGuardado) => (
                 <tr key={v.id} className={v.activo ? '' : 'inactivo'}>
                   <td className="mono principal">{v.placa}{!v.activo && <span className="etiqueta"> desactivado</span>}</td>
                   <td>{v.descripcion ?? '—'}{v.autorizacion && <div className="secundario">Autorización {ENTIDADES.find(x => x[0] === v.entidad)?.[1]} {v.autorizacion}</div>}</td>
@@ -125,11 +135,11 @@ export function TransporteGuardado() {
           </table>
         ))}
 
-        {pestana === 'conductores' && (filtrar(t.conductores).length === 0 ? <div className="relleno"><Vacio>Todavía no hay conductores. Se guardan solos al emitir; también puedes elegir a alguien de tu personal.</Vacio></div> : (
+        {pestana === 'conductores' && (conductores.paginacion.total === 0 ? <div className="relleno"><Vacio>Todavía no hay conductores. Se guardan solos al emitir; también puedes elegir a alguien de tu personal.</Vacio></div> : (
           <table className="tabla">
             <thead><tr><th>Conductor</th><th>Documento</th><th>Licencia</th><th>Uso</th>{gestiona && <th aria-label="Acciones" />}</tr></thead>
             <tbody>
-              {filtrar(t.conductores).map((c: ConductorGuardado) => (
+              {conductores.visibles.map((c: ConductorGuardado) => (
                 <tr key={c.id} className={c.activo ? '' : 'inactivo'}>
                   <td className="principal">{c.nombres} {c.apellidos}{c.usuarioId && <span className="etiqueta"> del personal</span>}{!c.activo && <span className="etiqueta"> desactivado</span>}</td>
                   <td className="mono">{c.tipoDoc === '1' ? 'DNI' : 'Doc.'} {c.numeroDoc}</td>
@@ -142,11 +152,11 @@ export function TransporteGuardado() {
           </table>
         ))}
 
-        {pestana === 'transportistas' && (filtrar(t.transportistas).length === 0 ? <div className="relleno"><Vacio>Todavía no hay empresas de transporte. Se guardan solas al emitir una guía con transporte público.</Vacio></div> : (
+        {pestana === 'transportistas' && (empresas.paginacion.total === 0 ? <div className="relleno"><Vacio>Todavía no hay empresas de transporte. Se guardan solas al emitir una guía con transporte público.</Vacio></div> : (
           <table className="tabla">
             <thead><tr><th>Empresa</th><th>RUC</th><th>Registro MTC</th><th>Uso</th>{gestiona && <th aria-label="Acciones" />}</tr></thead>
             <tbody>
-              {filtrar(t.transportistas).map((x: TransportistaGuardado) => (
+              {empresas.visibles.map((x: TransportistaGuardado) => (
                 <tr key={x.id} className={x.activo ? '' : 'inactivo'}>
                   <td className="principal">{x.razonSocial}{!x.activo && <span className="etiqueta"> desactivada</span>}</td>
                   <td className="mono">{x.ruc}</td>
@@ -159,6 +169,7 @@ export function TransporteGuardado() {
           </table>
         ))}
       </div>
+      <Paginacion {...(pestana === 'vehiculos' ? vehiculos : pestana === 'conductores' ? conductores : empresas).paginacion} />
 
       {edicion && (
         <Dialogo titulo={`${edicion.id ? 'Corregir' : 'Agregar'} ${TITULOS[edicion.clase]}`} abierto onCerrar={() => setEdicion(undefined)}

@@ -7,6 +7,16 @@ import type {
   CalculoNotaDebito, PeticionNotaDebito, PreviaNotaDebito, ComprobanteParaNota, SerieEmitida,
 } from '../tipos'
 
+/** 24 oct: una página de una lista: las filas y cuántas hay en total. */
+export interface PaginaDe<T> { total: number; pagina: number; porPagina: number; filas: T[] }
+
+/** 24 oct: arma «?q=…&pagina=…» sin los vacíos. */
+function parametros(f: Record<string, string | number | undefined>) {
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(f)) if (v !== undefined && v !== '') p.set(k, String(v))
+  return p.toString()
+}
+
 // =============================================================================
 // LA CAPA DE SERVICIO DEL MÓDULO DE FACTURACIÓN
 //
@@ -55,6 +65,10 @@ export const clientesServicio = {
     api.obtener<ClienteEnLista[]>(
       `/api/facturacion/clientes?q=${encodeURIComponent(q ?? '')}` +
       `&incluirInactivos=${incluirInactivos}`),
+
+  /** 24 oct: la lista de la pantalla «Clientes», paginada y con filtros. */
+  pagina: (f: { q?: string; tipoDocumento?: string; estado?: string; orden?: string; pagina?: number; porPagina?: number }) =>
+    api.obtener<PaginaDe<ClienteEnLista>>(`/api/facturacion/clientes/pagina?${parametros(f)}`),
 
   crear: (datos: DatosCliente) =>
     api.crear<{ id: string; razonSocial: string }>('/api/facturacion/clientes', datos),
@@ -115,6 +129,10 @@ export const consultasServicio = {
 
 
 export const productosServicio = {
+  /** 24 oct: la lista de la pantalla «Productos», paginada y con filtros. */
+  pagina: (f: { q?: string; unidad?: string; afectacion?: string; estado?: string; orden?: string; pagina?: number; porPagina?: number }) =>
+    api.obtener<PaginaDe<ProductoEnLista>>(`/api/facturacion/productos/pagina?${parametros(f)}`),
+
   listar: (q?: string, incluirInactivos = false) =>
     api.obtener<ProductoEnLista[]>(
       `/api/facturacion/productos?q=${encodeURIComponent(q ?? '')}` +
@@ -372,12 +390,18 @@ export const whatsappServicio = {
 }
 
 export const documentosServicio = {
-  listar: (estado?: string, q?: string, pagina = 1, tipo?: string) =>
+  listar: (estado?: string, q?: string, pagina = 1, tipo?: string,
+           extra: { desde?: string; hasta?: string; sucursalId?: string; porPagina?: number } = {}) =>
     api.obtener<PaginaDocumentos>(
       `/api/facturacion/documentos?pagina=${pagina}` +
       `&estado=${encodeURIComponent(estado ?? '')}` +
       `&q=${encodeURIComponent(q ?? '')}` +
-      `&tipo=${encodeURIComponent(tipo ?? '')}`),
+      `&tipo=${encodeURIComponent(tipo ?? '')}` +
+      // 24 oct: fechas, sucursal y cuántos por página.
+      (extra.desde ? `&desde=${extra.desde}` : '') +
+      (extra.hasta ? `&hasta=${extra.hasta}` : '') +
+      (extra.sucursalId ? `&sucursalId=${extra.sucursalId}` : '') +
+      (extra.porPagina ? `&porPagina=${extra.porPagina}` : '')),
 
   ver: (id: string) =>
     api.obtener<DocumentoCompleto>(`/api/facturacion/documentos/${id}`),
@@ -495,6 +519,7 @@ export interface RevisionImportacion {
 
 /** Una sucursal en Configuración › Sucursales. */
 export interface Sucursal {
+  creadoEn?: string   // 24 oct
   id: string
   /** El código de establecimiento de la ficha RUC. «0000» = domicilio fiscal. */
   codigo: string
