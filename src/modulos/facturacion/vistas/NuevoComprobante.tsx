@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Asterisco, Campo } from '../../../componentes/Campo'
@@ -8,6 +8,8 @@ import { Dialogo } from '../../../componentes/Dialogo'
 import { Paginacion } from '../../../componentes/Paginacion'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
+import { Permisos } from '../../../nucleo/autorizacion/permisos'
+import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { BuscadorCliente } from '../componentes/BuscadorCliente'
 import { whatsappLegible } from '../componentes/PanelWhatsapp'
@@ -49,7 +51,16 @@ interface LineaEnEdicion {
   valorUnitario: string
   descuento: string
   tipoAfectacion: string
+  /** e165: línea libre que se guarda en el catálogo al guardar o emitir. */
+  guardar?: boolean
+  /** e165: el código que llevará (vacío = el siguiente «P-0001»). */
+  codigoNuevo?: string
+  /** e165: «No, dejarlo libre»: ya no se ofrece el producto del catálogo. */
+  libreAProposito?: boolean
 }
+
+/** e165: para comparar una descripción escrita a mano con el catálogo. */
+const normal = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
 
 const IGV = 0.18
 
@@ -78,6 +89,10 @@ const num = (s: string) => {
  * esta es la aproximación más cercana para una estimación de pantalla.
  */
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
+
+/** e166: el valor de venta de una línea (sin IGV, con su descuento). */
+const valorDeVenta = (l: { cantidad: string; valorUnitario: string; descuento: string }) =>
+  r2(Math.max(0, num(l.cantidad) * num(l.valorUnitario) - num(l.descuento)))
 
 /** «1,122.89»: con separador de miles, para que un importe se lea de un vistazo. */
 const dinero = (n: number) => n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -137,6 +152,10 @@ const plazoDias = (tipo: string) => tipo === '03' ? 7 : 3
  */
 export function NuevoComprobante() {
   const { id } = useParams()
+  // e166: «Corregir y emitir otro» desde un comprobante rechazado: se copia
+  // a uno NUEVO (el rechazado ya gastó su número y no se edita).
+  const [params] = useSearchParams()
+  const copiar = id ? null : params.get('copiar')
   const navegar = useNavigate()
   const { pedir, dialogo: confirmacion } = useConfirmar()
   const mensaje = useMensaje()
@@ -184,6 +203,44 @@ export function NuevoComprobante() {
     const t = setTimeout(() => setSumado(undefined), 8000)
     return () => clearTimeout(t)
   }, [sumado])
+  // ═══════════════════════════════════════════════════════════════════════════
+  // e165: LÍNEAS LIBRES QUE EN REALIDAD ESTÁN EN EL CATÁLOGO.
+  //
+  // Si alguien escribe a mano «Cemento Sol tipo I» (o su código) en una línea
+  // libre, la línea no descuenta stock ni cuenta en «ventas por producto». Se
+  // busca en el catálogo lo escrito y, si coincide EXACTO (código o nombre, sin
+  // tildes ni mayúsculas), se ofrece «Usar el producto». No se cambia solo.
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Lo que se acaba de guardar en el catálogo al emitir: sale en la revisión.
+  const recienCreados = useRef<string[]>([])
+  const { puede } = useSesion()
+  const puedeCrearProductos = puede(Permisos.Facturacion.ProductosGestionar)
+  const [coincide, setCoincide] = useState<Record<string, ProductoEnLista>>({})
+  const libresTexto = lineas
+    .filter(l => !l.productoId && !l.libreAProposito && l.descripcion.trim().length >= 3)
+    .map(l => `${l.clave}\u0001${l.descripcion.trim()}`)
+    .join('\u0002')
+  useEffect(() => {
+    if (!libresTexto) return
+    let vivo = true
+    const t = setTimeout(() => {
+      void (async () => {
+        const hallados: Record<string, ProductoEnLista> = {}
+        for (const par of libresTexto.split('\u0002')) {
+          const [clave, texto] = par.split('\u0001')
+          try {
+            const n = normal(texto)
+            const lista = await productosServicio.listar(texto)
+            const p = lista.find(x => normal(x.codigo) === n || normal(x.descripcion) === n)
+            if (p) hallados[clave] = p
+          } catch { /* sin catálogo a mano: no se ofrece nada */ }
+        }
+        if (vivo) setCoincide(hallados)
+      })()
+    }, 600)
+    return () => { vivo = false; clearTimeout(t) }
+  }, [libresTexto])
+
   // e162: el «ojito»: el detalle de una línea, solo lectura.
   const [verLinea, setVerLinea] = useState<string>()
   // 052: inventario. Lo disponible de los productos elegidos en la sucursal de
@@ -223,6 +280,8 @@ export function NuevoComprobante() {
   // detrás de la ventana no habría formulario que arreglar—, y todo lo que es
   // consecuencia de pulsar «Guardar» o «Emitir» sale en ventana.
   const [errorCarga, setErrorCarga] = useState<string>()
+  // e166: el número del rechazado que se está corrigiendo.
+  const [copiaDe, setCopiaDe] = useState<string>()
 
   // --- 052: lo disponible de los productos elegidos (en la sucursal de la serie)
   const productosElegidos = [...new Set(lineas.map(l => l.productoId).filter((x): x is string => !!x))].sort().join(',')
@@ -292,16 +351,22 @@ export function NuevoComprobante() {
           }))
         } catch { /* se escriben a mano */ }
 
-        if (id) {
-          const d = await documentosServicio.ver(id)
+        if (id || copiar) {
+          const d = await documentosServicio.ver((id ?? copiar)!)
           if (!vivo) return
 
-          if (!d.sePuedeEditar) {
+          if (id && !d.sePuedeEditar) {
             navegar(`/facturacion/comprobantes/${id}`, { replace: true })
             return
           }
+          // Solo facturas y boletas se copian aquí (las notas tienen su pantalla).
+          if (copiar && d.tipo !== '01' && d.tipo !== '03') {
+            navegar(`/facturacion/comprobantes/${copiar}`, { replace: true })
+            return
+          }
 
-          setEstadoDoc(d.estado)
+          if (id) setEstadoDoc(d.estado)
+          if (copiar) setCopiaDe(d.numero)
           setTipo(d.tipo)
           setSerie(d.serie ?? (d.tipo === '01' ? 'F001' : 'B001'))
           // 044: la sucursal del borrador es la de su serie.
@@ -311,8 +376,8 @@ export function NuevoComprobante() {
           setTipoCambio(d.tipoCambio != null ? d.tipoCambio.toFixed(3) : '')
           setOrdenCompra(d.datosExtra?.ordenCompra ?? '')
           // La del borrador, tal cual. Si envejeció fuera de plazo, el aviso
-          // de debajo del campo lo dice y Emitir no deja seguir.
-          setFechaEmision(d.fechaEmision)
+          // de debajo del campo lo dice y Emitir no deja seguir. La copia, hoy.
+          setFechaEmision(copiar ? hoyEnLima() : d.fechaEmision)
           setPorWhatsapp(d.whatsapp?.enviar ?? null)   // 043: como se guardó
           setEntregaDespues(d.entregaDespues ?? null)   // 052
 
@@ -584,7 +649,8 @@ export function NuevoComprobante() {
    * e164: `aparte` = agregarlo como línea nueva aunque ya esté (el enlace
    * «Agregarlo como línea aparte» del aviso).
    */
-  function agregarProducto(p: ProductoEnLista, aparte = false) {
+  /** Lo que una línea toma de un producto del catálogo (afectación, valor sin IGV…). */
+  function datosDeProducto(p: ProductoEnLista) {
     // ══════════════════════════════════════════════════════════════════════
     // MANDA LA DEL CLIENTE, Y SOLO SI NO TIENE, LA DEL PRODUCTO.
     //
@@ -623,6 +689,11 @@ export function NuevoComprobante() {
       tipoAfectacion: afectacion,
       valorUnitario: sinIgv.toFixed(6),
     }
+    return { afectacion, sinIgv, delProducto }
+  }
+
+  function agregarProducto(p: ProductoEnLista, aparte = false) {
+    const { afectacion, sinIgv, delProducto } = datosDeProducto(p)
     // ══════════════════════════════════════════════════════════════════════
     // e164: SI YA ESTÁ, SE SUMA (como la caja de Odoo). Solo si la línea que
     // ya existe es «la misma venta»: mismo producto, mismo precio, sin
@@ -660,14 +731,91 @@ export function NuevoComprobante() {
     setEnfocar({ id: `cant-${clave}` })
   }
 
-  const datos = (): DatosDocumento => ({
+  /**
+   * e165: «Usar el producto»: la línea libre pasa a ser el producto del
+   * catálogo (precio, unidad, afectación, código; descuenta stock). Conserva
+   * su cantidad. Si ya hay una línea igual de ese producto, se suma a esa.
+   */
+  function usarProducto(clave: string, p: ProductoEnLista) {
+    const libre = lineas.find(l => l.clave === clave)
+    if (!libre) return
+    const { afectacion, sinIgv, delProducto } = datosDeProducto(p)
+    const igual = lineas.find(l => l.clave !== clave && l.productoId === p.id &&
+      Math.abs(num(l.valorUnitario) - sinIgv) < 0.000001 && num(l.descuento) === 0 &&
+      l.tipoAfectacion === afectacion && l.unidadMedida === p.unidadMedida)
+    if (igual && num(libre.descuento) === 0) {
+      const suma = String(Math.round((num(igual.cantidad) + num(libre.cantidad)) * 10000) / 10000)
+      setLineas(ls => ls.filter(l => l.clave !== clave).map(l => l.clave === igual.clave ? { ...l, cantidad: suma } : l))
+      setEnfocar({ id: `cant-${igual.clave}` })
+      mensaje.bien(`Se sumó a la línea de «${p.descripcion}»: ahora son ${suma}.`)
+      return
+    }
+    setLineas(ls => ls.map(l => l.clave === clave
+      ? { ...l, ...delProducto, guardar: false, codigoNuevo: undefined, libreAProposito: false }
+      : l))
+    setEnfocar({ id: `cant-${clave}` })
+  }
+
+  /**
+   * e165: GUARDAR EN EL CATÁLOGO las líneas libres marcadas, antes de guardar
+   * el comprobante. Devuelve las líneas ya enlazadas a su producto, o
+   * undefined si algo falló (y no se guarda el comprobante).
+   *
+   * El precio se guarda con IGV si sale redondo (2.00 y no 1.694915…); si no,
+   * tal cual, sin IGV. Un bien se crea SIN «Controla stock»: nace con stock
+   * cero y, con el inventario controlando, bloquearía esta misma factura.
+   */
+  async function guardarEnCatalogo(): Promise<{ lineas: LineaEnEdicion[]; creados: string[] } | undefined> {
+    const pendientes = lineas.filter(l => l.guardar && !l.productoId && l.descripcion.trim())
+    if (pendientes.length === 0) return { lineas, creados: [] }
+    const nuevas = [...lineas]
+    const creados: string[] = []
+    for (const l of pendientes) {
+      // e166: sin precio no se guarda en el catálogo (luego saldría en cero).
+      if (!(num(l.valorUnitario) > 0)) {
+        mensaje.error(`Ponle precio a «${l.descripcion.trim()}» antes de guardarlo en tus productos.`,
+          'O desmarca «Guardar en mis productos» en esa línea.')
+        setLineas(nuevas)
+        return undefined
+      }
+      try {
+        const codigo = l.codigoNuevo?.trim() || (await productosServicio.siguienteCodigo()).codigo
+        const v = num(l.valorUnitario)
+        const tasa = l.tipoAfectacion === '10' ? IGV : 0
+        const conIgv = r2(v * (1 + tasa))
+        const redondo = tasa > 0 && Math.abs(conIgv / (1 + tasa) - v) < 0.000001
+        const r = await productosServicio.crear({
+          codigo,
+          descripcion: l.descripcion.trim(),
+          unidadMedida: l.unidadMedida,
+          tipoAfectacion: l.tipoAfectacion,
+          precioUnitario: redondo ? conIgv : v,
+          incluyeIgv: redondo,
+          controlaStock: false,
+        })
+        const i = nuevas.findIndex(x => x.clave === l.clave)
+        nuevas[i] = { ...nuevas[i], productoId: r.id, codigo: r.codigo ?? codigo, guardar: false, codigoNuevo: undefined }
+        creados.push(`«${l.descripcion.trim()}» (${r.codigo ?? codigo})`)
+      } catch (e) {
+        mensaje.error(
+          `No se pudo guardar «${l.descripcion.trim()}» en tus productos: ${e instanceof ErrorApi ? e.message : 'error'}`,
+          'El comprobante no se guardó. Cambia el código o desmarca «Guardar en mis productos».')
+        setLineas(nuevas)
+        return undefined
+      }
+    }
+    setLineas(nuevas)
+    return { lineas: nuevas, creados }
+  }
+
+  const datos = (lns: LineaEnEdicion[] = lineas): DatosDocumento => ({
     tipo,
     serie: serie.trim().toUpperCase(),
     clienteId: cliente!.id,
     fechaEmision,
     moneda,
     tipoCambio: moneda !== 'PEN' && tipoCambio.trim() ? num(tipoCambio) : null,
-    lineas: lineas.map(l => ({
+    lineas: lns.map(l => ({
       productoId: l.productoId,
       codigo: l.codigo || null,
       descripcion: l.descripcion.trim(),
@@ -751,15 +899,24 @@ export function NuevoComprobante() {
     setGuardando(true)
 
     try {
+      // e165: primero, las líneas libres marcadas «Guardar en mis productos».
+      const cat = await guardarEnCatalogo()
+      if (!cat) return undefined
+      const extra = cat.creados.length
+        ? ` También se guardó en tus productos: ${cat.creados.join(', ')} (sin «Controla stock»: márcalo en Productos si quieres contarlo).`
+        : ''
+
       if (borradorId) {
-        await documentosServicio.editar(borradorId, datos())
-        if (avisar) mensaje.bien('Borrador guardado.')
+        await documentosServicio.editar(borradorId, datos(cat.lineas))
+        recienCreados.current = cat.creados
+        if (avisar) mensaje.bien(`Borrador guardado.${extra}`)
         return borradorId
       }
 
-      const r = await documentosServicio.crear(datos())
+      const r = await documentosServicio.crear(datos(cat.lineas))
       setBorradorId(r.id)
-      if (avisar) mensaje.bien('Borrador guardado.')
+      recienCreados.current = cat.creados
+      if (avisar) mensaje.bien(`Borrador guardado.${extra}`)
       return r.id
     } catch (e) {
       mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo guardar el borrador.')
@@ -782,6 +939,17 @@ export function NuevoComprobante() {
 
     if (boletaSinDni) {
       mensaje.error('Una boleta de más de S/ 700 tiene que llevar el DNI del cliente (norma de SUNAT).')
+      return
+    }
+
+    // e166: UNA LÍNEA EN CERO LA RECHAZA SUNAT (error 3105: «al menos un
+    // tributo por línea»). Pasa con un precio vacío o un descuento del 100 %.
+    // Los regalos (operaciones gratuitas) todavía no se emiten desde aquí.
+    const enCero = lineas.map((l, i) => ({ l, i })).filter(({ l }) => valorDeVenta(l) <= 0)
+    if (enCero.length > 0) {
+      mensaje.error(
+        `${enCero.length === 1 ? 'La línea' : 'Las líneas'} ${enCero.map(x => x.i + 1).join(', ')} ${enCero.length === 1 ? 'queda' : 'quedan'} en cero.`,
+        'SUNAT rechaza una línea gravada, exonerada o inafecta sin valor (error 3105). Ponle su precio, o baja el descuento.')
       return
     }
 
@@ -911,6 +1079,24 @@ export function NuevoComprobante() {
                     <div className="alerta">Pasa de S/ 700: si es un servicio sujeto a detracción, SUNAT la exige.</div>
                   )}
                 </dd>
+              </div>
+            )}
+
+            {/* e165: líneas libres que parecen productos del catálogo (no descuentan stock). */}
+            {disp?.bloquea && lineas.some(l => !l.productoId && coincide[l.clave]) && (
+              <div className="fila sensible ojo">
+                <dt>Stock</dt>
+                <dd>
+                  {lineas.map((l, i) => !l.productoId && coincide[l.clave]
+                    ? <div key={l.clave}>La línea {i + 1} parece ser <strong>{coincide[l.clave].descripcion}</strong>, pero va libre: no descuenta stock.</div>
+                    : null)}
+                </dd>
+              </div>
+            )}
+            {recienCreados.current.length > 0 && (
+              <div className="fila">
+                <dt>Guardado en tus productos</dt>
+                <dd>{recienCreados.current.join(', ')}</dd>
               </div>
             )}
 
@@ -1062,6 +1248,12 @@ export function NuevoComprobante() {
       </div>
 
       {errorCarga && <Aviso>{errorCarga}</Aviso>}
+      {copiaDe && (
+        <Aviso tono="info">
+          <strong>Copia de {copiaDe}, que SUNAT rechazó.</strong> Corrige lo que indicó SUNAT y emite: saldrá con un
+          número nuevo y fecha de hoy. El rechazado queda como está (no vale ante SUNAT).
+        </Aviso>
+      )}
 
       {/* --- 1 y 2: el comprobante y el cliente, lado a lado ------------------ */}
       <div className="nc-dos">
@@ -1331,6 +1523,8 @@ export function NuevoComprobante() {
             const importe = Math.max(0, bruto - num(l.descuento))
             const conIgv = l.tipoAfectacion === '10' && num(l.valorUnitario) > 0 ? num(l.valorUnitario) * (1 + IGV) : null
             const desajustada = !!cliente?.afectacionHabitual && l.tipoAfectacion !== cliente.afectacionHabitual
+            // e166: en cero (sin precio o con todo descontado): SUNAT la rechaza.
+            const enCeroLinea = (!!l.descripcion.trim() || !!l.productoId) && valorDeVenta(l) <= 0
 
             // 052: cuánto hay. Si no alcanza, cuánto hay en las otras sucursales.
             const p = l.productoId && disp?.encendido ? disp.productos?.find(x => x.productoId === l.productoId) : undefined
@@ -1342,7 +1536,7 @@ export function NuevoComprobante() {
                   <span className="nc-num" role="cell">{i + 1}</span>
                   <label className="nc-celda nc-desc" role="cell">
                     <span className="nc-et">Descripción</span>
-                    <input id={`desc-${l.clave}`} value={l.descripcion} placeholder="Qué se vende (es lo que sale impreso)"
+                    <input id={`desc-${l.clave}`} value={l.descripcion} placeholder="Qué se vende (es lo que sale impreso)" maxLength={500}
                            onChange={e => cambiar(l.clave, 'descripcion', e.target.value)}
                            aria-label={`Descripción de la línea ${i + 1}`}
                            aria-invalid={!l.descripcion.trim() && (!!l.valorUnitario || !!l.productoId) ? true : undefined} />
@@ -1369,14 +1563,14 @@ export function NuevoComprobante() {
                     <input className="der" value={l.valorUnitario} inputMode="decimal" placeholder="0.00"
                            onChange={e => cambiar(l.clave, 'valorUnitario', e.target.value)}
                            aria-label={`Valor unitario sin IGV de la línea ${i + 1}`}
-                           aria-invalid={num(l.valorUnitario) < 0 ? true : undefined} />
+                           aria-invalid={num(l.valorUnitario) < 0 || (enCeroLinea && num(l.descuento) === 0) ? true : undefined} />
                   </label>
                   <label className="nc-celda" role="cell">
                     <span className="nc-et">Descuento</span>
                     <input className="der" value={l.descuento} inputMode="decimal"
                            onChange={e => cambiar(l.clave, 'descuento', e.target.value)}
                            aria-label={`Descuento de la línea ${i + 1} (${moneda === 'PEN' ? 'en soles' : 'en dólares'})`}
-                           aria-invalid={num(l.descuento) > bruto ? true : undefined} />
+                           aria-invalid={num(l.descuento) > bruto || (enCeroLinea && num(l.descuento) > 0) ? true : undefined} />
                   </label>
                   <div className="nc-celda nc-importe" role="cell">
                     <span className="nc-et">Importe</span>
@@ -1401,10 +1595,30 @@ export function NuevoComprobante() {
                       ))}
                     </select>
                   </label>
+                  {enCeroLinea && (
+                    <span className="nc-stock mal" title="SUNAT rechaza una línea sin valor (error 3105).">
+                      {num(l.descuento) > 0 ? 'El descuento la deja en cero' : 'Sin precio'}: SUNAT la rechaza
+                    </span>
+                  )}
                   {l.productoId && primeraDe.get(l.productoId) !== l.clave && (
                     <span className="nc-repetido" title={`Este producto ya está en la línea ${lineas.findIndex(x => x.clave === primeraDe.get(l.productoId!)) + 1}`}>repetido</span>
                   )}
                   {l.codigo && <span className="nc-dato">Código <span className="mono">{l.codigo}</span></span>}
+                  {/* e165: línea libre → se puede guardar en el catálogo. */}
+                  {!l.productoId && puedeCrearProductos && l.descripcion.trim() && !coincide[l.clave] && (
+                    <span className="nc-guardar">
+                      <label>
+                        <input type="checkbox" checked={!!l.guardar}
+                               onChange={e => setLineas(ls => ls.map(x => x.clave === l.clave ? { ...x, guardar: e.target.checked } : x))} />
+                        Guardar en mis productos
+                      </label>
+                      {l.guardar && (
+                        <input className="nc-codigo-nuevo" value={l.codigoNuevo ?? ''} maxLength={30} placeholder="código: automático"
+                               aria-label={`Código del producto nuevo de la línea ${i + 1}`}
+                               onChange={e => setLineas(ls => ls.map(x => x.clave === l.clave ? { ...x, codigoNuevo: e.target.value.toUpperCase() } : x))} />
+                      )}
+                    </span>
+                  )}
                   {conIgv != null && <span className="nc-dato">Con IGV <span className="mono">{conIgv.toFixed(2)}</span> c/u</span>}
                   {p && !p.controla && <span className="nc-dato">No se cuenta en el inventario</span>}
                   {p && p.controla && !falta && (
@@ -1414,6 +1628,21 @@ export function NuevoComprobante() {
                     <span className={disp?.bloquea ? 'nc-stock mal' : 'nc-stock ojo'}>Hay <strong className="mono">{cantidad(p.disponible)}</strong> disponibles</span>
                   )}
                 </div>
+
+                {/* e165: lo escrito a mano coincide con un producto del catálogo. */}
+                {!l.productoId && !l.libreAProposito && coincide[l.clave] && (
+                  <div className="nc-coincide">
+                    <span>
+                      ¿Es <strong>{coincide[l.clave].descripcion}</strong> <span className="mono">({coincide[l.clave].codigo})</span> de tu catálogo?
+                      {' '}Así descuenta stock y trae su precio.
+                    </span>
+                    <button type="button" className="enlace" onClick={() => usarProducto(l.clave, coincide[l.clave])}>Usar el producto</button>
+                    <button type="button" className="enlace secundario"
+                            onClick={() => setLineas(ls => ls.map(x => x.clave === l.clave ? { ...x, libreAProposito: true } : x))}>
+                      No, dejarlo libre
+                    </button>
+                  </div>
+                )}
 
                 {p && falta && (
                   <div className={`inv-falta${disp?.bloquea ? '' : ' solo-aviso'}`}>

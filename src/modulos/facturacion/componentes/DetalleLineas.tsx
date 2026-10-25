@@ -29,6 +29,11 @@ export interface FilaDetalle {
   igv: number
   total: number
   afectacion?: string
+  /** e165: línea libre (sin producto del catálogo). */
+  libre?: boolean
+  /** e165: datos para guardarla en el catálogo. */
+  tipoAfectacion?: string
+  precioConIgv?: number
 }
 
 const n2 = (x: number) => x.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -109,7 +114,12 @@ export function VerTodasLasLineas({ filas, moneda }: { filas: FilaDetalle[]; mon
 }
 
 /** La grilla del comprobante emitido: buscar, de 10 en 10 y el ojo. */
-export function LineasEmitidas({ filas, moneda }: { filas: FilaDetalle[]; moneda: string }) {
+export function LineasEmitidas({ filas, moneda, onAgregar }: {
+  filas: FilaDetalle[]
+  moneda: string
+  /** e165: «Agregar a mis productos» en las líneas libres (si se puede). */
+  onAgregar?: (f: FilaDetalle) => void
+}) {
   const [q, setQ] = useState('')
   const [pagina, setPagina] = useState(1)
   const filtradas = filtrarLineas(filas, q)
@@ -142,6 +152,11 @@ export function LineasEmitidas({ filas, moneda }: { filas: FilaDetalle[]; moneda
               <td>
                 <div className="principal">{f.descripcion}</div>
                 {f.codigo && <div className="secundario mono">{f.codigo}</div>}
+                {f.libre && onAgregar && (
+                  <button type="button" className="enlace agregar-catalogo" onClick={() => onAgregar(f)}>
+                    + Agregar a mis productos
+                  </button>
+                )}
               </td>
               <td className="derecha mono">{cant(f.cantidad)} {f.unidad}</td>
               <td className="derecha mono">{f.valorUnitario.toFixed(4)}</td>

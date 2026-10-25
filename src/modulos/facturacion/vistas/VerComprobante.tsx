@@ -10,14 +10,16 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha, fechaYHora } from '../../../nucleo/formato/fechas'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { ArchivosComprobante } from '../componentes/ArchivosComprobante'
-import { LineasEmitidas } from '../componentes/DetalleLineas'
+import { LineasEmitidas, type FilaDetalle } from '../componentes/DetalleLineas'
+import { DialogoProducto } from '../componentes/DialogoProducto'
+import { RechazoComprobante } from '../componentes/RechazoComprobante'
 import { EstadoComprobante } from '../componentes/EstadoComprobante'
 import { nombreDetraccion } from '../componentes/PagoYDetraccion'
 import { PanelWhatsapp } from '../componentes/PanelWhatsapp'
-import { documentosServicio } from '../servicios/facturacionServicio'
+import { documentosServicio, productosServicio } from '../servicios/facturacionServicio'
 import { GuiasDelComprobante } from '../../guias/componentes/GuiasDelComprobante'
 import '../comprobante.css'
-import type { DocumentoCompleto } from '../tipos'
+import type { CatalogosSunat, DocumentoCompleto, ProductoEnLista } from '../tipos'
 
 const TIPOS: Record<string, string> = { '01': 'Factura', '03': 'Boleta de venta', '07': 'Nota de crédito', '08': 'Nota de débito' }
 
@@ -67,6 +69,9 @@ export function VerComprobante() {
   const [ultimo, setUltimo] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [falloVentana, setFalloVentana] = useState<string | null>(null)
+  // e165: el producto nuevo que sale de una línea libre.
+  const [nuevoProducto, setNuevoProducto] = useState<Partial<ProductoEnLista>>()
+  const [catalogosSunat, setCatalogosSunat] = useState<CatalogosSunat>()
 
   // EL MENSAJE QUE DEJÓ LA PANTALLA DE EMISIÓN al navegar hasta aquí. Se
   // enseña en ventana porque es la respuesta a «Emitir», el botón más serio de
@@ -163,6 +168,24 @@ export function VerComprobante() {
     } finally { setOcupado(false) }
   }
 
+  // e165: «Agregar a mis productos» desde una línea libre ya emitida. Lo emitido
+  // no cambia: solo se crea el producto para la próxima vez.
+  async function agregarAlCatalogo(f: FilaDetalle) {
+    try {
+      const [cat, sig] = await Promise.all([catalogosSunat ?? productosServicio.catalogos(), productosServicio.siguienteCodigo()])
+      setCatalogosSunat(cat)
+      const gravado = f.tipoAfectacion === '10'
+      const conIgv = f.precioConIgv ?? f.valorUnitario
+      const redondo = gravado && Math.abs(Math.round(conIgv * 100) / 100 - conIgv) < 0.000001
+      setNuevoProducto({
+        codigo: sig.codigo, descripcion: f.descripcion, unidadMedida: f.unidad, tipoAfectacion: f.tipoAfectacion ?? '10',
+        precioUnitario: redondo ? conIgv : f.valorUnitario, incluyeIgv: redondo, controlaStock: false,
+      })
+    } catch (e) {
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo preparar el producto.')
+    }
+  }
+
   const abrir = (v: 'anular' | 'ajustar') => {
     setFalloVentana(null)
     setMotivo(v === 'ajustar' ? 'SUNAT respondió 1033: ese número ya existía.' : '')
@@ -227,7 +250,22 @@ export function VerComprobante() {
               <p><span className="etiqueta aviso">{saldo <= 0 ? 'Anulado con nota de crédito' : 'Con nota de crédito'}</span></p>
             )}
 
-            {d.mensajeSunat && (
+            {/* e166: el rechazo, en palabras: qué dato, en qué línea y cómo corregirlo. */}
+            {d.estado === 'rechazado' ? (
+              <Aviso>
+                <div className="fila-aviso">
+                  <RechazoComprobante codigo={d.codigoSunat} mensaje={d.mensajeSunat} lineas={d.lineas}
+                    nota={d.tipo === '01' || d.tipo === '03'
+                      ? 'El rechazado gastó su número y no se edita: «Corregir y emitir otro» lo copia a uno nuevo, corriges ese dato y emites.'
+                      : 'La nota rechazada no se edita: hazla de nuevo desde el comprobante que modifica, con ese dato corregido.'} />
+                  {(d.tipo === '01' || d.tipo === '03') && puede(Permisos.Facturacion.Emitir) && (
+                    <Boton onClick={() => navegar(`/facturacion/comprobantes/nuevo?copiar=${d.id}`)}>
+                      Corregir y emitir otro
+                    </Boton>
+                  )}
+                </div>
+              </Aviso>
+            ) : d.mensajeSunat && (
               <p className="nota">
                 {d.codigoSunat && <strong>[{d.codigoSunat}] </strong>}
                 {d.mensajeSunat}
@@ -368,7 +406,8 @@ export function VerComprobante() {
           <LineasEmitidas moneda={d.moneda} filas={d.lineas.map(l => ({
             numero: l.numero, codigo: l.codigo, descripcion: l.descripcion, cantidad: l.cantidad, unidad: l.unidadMedida,
             valorUnitario: l.valorUnitario, descuento: l.descuento, valorVenta: l.valorVenta, igv: l.igv, total: l.importeTotal,
-          }))} />
+            libre: !l.productoId, tipoAfectacion: l.tipoAfectacion, precioConIgv: l.precioUnitario,
+          }))} onAgregar={puede(Permisos.Facturacion.ProductosGestionar) && !esNota ? f => void agregarAlCatalogo(f) : undefined} />
 
           {/* --- Totales ------------------------------------------------------- */}
           <div className="bloque">
@@ -552,6 +591,12 @@ export function VerComprobante() {
           <PanelWhatsapp d={d} autoAbrir={abrirWhatsapp} onCambio={cargar} />
         </aside>
       </div>
+
+      {nuevoProducto && catalogosSunat && (
+        <DialogoProducto inicial={nuevoProducto} catalogos={catalogosSunat}
+                         onCerrar={() => setNuevoProducto(undefined)}
+                         onGuardado={m => { setNuevoProducto(undefined); mensaje.bien(m) }} />
+      )}
 
       <Dialogo titulo={`${textoAnular} ${d.numero}`} abierto={ventana === 'anular'} onCerrar={() => setVentana(null)}
                acciones={<>

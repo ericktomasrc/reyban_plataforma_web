@@ -191,6 +191,10 @@ export const productosServicio = {
   crear: (datos: DatosProducto) =>
     api.crear<{ id: string; codigo: string }>('/api/facturacion/productos', datos),
 
+  /** e165: el siguiente código libre «P-0001». */
+  siguienteCodigo: () =>
+    api.obtener<{ codigo: string }>('/api/facturacion/productos/siguiente-codigo'),
+
   editar: (id: string, datos: DatosProducto) =>
     api.cambiar<{ mensaje: string }>(`/api/facturacion/productos/${id}`, datos),
 

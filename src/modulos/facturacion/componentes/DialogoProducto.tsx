@@ -11,24 +11,26 @@ import { inventarioServicio, type Categoria, type MinimoEnSucursal } from '../..
 
 interface Props {
   producto?: ProductoEnLista
+  /** e165: datos para empezar un producto NUEVO (desde una línea libre). */
+  inicial?: Partial<ProductoEnLista>
   catalogos: CatalogosSunat
   onCerrar: () => void
   onGuardado: (mensaje: string) => void
 }
 
-export function DialogoProducto({ producto, catalogos, onCerrar, onGuardado }: Props) {
+export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuardado }: Props) {
   const editando = producto !== undefined
 
-  const [codigo, setCodigo]   = useState(producto?.codigo ?? '')
-  const [desc, setDesc]       = useState(producto?.descripcion ?? '')
-  const [unidad, setUnidad]   = useState(producto?.unidadMedida ?? 'NIU')
-  const [afectacion, setAfectacion] = useState(producto?.tipoAfectacion ?? '10')
-  const [precio, setPrecio]   = useState(String(producto?.precioUnitario ?? ''))
-  const [conIgv, setConIgv]   = useState(producto?.incluyeIgv ?? true)
+  const [codigo, setCodigo]   = useState(producto?.codigo ?? inicial?.codigo ?? '')
+  const [desc, setDesc]       = useState(producto?.descripcion ?? inicial?.descripcion ?? '')
+  const [unidad, setUnidad]   = useState(producto?.unidadMedida ?? inicial?.unidadMedida ?? 'NIU')
+  const [afectacion, setAfectacion] = useState(producto?.tipoAfectacion ?? inicial?.tipoAfectacion ?? '10')
+  const [precio, setPrecio]   = useState(String(producto?.precioUnitario ?? inicial?.precioUnitario ?? ''))
+  const [conIgv, setConIgv]   = useState(producto?.incluyeIgv ?? inicial?.incluyeIgv ?? true)
   const [codSunat, setCodSunat] = useState(producto?.codigoSunat ?? '')
 
   // 052: inventario. Marcado de fábrica en los bienes; un servicio nunca.
-  const [controla, setControla] = useState(producto?.controlaStock ?? (producto?.unidadMedida ?? 'NIU') !== 'ZZ')
+  const [controla, setControla] = useState(producto?.controlaStock ?? inicial?.controlaStock ?? (producto?.unidadMedida ?? inicial?.unidadMedida ?? 'NIU') !== 'ZZ')
   const [categoriaId, setCategoriaId] = useState(producto?.categoriaId ?? '')
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [encendido, setEncendido] = useState(false)
