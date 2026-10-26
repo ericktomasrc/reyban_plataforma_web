@@ -151,7 +151,7 @@ function Configuracion({ estado, onCambio }: { estado: EstadoInventario; onCambi
         <>
           <div className="inv-pasos">
             {[
-              ['Enciende el inventario', estado.modo === 'despacho' ? 'Por defecto: con despacho' : 'Por defecto: venta directa'],
+              ['Enciende el inventario', estado.modo === 'despacho' ? 'Facturas nuevas: «Se entrega después»' : 'Facturas nuevas: salen al emitir'],
               ['Revisa qué productos se cuentan', `${p.controlados} bienes con «Controla stock»`],
               ['Carga el stock inicial', 'Por sucursal, con Excel o a mano'],
               ['Empezar a controlar', 'Desde aquí se bloquea'],
@@ -167,24 +167,25 @@ function Configuracion({ estado, onCambio }: { estado: EstadoInventario; onCambi
             <div className="bloque">
               <h2 className="subtitulo">Cómo trabaja</h2>
 
-              <h3 className="inv-pregunta">¿Cuándo sale la mercadería?</h3>
-              <p className="parrafo secundario">Lo que viene marcado en cada factura nueva.</p>
+              {/* e194: no es el modo de la empresa: es cómo viene marcada cada factura nueva. */}
+              <h3 className="inv-pregunta">¿Cómo viene marcada cada factura nueva?</h3>
+              <p className="parrafo secundario">Elige lo que más haces. Siempre puedes cambiarlo en cada factura o boleta.</p>
               <div className="casillas">
                 <label className="casilla">
                   <input type="radio" name="modo" checked={modo === 'directa'} disabled={!editable} onChange={() => setModo('directa')} />
-                  <span><strong>Por defecto, venta directa: sale al emitir la factura o boleta</strong>
+                  <span><strong>Sin marcar: sale del stock al emitir (mostrador)</strong>
                     <em>El cliente se lleva la mercadería en el momento (tienda, mostrador).</em></span>
                 </label>
                 <label className="casilla">
                   <input type="radio" name="modo" checked={modo === 'despacho'} disabled={!editable} onChange={() => setModo('despacho')} />
-                  <span><strong>Por defecto, con despacho: la factura reserva y la guía la saca</strong>
+                  <span><strong>Marcada «Se entrega después»: la factura reserva y la guía la saca</strong>
                     <em>Se factura primero y la mercadería sale después con su guía de remisión. Hasta que sale, está «reservada» y no se puede vender a otro.</em></span>
                 </label>
               </div>
               <div className="inv-espacio">
                 <Aviso tono="info">
-                  <strong>Puedes usar los dos.</strong> Esto solo elige con qué viene marcada cada factura nueva; en cada
-                  factura se cambia con la casilla «Se entrega después (con guía)».
+                  <strong>Los dos funcionan siempre.</strong> Esto solo elige cómo viene la casilla «Se entrega después
+                  (con guía)» en cada factura nueva; en cada una la marcas o la desmarcas.
                 </Aviso>
               </div>
 

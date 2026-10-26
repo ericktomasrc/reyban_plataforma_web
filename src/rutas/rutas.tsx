@@ -9,6 +9,7 @@ import { ListaCuentas } from '../modulos/administracion/vistas/ListaCuentas'
 import { SolicitudesTraspaso } from '../modulos/administracion/vistas/SolicitudesTraspaso'
 import { ConexionSunatPagina } from '../modulos/administracion/vistas/ConexionSunat'
 import { CorreosPagina } from '../modulos/administracion/vistas/Correos'
+import { EquipoPlataformaPagina } from '../modulos/administracion/vistas/EquipoPlataforma'
 import { RecuperacionesPagina } from '../modulos/administracion/vistas/Recuperaciones'
 import { ConsultasSunatPagina } from '../modulos/administracion/vistas/ConsultasSunat'
 import { Cambios } from '../modulos/auditoria/vistas/Cambios'
@@ -33,6 +34,9 @@ import { NuevoIngreso } from '../modulos/inventario/vistas/NuevoIngreso'
 import { VerOperacion } from '../modulos/inventario/vistas/VerOperacion'
 import { AjustesConteos } from '../modulos/inventario/vistas/AjustesConteos'
 import { Traslados } from '../modulos/inventario/vistas/Traslados'
+import { Lotes } from '../modulos/inventario/vistas/Lotes'
+import { Series } from '../modulos/inventario/vistas/Series'
+import { Almacenes } from '../modulos/inventario/vistas/Almacenes'
 import { Proveedores } from '../modulos/inventario/vistas/Proveedores'
 import { ConfiguracionInventario } from '../modulos/inventario/vistas/ConfiguracionInventario'
 import {
@@ -40,6 +44,10 @@ import {
   ReporteSucursalesPagina, ReporteVendedoresPagina, ReporteVentasPagina,
 } from '../modulos/reportes/vistas/Reportes'
 import { CompararPeriodosPagina } from '../modulos/reportes/vistas/CompararPeriodos'
+import { ReportePosPagina } from '../modulos/reportes/vistas/ReportesPos'
+import { ReporteComprasPagina } from '../modulos/reportes/vistas/ReportesCompras'
+import { Compras } from '../modulos/compras/Compras'
+import { ReporteMargenPagina, ReporteResultadosPagina, ReporteValorizadoPagina } from '../modulos/reportes/vistas/ReportesGanancias'
 import {
   ReporteAnuladosPagina, ReporteDescargaPagina, ReporteIgvPagina, ReportePersonasNotasPagina, ReporteProblemasPagina,
   ReporteRegistroPagina,
@@ -190,6 +198,8 @@ export function Rutas() {
             </Protegido>
           }
         />
+        {/* 067: el equipo de la plataforma con permisos parciales. */}
+        <Route path="/admin/equipo" element={<Protegido soloSuperAdmin><EquipoPlataformaPagina /></Protegido>} />
         {/* 038: los correos de acceso que no salieron. */}
         <Route
           path="/admin/correos"
@@ -341,6 +351,9 @@ export function Rutas() {
         <Route path="/inventario/operaciones/:id" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><VerOperacion /></Protegido>} />
         <Route path="/inventario/ajustes" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><AjustesConteos /></Protegido>} />
         <Route path="/inventario/traslados" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Traslados /></Protegido>} />
+        <Route path="/inventario/lotes" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Lotes /></Protegido>} />
+        <Route path="/inventario/series" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Series /></Protegido>} />
+        <Route path="/inventario/almacenes" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Almacenes /></Protegido>} />
         <Route path="/inventario/proveedores" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><Proveedores /></Protegido>} />
         <Route path="/inventario/configuracion" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><ConfiguracionInventario /></Protegido>} />
 
@@ -364,6 +377,21 @@ export function Rutas() {
           <Protegido permiso={Permisos.Reportes.MiDia} modulo={Modulos.Facturacion}><ReporteMiDiaPagina /></Protegido>} />
         <Route path="/reportes/ventas" element={
           <Protegido permiso={Permisos.Reportes.TableroVentas} modulo={Modulos.Facturacion}><ReporteVentasPagina /></Protegido>} />
+        {/* e179 (060): ganancias. */}
+        <Route path="/reportes/margen" element={
+          <Protegido permiso={Permisos.Reportes.Ganancias} modulo={Modulos.Facturacion}><ReporteMargenPagina /></Protegido>} />
+        <Route path="/reportes/resultados" element={
+          <Protegido permiso={Permisos.Reportes.Ganancias} modulo={Modulos.Facturacion}><ReporteResultadosPagina /></Protegido>} />
+        <Route path="/reportes/valorizado" element={
+          <Protegido permiso={Permisos.Reportes.Ganancias} modulo={Modulos.Inventario}><ReporteValorizadoPagina /></Protegido>} />
+        {/* e178 (059): compras y gastos, y su reporte. */}
+        <Route path="/compras" element={
+          <Protegido permiso={Permisos.Compras.Ver} modulo={Modulos.Facturacion}><Compras /></Protegido>} />
+        <Route path="/reportes/compras" element={
+          <Protegido permiso={Permisos.Compras.Ver} modulo={Modulos.Facturacion}><ReporteComprasPagina /></Protegido>} />
+        {/* e178: los reportes del punto de venta. */}
+        <Route path="/reportes/pos" element={
+          <Protegido permiso={Permisos.Pos.CajasVer} modulo={Modulos.Pos}><ReportePosPagina /></Protegido>} />
         {/* e176: dos periodos lado a lado (y antes / después del inventario). */}
         <Route path="/reportes/comparar" element={
           <Protegido permiso={Permisos.Reportes.TableroVentas} modulo={Modulos.Facturacion}><CompararPeriodosPagina /></Protegido>} />

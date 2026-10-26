@@ -146,6 +146,14 @@ export function VerOperacion() {
                   <td>
                     <div className="principal">{l.descripcion}</div>
                     <div className="secundario mono">{l.codigo} · {l.unidad}</div>
+                    {l.lote && <div className="secundario">Lote <span className="mono">{l.lote}</span>{l.vence && <> · vence {l.vence}</>}</div>}
+                    {/* 061: comprado en cajas: lo que decía el comprobante del proveedor. */}
+                    {l.presentacion && l.cantidadPresentacion != null && (
+                      <div className="secundario">
+                        {cantidad(l.cantidadPresentacion)} × {l.presentacion}
+                        {l.costoPresentacion != null && <> a {l.costoPresentacion.toFixed(2)} c/u</>}
+                      </div>
+                    )}
                   </td>
                   {o.tipo === 'conteo' ? (
                     <>

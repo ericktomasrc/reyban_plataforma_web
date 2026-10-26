@@ -267,3 +267,47 @@
   }
   .cabecera .logo + .selector-empresa { margin-left: var(--e2); }
 }
+/* =============================================================================
+   e177 — LA CAMPANITA Y EL CERTIFICADO EN EL MENÚ
+   ============================================================================= */
+.campanita { position: relative; margin-right: var(--e2); }
+.campanita-boton {
+  position: relative; display: grid; place-items: center; width: 40px; height: 40px;
+  border: 1px solid transparent; border-radius: 999px; background: transparent; cursor: pointer; font-size: 19px;
+}
+.campanita-boton:hover, .campanita-boton[aria-expanded="true"] { background: var(--hundido); }
+.campanita-cuenta {
+  position: absolute; top: 1px; right: -2px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; line-height: 19px; color: #fff; background: var(--acento); box-shadow: 0 0 0 2px var(--superficie);
+}
+.campanita-cuenta.rojo, .cert-numero.rojo { background: var(--peligro); }
+.campanita-cuenta.naranja, .cert-numero.naranja { background: var(--aviso); }
+.campanita-panel {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; width: min(380px, calc(100vw - 32px));
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-grande); box-shadow: var(--sombra);
+}
+.campanita-cabeza { display: flex; justify-content: space-between; align-items: center; padding: var(--e3) var(--e4); border-bottom: 1px solid var(--borde); }
+.campanita-cabeza .enlace { font-size: 13px; }
+.campanita-vacia { margin: 0; padding: var(--e4); color: var(--tinta-2); font-size: 14px; }
+.campanita-lista { list-style: none; margin: 0; padding: 0; max-height: min(70vh, 460px); overflow-y: auto; }
+.campanita-lista li + li { border-top: 1px solid var(--borde); }
+.campanita-lista button {
+  display: flex; gap: var(--e3); width: 100%; padding: var(--e3) var(--e4); text-align: left;
+  background: transparent; border: 0; font: inherit; color: inherit; cursor: pointer;
+}
+.campanita-lista button:hover { background: var(--hundido); }
+.campanita-lista li.leido { opacity: .6; }
+.campanita-lista li.leido strong { font-weight: 500; }
+.campanita-texto { display: grid; gap: 2px; font-size: 13.5px; }
+.campanita-texto span { color: var(--tinta-2); font-size: 13px; }
+.campanita-texto small { color: var(--tinta-3); font-size: 12px; }
+.campanita-punto { flex: none; width: 10px; height: 10px; margin-top: 5px; border-radius: 999px; background: var(--acento); }
+.campanita-punto.rojo, .cert-bolita.rojo { background: var(--peligro); }
+.campanita-punto.naranja, .cert-bolita.naranja { background: var(--aviso); }
+.campanita-punto.verde, .cert-bolita.verde { background: var(--bien); }
+.cert-numero {
+  margin-left: auto; min-width: 22px; padding: 0 6px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  line-height: 20px; text-align: center; color: #fff;
+}
+.cert-numero.verde { display: none; }
+.cert-bolita { display: inline-block; width: 9px; height: 9px; margin-left: 6px; border-radius: 999px; vertical-align: middle; }

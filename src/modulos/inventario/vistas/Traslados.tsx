@@ -163,6 +163,8 @@ function DialogoRecibir({ id, onCerrar, onHecho }: { id: string; onCerrar: () =>
   const [t, setT] = useState<Traslado>()
   const [llego, setLlego] = useState<Record<string, string>>({})
   const [motivo, setMotivo] = useState<Record<string, string>>({})
+  // 068: con series, cuáles números no llegaron (productoId → números).
+  const [noLlego, setNoLlego] = useState<Record<string, string[]>>({})
   const [nota, setNota] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [fallo, setFallo] = useState<string>()
@@ -183,13 +185,18 @@ function DialogoRecibir({ id, onCerrar, onHecho }: { id: string; onCerrar: () =>
   const editable = !!t?.puedeRecibir
   const malas = t?.lineas.some(l => { const n = num(llego[l.productoId]); return !(n >= 0) || n > l.enviado }) ?? true
   const sinMotivo = t?.lineas.some(l => num(llego[l.productoId]) < l.enviado && !motivo[l.productoId]) ?? false
+  const enCamino = (l: Traslado['lineas'][number]) => (l.series ?? []).filter(x => x.estado === 'en_transito').map(x => x.serie)
+  // 068: si faltan unidades de un producto con series, hay que marcar cuáles.
+  const sinSeries = t?.lineas.some(l => enCamino(l).length > 0
+    && (noLlego[l.productoId]?.length ?? 0) !== Math.max(0, l.enviado - num(llego[l.productoId]))) ?? false
 
   async function confirmar() {
     if (!t) return
     setOcupado(true)
     try {
       const r = await inventarioServicio.recibir(t.id,
-        t.lineas.map(l => ({ productoId: l.productoId, recibido: num(llego[l.productoId]), motivo: motivo[l.productoId] || null })),
+        t.lineas.map(l => ({ productoId: l.productoId, recibido: num(llego[l.productoId]), motivo: motivo[l.productoId] || null,
+                             faltan: enCamino(l).length > 0 && num(llego[l.productoId]) < l.enviado ? (noLlego[l.productoId] ?? []) : null })),
         nota.trim() || null)
       mensaje.bien(r.mensaje); onHecho()
     } catch (e) {
@@ -201,7 +208,7 @@ function DialogoRecibir({ id, onCerrar, onHecho }: { id: string; onCerrar: () =>
     <Dialogo titulo={t ? `${editable ? 'Recibí' : 'Traslado'} · ${t.guiaNumero}` : 'Traslado'} abierto onCerrar={onCerrar}
       acciones={editable ? <>
         <Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
-        <Boton onClick={() => void confirmar()} ocupado={ocupado} disabled={malas || sinMotivo}>Confirmar recepción</Boton>
+        <Boton onClick={() => void confirmar()} ocupado={ocupado} disabled={malas || sinMotivo || sinSeries}>Confirmar recepción</Boton>
       </> : <Boton estilo="secundario" onClick={onCerrar}>Cerrar</Boton>}>
       {fallo ? <Aviso>{fallo}</Aviso> : !t ? <Cargando /> : (
         <>
@@ -223,6 +230,26 @@ function DialogoRecibir({ id, onCerrar, onHecho }: { id: string; onCerrar: () =>
                         </select>
                       )}
                       {!editable && l.motivoDiferencia && <div className="secundario">{MOTIVOS[l.motivoDiferencia]}</div>}
+                      {/* 068: los números de serie que viajan; si falta algo, se marcan los que no llegaron. */}
+                      {(l.series ?? []).length > 0 && (editable && falta > 0 && enCamino(l).length > 0 ? (
+                        <fieldset className="inv-no-llego">
+                          <legend className="secundario">Marca los {cantidad(falta)} número(s) que no llegaron</legend>
+                          {enCamino(l).map(sn => (
+                            <label key={sn} className="series-fila">
+                              <input type="checkbox" checked={(noLlego[l.productoId] ?? []).includes(sn)}
+                                     onChange={() => setNoLlego(m => {
+                                       const ya = m[l.productoId] ?? []
+                                       return { ...m, [l.productoId]: ya.includes(sn) ? ya.filter(x => x !== sn) : [...ya, sn] }
+                                     })} />
+                              <span className="mono">{sn}</span>
+                            </label>
+                          ))}
+                        </fieldset>
+                      ) : (
+                        <div className="secundario mono">
+                          Series: {(l.series ?? []).map(x => x.serie + (x.estado === 'baja' ? ' (de baja)' : '')).join(', ')}
+                        </div>
+                      ))}
                     </td>
                     <td className="num mono">{cantidad(l.enviado)}</td>
                     <td className="num">

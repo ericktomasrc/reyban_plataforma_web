@@ -10,6 +10,7 @@ import { SelectorUbigeo } from '../../../nucleo/ubigeo/SelectorUbigeo'
 import { BuscadorCliente } from '../../facturacion/componentes/BuscadorCliente'
 import { BuscadorComprobante } from '../../facturacion/componentes/BuscadorComprobante'
 import { BuscadorProducto } from '../../facturacion/componentes/BuscadorProducto'
+import { ElegirSeries } from '../../inventario/componentes/ElegirSeries'
 import { consultasServicio } from '../../facturacion/servicios/facturacionServicio'
 import type { ClienteEnLista } from '../../facturacion/tipos'
 import {
@@ -52,6 +53,9 @@ interface Bien {
   productoId?: string | null
   documentoLineaId?: string | null
   pendiente?: number
+  /** 068: producto con números de serie: en un traslado se eligen los que viajan. */
+  manejaSeries?: boolean
+  series?: string[]
 }
 
 interface Conductor {
@@ -128,6 +132,7 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
 
   // --- 4. carga -------------------------------------------------------------------
   const [bienes, setBienes] = useState<Bien[]>([])
+  const [seriesDe, setSeriesDe] = useState<string>()   // 068: la clave del bien cuyas series se eligen
   const [peso, setPeso] = useState('')
   const [bultos, setBultos] = useState('')
   const [observaciones, setObservaciones] = useState('')
@@ -341,6 +346,7 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
       bienes: bienes.map(b => ({
         descripcion: b.descripcion, unidad: b.unidad, cantidad: numero(b.cantidad),
         codigo: b.codigo, productoId: b.productoId, documentoLineaId: b.documentoLineaId,
+        series: entreLocales && b.manejaSeries ? (b.series ?? []) : null,   // 068
       })),
       vehiculo: conVehiculo ? { placa, descripcion: vehDescripcion, tuc, autorizacion, entidad } : null,
       conductor: conVehiculo ? c(conductor) : null,
@@ -413,6 +419,7 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
   const pendiente = bienes.length === 0 ? 'Falta lo que se traslada.'
     : bienes.some(b => !b.descripcion.trim()) ? 'Falta la descripción de un bien.'
     : bienes.some(b => !(numero(b.cantidad) > 0)) ? 'Falta la cantidad de un bien.'
+    : entreLocales && bienes.some(b => b.manejaSeries && (b.series?.length ?? 0) !== numero(b.cantidad)) ? 'Faltan los números de serie de un bien.'
     : !entreLocales && !despacho?.cliente && (!destDoc.trim() || !destNombre.trim()) ? 'Falta el destinatario.'
     : llegadaDir.trim().length < 5 ? 'Falta la dirección de llegada.'
     : publico && (transRuc.length !== 11 || !transNombre.trim()) ? 'Falta la empresa de transporte.'
@@ -730,6 +737,14 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
                     <input value={b.descripcion} aria-label="Descripción" maxLength={500} readOnly={!!b.documentoLineaId}
                            onChange={e => cambiarBien(b.clave, { descripcion: e.target.value })} />
                     {b.codigo && <div className="secundario mono">{b.codigo}</div>}
+                    {/* 068: entre locales, los números de serie que viajan. */}
+                    {entreLocales && b.manejaSeries && b.productoId && (
+                      <button type="button" className={'enlace series-bien' + ((b.series?.length ?? 0) !== numero(b.cantidad) ? ' mal' : '')}
+                              onClick={() => setSeriesDe(b.clave)}>
+                        {b.series?.length ? `Series: ${b.series.join(', ')}` : 'Elegir los números de serie'}
+                        {' '}({b.series?.length ?? 0} de {numero(b.cantidad) || 0})
+                      </button>
+                    )}
                   </td>
                   <td>
                     {b.documentoLineaId ? nombreUnidad(b.unidad) : (
@@ -754,13 +769,21 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
           </tbody>
         </table>
         {pl.hayMas && <Paginacion {...pl.paginacion} />}
+        {(() => {
+          const b = bienes.find(x => x.clave === seriesDe)
+          return b?.productoId ? (
+            <ElegirSeries productoId={b.productoId} sucursalId={sucursalId} descripcion={b.descripcion} elegidas={b.series ?? []}
+                          onCerrar={() => setSeriesDe(undefined)}
+                          onElegir={series => { cambiarBien(b.clave, { series, cantidad: String(series.length) }); setSeriesDe(undefined) }} />
+          ) : null
+        })()}
 
         <div className="acciones-linea">
           {!despacho && tipo === '09' && (
             <div className="buscador-bien">
               <BuscadorProducto onElegir={p => ponerBien({
                 clave: claveFila(), descripcion: p.descripcion, unidad: p.unidadMedida === 'ZZ' ? 'NIU' : p.unidadMedida,
-                cantidad: '1', codigo: p.codigo, productoId: p.id,
+                cantidad: '1', codigo: p.codigo, productoId: p.id, manejaSeries: !!p.manejaSeries,
               })} />
             </div>
           )}

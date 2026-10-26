@@ -142,6 +142,9 @@ export interface Yo {
 
   permisos: string[]
 
+  /** 067: del equipo de la plataforma con permisos parciales (null = todo, el dueño). */
+  plataformaPermisos?: string[] | null
+
   /** Nula salvo mientras se está viendo la cuenta de otro. */
   suplantacion: Suplantacion | null
 

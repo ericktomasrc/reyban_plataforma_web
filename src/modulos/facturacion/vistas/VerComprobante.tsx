@@ -409,7 +409,8 @@ export function VerComprobante() {
 
           {/* --- Líneas: e163, con búsqueda, de 10 en 10 y el ojo con todas ------ */}
           <LineasEmitidas moneda={d.moneda} filas={d.lineas.map(l => ({
-            numero: l.numero, codigo: l.codigo, descripcion: l.descripcion, cantidad: l.cantidad, unidad: l.unidadMedida,
+            // e192: como sale en el PDF y en SUNAT, con los números de serie.
+            numero: l.numero, codigo: l.codigo, descripcion: [l.descripcion, l.lote ? `Lote: ${l.lote}` : null, l.series?.length ? `${l.series.length === 1 ? 'Serie' : 'Series'}: ${l.series.join(', ')}` : null].filter(Boolean).join(' - '), cantidad: l.cantidad, unidad: l.unidadMedida,
             valorUnitario: l.valorUnitario, descuento: l.descuento, valorVenta: l.valorVenta, igv: l.igv, total: l.importeTotal,
             libre: !l.productoId, tipoAfectacion: l.tipoAfectacion, precioConIgv: l.precioUnitario,
             enCatalogo: l.enCatalogo ?? agregados[l.descripcion.trim().toUpperCase()] ?? undefined,

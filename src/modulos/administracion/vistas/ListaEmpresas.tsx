@@ -69,7 +69,7 @@ export function ListaEmpresas() {
   // 24 oct: buscar, estado, fechas de alta y páginas (antes del «return»).
   const filtradas = (empresas.datos ?? []).filter(e =>
     contiene(qE, e.nombre, e.ruc, e.razonSocial) &&
-    (estadoE === 'todas' || (estadoE === 'suspendidas' ? !!e.suspendidaEn : estadoE === 'activas' ? e.activo && !e.suspendidaEn : !e.activo)) &&
+    (estadoE === 'todas' || (estadoE === 'certificado' ? certificadoUrgente(e) : estadoE === 'suspendidas' ? !!e.suspendidaEn : estadoE === 'activas' ? e.activo && !e.suspendidaEn : !e.activo)) &&
     (!desdeE || (e.creadoEn ?? '').slice(0, 10) >= desdeE) && (!hastaE || (e.creadoEn ?? '').slice(0, 10) <= hastaE))
   const { visibles, paginacion } = usePaginaLocal(filtradas, `${qE}|${estadoE}|${desdeE}|${hastaE}`)
 
@@ -79,12 +79,16 @@ export function ListaEmpresas() {
     <>
       <div className="encabezado-pagina">
         <h1 className="titulo-pagina">Empresas</h1>
-        <Boton onClick={() => setCreando(true)}>Dar de alta</Boton>
+        {/* e193: cada botón, solo a quien tiene su permiso (equipo de la plataforma). */}
+        <Si puede={Permisos.Plataforma.EmpresasGestionar}>
+          <Boton onClick={() => setCreando(true)}>Dar de alta</Boton>
+        </Si>
       </div>
 
       {empresas.error && <Aviso>{empresas.error}</Aviso>}
 
-      {empresas.datos && <CertificadosPorVencer empresas={empresas.datos} />}
+      {empresas.datos && <CertificadosPorVencer empresas={empresas.datos} filtrando={estadoE === 'certificado'}
+                                                onVer={() => { setEstadoE('certificado'); setQE(''); setDesdeE(''); setHastaE('') }} />}
 
       <div className="filtros-lista">
         <label className="buscar"><span>Buscar</span>
@@ -93,6 +97,7 @@ export function ListaEmpresas() {
           <select value={estadoE} onChange={e => setEstadoE(e.target.value)}>
             <option value="todas">Todas</option><option value="activas">Activas</option>
             <option value="suspendidas">Suspendidas</option><option value="desactivadas">Desactivadas</option>
+            <option value="certificado">Certificado por vencer o vencido</option>
           </select></label>
         <FiltroFechas desde={desdeE} hasta={hastaE} onDesde={setDesdeE} onHasta={setHastaE} />
       </div>
@@ -174,30 +179,38 @@ export function ListaEmpresas() {
                         </Si>
                       )}
 
-                      <Boton estilo="plano" onClick={() => setEditandoModulos(e)}>
-                        Módulos
-                      </Boton>
+                      <Si puede={Permisos.Plataforma.ModulosGestionar}>
+                        <Boton estilo="plano" onClick={() => setEditandoModulos(e)}>
+                          Módulos
+                        </Boton>
+                      </Si>
 
-                      <Boton estilo="plano" onClick={() => setEditandoPlazo(e)}>
-                        Enlaces
-                      </Boton>
+                      <Si puede={Permisos.Plataforma.EmpresasGestionar}>
+                        <Boton estilo="plano" onClick={() => setEditandoPlazo(e)}>
+                          Enlaces
+                        </Boton>
+                      </Si>
 
                       {/* SIEMPRE, no solo con el módulo activo: desde la
                           parte C la empresa nace conectada, y esta ventana es
                           donde se ve qué le falta para PODER activarlo. */}
-                      <Boton estilo="plano" onClick={() => setFacturacion(e)}>
-                        Facturación
-                      </Boton>
+                      <Si puede={Permisos.Plataforma.CredencialesGestionar}>
+                        <Boton estilo="plano" onClick={() => setFacturacion(e)}>
+                          Facturación
+                        </Boton>
+                      </Si>
 
-                      {suspendida ? (
-                        <Boton estilo="plano" onClick={() => void reactivar(e)}>
-                          Reactivar
-                        </Boton>
-                      ) : (
-                        <Boton estilo="plano" onClick={() => setSuspendiendo(e)}>
-                          Suspender
-                        </Boton>
-                      )}
+                      <Si puede={Permisos.Plataforma.EmpresasGestionar}>
+                        {suspendida ? (
+                          <Boton estilo="plano" onClick={() => void reactivar(e)}>
+                            Reactivar
+                          </Boton>
+                        ) : (
+                          <Boton estilo="plano" onClick={() => setSuspendiendo(e)}>
+                            Suspender
+                          </Boton>
+                        )}
+                      </Si>
                     </td>
                   </tr>
                 )
@@ -359,11 +372,15 @@ function MarcasDeFacturacion({ empresa }: { empresa: EmpresaEnLista }) {
  * paso 6.3) a los 30, 15, 7 y 1 días y el día que vence. Esto es para que el
  * super administrador lo vea sin abrir cada empresa.
  */
-function CertificadosPorVencer({ empresas }: { empresas: EmpresaEnLista[] }) {
+/** e196: no suspendida y con el certificado a 30 días o menos (o ya vencido). */
+function certificadoUrgente(e: EmpresaEnLista): boolean {
+  return e.suspendidaEn === null && !!e.facturacion?.certificadoValidoHasta && diasHasta(e.facturacion.certificadoValidoHasta) <= 30
+}
+
+function CertificadosPorVencer({ empresas, filtrando, onVer }: { empresas: EmpresaEnLista[]; filtrando: boolean; onVer: () => void }) {
   const urgentes = empresas
-    .filter(e => e.suspendidaEn === null && e.facturacion?.certificadoValidoHasta)
+    .filter(certificadoUrgente)
     .map(e => ({ e, dias: diasHasta(e.facturacion!.certificadoValidoHasta!) }))
-    .filter(x => x.dias <= 30)
     .sort((a, b) => a.dias - b.dias)
 
   if (urgentes.length === 0) return null
@@ -387,7 +404,13 @@ function CertificadosPorVencer({ empresas }: { empresas: EmpresaEnLista[] }) {
         </span>
       ))}
       {urgentes.length > 5 && <> · y {urgentes.length - 5} más</>}
-      . Sin certificado no pueden emitir. Ya les llega el aviso por correo.
+      . Sin certificado no pueden emitir. Ya les llega el aviso por correo.{' '}
+      {/* e196: ver todas en la tabla (filtra por «Certificado por vencer o vencido»). */}
+      {!filtrando && (
+        <button type="button" className="enlace" onClick={onVer}>
+          {urgentes.length === 1 ? 'Verla en la tabla' : `Ver las ${urgentes.length} en la tabla`}
+        </button>
+      )}
     </Aviso>
   )
 }

@@ -93,3 +93,6 @@ tr.inactivo td { color: var(--tinta-3); }
 @media (max-width: 1280px) { .tarjetas-guia.en-detalle { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .tarjetas-guia.en-detalle { grid-template-columns: 1fr; } }
 .lineas-barra-guia .barra-lineas { padding: var(--e3) var(--e4) 0; margin: 0 0 var(--e3); }
+/* 068: los números de serie de un bien que viaja entre locales. */
+.series-bien { display: block; margin-top: 4px; font-size: 13px; text-align: left; }
+.series-bien.mal { color: var(--peligro); }

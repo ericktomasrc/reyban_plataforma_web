@@ -206,8 +206,11 @@ function StockInicial({ estado, onHecho }: { estado: EstadoInventario; onHecho: 
   const [revision, setRevision] = useState<RevisionStockInicial>()
   const [ocupado, setOcupado] = useState(false)
   const [sucursal, setSucursal] = useState('')
-  const [lineas, setLineas] = useState<{ producto: ProductoEnLista; cantidad: string; costo: string }[]>([])
+  // 068: con lotes, una fila por lote (lote y vencimiento); con series, los números (opcionales).
+  const [lineas, setLineas] = useState<{ clave: string; producto: ProductoEnLista; cantidad: string; costo: string; lote?: string; vence?: string; series?: string }[]>([])
   const suc = sucursal || defecto
+  const seriesDe = (t?: string) => (t ?? '').split(/[\n,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean)
+  const cambiar = (clave: string, c: Partial<(typeof lineas)[number]>) => setLineas(ls => ls.map(x => x.clave === clave ? { ...x, ...c } : x))
 
   async function plantilla() {
     try { await inventarioServicio.plantillaStockInicial() }
@@ -236,11 +239,17 @@ function StockInicial({ estado, onHecho }: { estado: EstadoInventario; onHecho: 
   async function cargarAMano() {
     if (lineas.length === 0) return
     if (lineas.some(l => !(numero(l.cantidad) >= 0) || l.cantidad.trim() === '')) { mensaje.error('Cada cantidad tiene que ser 0 o más.'); return }
+    if (lineas.some(l => l.producto.manejaSeries && seriesDe(l.series).length > 0 && seriesDe(l.series).length !== numero(l.cantidad))) {
+      mensaje.error('Con números de serie: uno por unidad (o ninguno).'); return
+    }
     setOcupado(true)
     try {
       const r = await inventarioServicio.stockInicial({
         sucursalId: suc,
-        lineas: lineas.map(l => ({ productoId: l.producto.id, cantidad: numero(l.cantidad), costoUnitario: l.costo.trim() ? numero(l.costo) : null })),
+        lineas: lineas.map(l => ({ productoId: l.producto.id, cantidad: numero(l.cantidad), costoUnitario: l.costo.trim() ? numero(l.costo) : null,
+                                   lote: l.producto.manejaLotes && l.lote?.trim() ? l.lote.trim() : null,          // 068
+                                   vence: l.producto.manejaLotes && l.lote?.trim() && l.vence ? l.vence : null,
+                                   series: l.producto.manejaSeries && seriesDe(l.series).length > 0 ? seriesDe(l.series) : null })),
       })
       mensaje.bien(r.mensaje); setLineas([]); onHecho()
     } catch (e) {
@@ -255,7 +264,7 @@ function StockInicial({ estado, onHecho }: { estado: EstadoInventario; onHecho: 
         <p className="parrafo secundario">Lo que ya tienes el día que empiezas. Una vez por producto y sucursal; después todo entra por compra, traslado o ajuste.</p>
         <ol className="pasos">
           <li><button type="button" className="enlace" onClick={() => void plantilla()}>Descarga la plantilla</button>: ya trae tus productos con «Controla stock» y una columna por sucursal.</li>
-          <li>Escribe las cantidades (y el costo, si lo sabes).</li>
+          <li>Escribe las cantidades (y el costo, si lo sabes). Con lotes: una fila por lote, con su vencimiento; con series: los números separados por coma.</li>
           <li>Súbela: antes de guardar ves qué filas tienen error.</li>
         </ol>
         <div className="inv-zona-excel">
@@ -294,18 +303,42 @@ function StockInicial({ estado, onHecho }: { estado: EstadoInventario; onHecho: 
         <table className="tabla inv-lineas">
           <thead><tr><th>Producto</th><th className="num">Hay hoy</th><th className="num">Costo</th><th /></tr></thead>
           <tbody>
-            {lineas.map((l, i) => (
-              <tr key={l.producto.id}>
-                <td>{l.producto.descripcion}<div className="secundario mono">{l.producto.codigo}</div></td>
+            {lineas.map(l => (
+              <tr key={l.clave}>
+                <td>{l.producto.descripcion}<div className="secundario mono">{l.producto.codigo}</div>
+                  {/* 068: con lotes, el lote de esta fila (sin lote = «sin lote»); «+ otro lote» agrega otra fila. */}
+                  {l.producto.manejaLotes && (
+                    <div className="inv-lote">
+                      <input className="mono" value={l.lote ?? ''} placeholder="Lote (opcional)" maxLength={40} aria-label={`Lote de ${l.producto.descripcion}`}
+                             onChange={e => cambiar(l.clave, { lote: e.target.value.toUpperCase() })} />
+                      <input type="date" value={l.vence ?? ''} aria-label={`Vencimiento de ${l.producto.descripcion}`} disabled={!l.lote?.trim()}
+                             onChange={e => cambiar(l.clave, { vence: e.target.value })} />
+                      <button type="button" className="enlace" onClick={() => setLineas(ls => {
+                        const i = ls.findIndex(x => x.clave === l.clave)
+                        return [...ls.slice(0, i + 1), { clave: crypto.randomUUID(), producto: l.producto, cantidad: '', costo: l.costo }, ...ls.slice(i + 1)]
+                      })}>+ otro lote</button>
+                    </div>
+                  )}
+                  {/* 068: con series, los números de lo que ya hay (opcional; si se escriben, uno por unidad). */}
+                  {l.producto.manejaSeries && (
+                    <div className="inv-series">
+                      <textarea className="mono" rows={2} value={l.series ?? ''} placeholder="Números de serie (opcional), uno por línea"
+                                aria-label={`Números de serie de ${l.producto.descripcion}`}
+                                aria-invalid={seriesDe(l.series).length > 0 && seriesDe(l.series).length !== numero(l.cantidad)}
+                                onChange={e => cambiar(l.clave, { series: e.target.value })} />
+                      <span className="secundario">{seriesDe(l.series).length} de {l.cantidad || 0}</span>
+                    </div>
+                  )}
+                </td>
                 <td className="num"><input className="cantidad mono" inputMode="decimal" value={l.cantidad} aria-label="Cantidad"
-                  onChange={e => setLineas(ls => ls.map((x, j) => j === i ? { ...x, cantidad: e.target.value } : x))} /></td>
+                  onChange={e => cambiar(l.clave, { cantidad: e.target.value })} /></td>
                 <td className="num"><input className="cantidad mono" inputMode="decimal" value={l.costo} placeholder="—" aria-label="Costo"
-                  onChange={e => setLineas(ls => ls.map((x, j) => j === i ? { ...x, costo: e.target.value } : x))} /></td>
-                <td><Boton estilo="plano" onClick={() => setLineas(ls => ls.filter((_, j) => j !== i))}>Quitar</Boton></td>
+                  onChange={e => cambiar(l.clave, { costo: e.target.value })} /></td>
+                <td><Boton estilo="plano" onClick={() => setLineas(ls => ls.filter(x => x.clave !== l.clave))}>Quitar</Boton></td>
               </tr>
             ))}
             <tr><td colSpan={4}>
-              <BuscadorProductoStock excluir={lineas.map(l => l.producto.id)} onElegir={p => setLineas(ls => [...ls, { producto: p, cantidad: '', costo: '' }])} />
+              <BuscadorProductoStock excluir={lineas.map(l => l.producto.id)} onElegir={p => setLineas(ls => [...ls, { clave: crypto.randomUUID(), producto: p, cantidad: '', costo: '' }])} />
             </td></tr>
           </tbody>
         </table>

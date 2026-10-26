@@ -54,6 +54,22 @@ export interface ClienteEnLista {
 }
 
 /** GET /api/facturacion/productos */
+/** 061: otra forma de vender o comprar un producto («CAJA X 12» = 12 unidades). */
+export interface Presentacion {
+  id: string
+  nombre: string
+  /** Catálogo 03 (BX caja, PK paquete…). */
+  unidadMedida: string
+  /** Cuántas unidades del producto trae. */
+  factor: number
+  /** Precio propio; null = el del producto × factor. */
+  precioUnitario: number | null
+  incluyeIgv: boolean
+  codigoBarras: string | null
+  paraCompra: boolean
+  paraVenta: boolean
+}
+
 export interface ProductoEnLista {
   id: string
   codigo: string
@@ -85,7 +101,44 @@ export interface ProductoEnLista {
   /** 052: se cuenta en el inventario (marcado en los bienes; un servicio nunca). */
   controlaStock?: boolean
   categoriaId?: string | null
+  /** e179 (060): costo unitario sin IGV escrito a mano (para el margen). */
+  costo?: number | null
   categoria?: string | null
+  /** 061: sus presentaciones activas. */
+  presentaciones?: Presentacion[]
+  /** 062: kit o combo: no tiene stock propio, venderlo descuenta sus componentes. */
+  esKit?: boolean
+  /** 063: modelo con variantes (no se vende: se venden sus variantes). */
+  esModelo?: boolean
+  /** 063: la variante: su modelo y sus valores ({TALLA: 'M'}). */
+  padreId?: string | null
+  atributos?: Record<string, string> | null
+  /** 063: cuántas variantes tiene el modelo (solo en la lista). */
+  variantes?: number
+  /** 064: su stock se reparte en lotes con vencimiento. */
+  manejaLotes?: boolean
+  /** 065: cada unidad tiene su número de serie. */
+  manejaSeries?: boolean
+  /** 061: la que se eligió en el buscador (precio, unidad y descripción ya son los suyos). */
+  presentacion?: Presentacion
+  /** 061: la unidad del producto (cuando viene con una presentación elegida). */
+  unidadBase?: string
+}
+
+/**
+ * 061: el producto «visto» en una presentación: su unidad, su precio (el
+ * propio o el del producto × factor) y «(CAJA X 12)» en la descripción.
+ */
+export function enPresentacion(p: ProductoEnLista, pr: Presentacion): ProductoEnLista {
+  return {
+    ...p,
+    presentacion: pr,
+    unidadBase: p.unidadMedida,
+    unidadMedida: pr.unidadMedida,
+    precioUnitario: pr.precioUnitario ?? Math.round(p.precioUnitario * pr.factor * 1e6) / 1e6,
+    incluyeIgv: pr.precioUnitario != null ? pr.incluyeIgv : p.incluyeIgv,
+    descripcion: `${p.descripcion} (${pr.nombre})`,
+  }
 }
 
 /**
@@ -465,6 +518,13 @@ export interface LineaDocumento {
   cantidad: number
   /** e174: línea libre cuya descripción ya está en el catálogo (su código). */
   enCatalogo?: string | null
+  /** 061: la presentación vendida y cuántas unidades del producto trae cada una. */
+  presentacionId?: string | null
+  factor?: number | null
+  /** 065: los números de serie vendidos. */
+  series?: string[] | null
+  /** 068: el lote del que se vende (null = el que vence primero). */
+  lote?: string | null
 
   /** Sin IGV y sin descuento. Es lo que espera el servicio. */
   valorUnitario: number

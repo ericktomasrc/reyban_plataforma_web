@@ -43,6 +43,12 @@ export function PanelWhatsapp({ d, autoAbrir, onCambio }: {
   const [numero, setNumero] = useState('')
   const intentado = useRef(false)
 
+  // e181: el enlace es largo y sin espacios: escrito en la tarjeta la estiraba. Se copia con un toque.
+  async function copiar(enlace: string) {
+    try { await navigator.clipboard.writeText(enlace); mensaje.bien('Enlace copiado.') }
+    catch { mensaje.error('No se pudo copiar. Ábrelo y cópialo desde WhatsApp.') }
+  }
+
   const emitido = !!d.comprobanteId && !['borrador', 'error', 'rechazado'].includes(d.estado)
   const numeroCliente = w?.numero ?? d.cliente?.whatsapp ?? null
 
@@ -117,7 +123,7 @@ export function PanelWhatsapp({ d, autoAbrir, onCambio }: {
           {preparado && (
             <p className="nota">
               ¿No se abrió? <a href={preparado.abrir} target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
-              {' '}o copia el enlace del comprobante: <span className="mono">{preparado.enlace}</span>
+              {' '}o <button type="button" className="enlace" onClick={() => void copiar(preparado.enlace)}>copia el enlace del comprobante</button> y pégalo donde quieras.
             </p>
           )}
         </>

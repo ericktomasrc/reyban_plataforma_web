@@ -187,6 +187,31 @@ export function textoEstado(e: EmpresaCartera): string {
   }
 }
 
+/**
+ * e191 — LAS TARJETAS-FILTRO DE «MIS EMPRESAS». Una empresa puede estar en
+ * varias (con rechazos y con el certificado por vencer); «lista» solo si no
+ * tiene nada pendiente. Las pausadas solo cuentan en «pausa».
+ */
+export type FiltroCartera = 'todas' | 'lista' | 'falta' | 'rechazos' | 'por_vencer' | 'vencido' | 'pausa'
+
+export function enFiltro(e: EmpresaCartera, f: FiltroCartera): boolean {
+  if (f === 'todas') return true
+  if (f === 'pausa') return !!e.pausadaEn
+  if (e.pausadaEn) return false
+  const d = e.certificadoHasta ? diasHasta(e.certificadoHasta) : null
+  switch (f) {
+    case 'lista':      return estadoDe(e) === 'lista'
+    case 'falta':      return !e.facturacionActiva
+    case 'rechazos':   return e.rechazos > 0
+    case 'por_vencer': return d !== null && d >= 0 && d <= 30
+    case 'vencido':    return d !== null && d < 0
+  }
+}
+
+/** e191: certificados por vencer (30 días o menos) o vencidos: el número rojo del estudio. */
+export const conCertificadoEnRiesgo = (lista: EmpresaCartera[]) =>
+  lista.filter(e => enFiltro(e, 'por_vencer') || enFiltro(e, 'vencido')).length
+
 export function diasHasta(fecha: string): number {
   return Math.ceil((new Date(fecha).getTime() - Date.now()) / 86_400_000)
 }

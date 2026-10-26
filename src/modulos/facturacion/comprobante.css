@@ -132,6 +132,9 @@
 
 .nc-agregar { display: flex; gap: var(--e3); align-items: center; margin-top: var(--e4); }
 .nc-agregar .buscador.en-linea { flex: 1; max-width: 640px; }
+/* e183: con IGV / sin IGV */
+.nc-modo-precios { display: flex; flex-wrap: wrap; gap: var(--e2) var(--e3); align-items: center; margin-top: var(--e4); font-size: 14px; }
+.nc-modo-precios .nota { margin: 0; }
 .nc-agregar .buscador.en-linea input { min-height: 42px; padding: 9px 14px; font-size: 14.5px; border-color: var(--acento); background: var(--superficie); }
 .nc-agregar .buscador.en-linea input::placeholder { color: var(--acento); opacity: .85; }
 .nc-agregar .boton { min-height: 42px; }
@@ -423,3 +426,10 @@
 .pastilla-regalo { display: inline-block; font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px;
   background: #fff5e5; color: #9a5b00; border: 1px solid #f0c98a; vertical-align: middle; }
 .datos.totales .fila.gratuito dt, .datos.totales .fila.gratuito dd { color: #9a5b00; }
+
+/* e181: un texto largo sin espacios (un enlace, un correo) no puede estirar la
+   columna de la derecha: se corta donde haga falta. */
+.vc-lado { min-width: 0; }
+.vc-lado .nota, .vc-lado .mono, .vc-lado .secundario { overflow-wrap: anywhere; }
+/* 065: faltan números de serie en la línea */
+.nc-series-falta { color: var(--aviso); }

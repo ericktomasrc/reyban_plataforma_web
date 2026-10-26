@@ -76,7 +76,11 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
 
   const puede = useCallback((permiso: string) => {
     if (estado.fase !== 'dentro') return false
-    return estado.yo.usuario.esSuperAdmin || estado.yo.permisos.includes(permiso)
+    // 067: del equipo de la plataforma con permisos parciales: de los
+    // «plataforma.*», solo los suyos. El dueño (sin lista) los tiene todos.
+    if (estado.yo.usuario.esSuperAdmin)
+      return !estado.yo.plataformaPermisos || !permiso.startsWith('plataforma.') || estado.yo.plataformaPermisos.includes(permiso)
+    return estado.yo.permisos.includes(permiso)
   }, [estado])
 
   return (

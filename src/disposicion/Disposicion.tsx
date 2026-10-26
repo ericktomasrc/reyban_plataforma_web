@@ -17,6 +17,8 @@ import { useConexionSunat } from '../nucleo/sunat/conexionSunat'
 import { REPORTES } from '../modulos/reportes/vistas/Reportes'
 import { REPORTES_CARTERA, REPORTES_PLATAFORMA } from '../modulos/reportes/vistas/ReportesPlataforma'
 import { MenuDesplegable } from './MenuDesplegable'
+import { Campanita, IndicadorCertificado } from '../modulos/avisos/Campanita'
+import { useAvisos } from '../modulos/avisos/avisosServicio'
 
 /**
  * El marco: la cabecera arriba, UN SOLO MENÚ a la izquierda y el contenido.
@@ -73,6 +75,9 @@ export function Disposicion() {
   }, [])
   // 030: modo prueba / real. La franja la ven todos; nadie la cambia desde aquí.
   const conexion = useConexionSunat()
+  // e177 (058): la campanita y el certificado en el menú.
+  // e193: también la plataforma (solicitudes de traspaso por revisar).
+  const avisos = useAvisos(true)
 
   // Al cambiar de pantalla, el menú del teléfono se cierra solo.
   useEffect(() => { setMenuAbierto(false) }, [ruta.pathname])
@@ -91,13 +96,21 @@ export function Disposicion() {
 
   // 032: REPORTES. Sale si puede ver al menos uno; sus submenús, al entrar.
   // e147: «Ventas por sucursal», solo con más de un local.
-  const reportes = REPORTES.filter(r => puede(r.permiso) && (!r.conSucursales || (alcance?.total ?? 0) > 1))
+  const reportes = REPORTES.filter(r => puede(r.permiso) && (!r.conSucursales || (alcance?.total ?? 0) > 1)
+    && (!r.modulo || menu.some(m => m.codigo === r.modulo)))   // e178
   // 036: «Reportes» lo abre y lo cierra MenuDesplegable.
   // 053: el inventario se contrata aparte y tiene su propio menú desplegable.
   const inventario = menu.some(m => m.codigo === 'inventario')
   // e173: el punto de venta, también con su propio menú.
   const pos = menu.some(m => m.codigo === 'pos')
   const otrosModulos = menu.filter(m => m.codigo !== 'facturacion' && m.codigo !== 'inventario' && m.codigo !== 'pos')
+
+  // e191: DOS MODOS en la Cuenta Profesional. «Mi estudio» (Mis empresas, Mi
+  // equipo, reportes de la cartera, agregar empresa) o DENTRO de una empresa.
+  // El menú enseña solo lo del modo; el selector de arriba cambia de uno a otro.
+  const enEstudio = cartera && (!empresa
+    || ['/empresas', '/colaboradores', '/mi-cartera'].some(r => ruta.pathname === r || ruta.pathname.startsWith(r + '/'))
+    || (ruta.pathname === '/configurar' && new URLSearchParams(ruta.search).has('nueva')))
 
   const pagina = nombreDePagina(ruta.pathname)
   const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil'].includes(ruta.pathname)
@@ -117,18 +130,20 @@ export function Disposicion() {
           : <div className="franja-sunat beta" role="status">⚠ MODO PRUEBA · SUNAT beta — los comprobantes no tienen valor ante SUNAT.</div>
       )}
 
-      <header className="cabecera">
+      <header className={'cabecera' + (cartera && !enEstudio ? ' en-empresa' : '')}>
         <button type="button" className="boton-menu" aria-label="Abrir el menú"
                 aria-expanded={menuAbierto} onClick={() => setMenuAbierto(a => !a)}>☰</button>
 
         <span className="logo">Reyban · Facturación</span>
 
-        {cartera && <SelectorEmpresa />}
+        {cartera && <SelectorEmpresa estudio={enEstudio} avisos={avisos.datos} />}
 
-        {/* 046: la sucursal elegida (si la empresa tiene más de una). */}
-        {empresa && <SelectorSucursal />}
+        {/* 046: la sucursal elegida (si la empresa tiene más de una). e191: no en el estudio. */}
+        {empresa && !enEstudio && <SelectorSucursal />}
 
         <span className="hueco" />
+
+        <Campanita datos={avisos.datos} onMarcar={avisos.marcar} />
 
         {/* EL NOMBRE ES EL ENLACE A «MI CUENTA», que es donde la gente lo
             busca: en toda aplicación con cabecera, pulsar tu propio nombre
@@ -222,10 +237,10 @@ export function Disposicion() {
       <div className="cuerpo">
         <aside className="lateral" aria-label="Menú">
           {/* MI ESTUDIO: lo de la cuenta, por encima de las empresas. */}
-          {cartera && (
+          {cartera && enEstudio && (
             <nav className="seccion-lateral">
               <span className="titulo-seccion">Mi estudio</span>
-              <NavLink to="/empresas" className={activo}><Icono>▦</Icono>Mis empresas</NavLink>
+              <NavLink to="/empresas" className={activo}><Icono>▦</Icono>Mis empresas<IndicadorCertificado datos={avisos.datos} numero /></NavLink>
               {/* 047: Mi equipo se despliega: el equipo y los cargos del estudio. */}
               {cuenta?.nivel !== 'colaborador' && (
                 <MenuDesplegable icono="◎" titulo="Mi equipo" inicio="/colaboradores" prefijos={['/colaboradores']}
@@ -242,11 +257,11 @@ export function Disposicion() {
 
           {/* LA EMPRESA ABIERTA, con su nombre y RUC a la vista: así nunca hay
               duda de en cuál se está emitiendo. */}
-          {empresa && (
+          {empresa && !enEstudio && (
             <nav className="seccion-lateral">
               <div className="empresa-lateral">
                 <span className="titulo-seccion">{cartera ? 'Empresa abierta' : 'Mi empresa'}</span>
-                <strong>{empresa.nombre}</strong>
+                <strong>{empresa.nombre}{!cartera && <IndicadorCertificado datos={avisos.datos} numero={false} />}</strong>
                 {empresa.ruc && <span className="mono">RUC {empresa.ruc}</span>}
               </div>
 
@@ -270,6 +285,8 @@ export function Disposicion() {
                   )}
                   <NavLink to="/facturacion/clientes" className={activo}><Icono>☺</Icono>Clientes</NavLink>
                   <NavLink to="/facturacion/productos" className={activo}><Icono>◫</Icono>Productos</NavLink>
+                  {/* e178 (059) */}
+                  {puede(Permisos.Compras.Ver) && <NavLink to="/compras" className={activo}><Icono>⇣</Icono>Compras y gastos</NavLink>}
                   {/* 044: los locales del mismo RUC. */}
                   {puede(Permisos.Facturacion.SucursalesGestionar) && (
                     <NavLink to="/facturacion/sucursales" className={activo}><Icono>⌖</Icono>Sucursales</NavLink>
@@ -304,6 +321,9 @@ export function Disposicion() {
                     { ruta: '/inventario/ingresos', nombre: 'Ingresos por compra' },
                     { ruta: '/inventario/traslados', nombre: 'Traslados' },
                     { ruta: '/inventario/ajustes', nombre: 'Ajustes y conteos' },
+                    { ruta: '/inventario/lotes', nombre: 'Lotes y vencimientos' },
+                    { ruta: '/inventario/series', nombre: 'Números de serie' },
+                    { ruta: '/inventario/almacenes', nombre: 'Almacenes' },
                     { ruta: '/inventario/proveedores', nombre: 'Proveedores y categorías' },
                     { ruta: '/inventario/configuracion', nombre: 'Configuración' },
                   ] }]} />
@@ -345,21 +365,26 @@ export function Disposicion() {
               <span className="titulo-seccion">Plataforma</span>
               <NavLink to="/" end className={activo}><Icono>⌂</Icono>Inicio</NavLink>
               <NavLink to="/admin/empresas" className={activo}><Icono>▦</Icono>Empresas</NavLink>
-              <NavLink to="/admin/cuentas" className={activo}><Icono>◎</Icono>Cuentas</NavLink>
-              <NavLink to="/admin/traspasos" className={activo}><Icono>⇄</Icono>Solicitudes de traspaso</NavLink>
+              {/* 067: cada entrada, con su permiso (el dueño los tiene todos). */}
+              {puede(Permisos.Plataforma.CuentasGestionar) && <NavLink to="/admin/cuentas" className={activo}><Icono>◎</Icono>Cuentas</NavLink>}
+              {puede(Permisos.Plataforma.EmpresasGestionar) && <NavLink to="/admin/traspasos" className={activo}><Icono>⇄</Icono>Solicitudes de traspaso</NavLink>}
               {/* 036: reportes de la plataforma. */}
-              <MenuDesplegable icono="▥" titulo="Reportes" inicio="/admin/reportes/plataforma"
-                               prefijos={['/admin/reportes']} grupos={[{ titulo: 'Plataforma', items: REPORTES_PLATAFORMA }]} />
+              {puede(Permisos.Plataforma.ReportesVer) && (
+                <MenuDesplegable icono="▥" titulo="Reportes" inicio="/admin/reportes/plataforma"
+                                 prefijos={['/admin/reportes']} grupos={[{ titulo: 'Plataforma', items: REPORTES_PLATAFORMA }]} />
+              )}
               {/* Solo en QA: en producción (PLATAFORMA_SUNAT=real) no hay nada que cambiar. */}
-              {conexion && !conexion.fija && (
+              {conexion && !conexion.fija && puede(Permisos.Plataforma.CredencialesGestionar) && (
                 <NavLink to="/admin/conexion-sunat" className={activo}><Icono>⇆</Icono>Conexión con SUNAT</NavLink>
               )}
               {/* 038: los correos de acceso que no salieron. */}
-              <NavLink to="/admin/correos" className={activo}><Icono>✉</Icono>Correos</NavLink>
+              {puede(Permisos.Plataforma.AccesosGestionar) && <NavLink to="/admin/correos" className={activo}><Icono>✉</Icono>Correos</NavLink>}
               {/* 039: recuperaciones del segundo factor en curso. */}
               <NavLink to="/admin/recuperaciones" className={activo}><Icono>⚿</Icono>Recuperaciones</NavLink>
               {/* 042: de dónde salen RUC, DNI y tipo de cambio; padrón de SUNAT. */}
-              <NavLink to="/admin/consultas-sunat" className={activo}><Icono>⌕</Icono>Consultas SUNAT</NavLink>
+              {puede(Permisos.Plataforma.ConsultasGestionar) && <NavLink to="/admin/consultas-sunat" className={activo}><Icono>⌕</Icono>Consultas SUNAT</NavLink>}
+              {/* 067: el equipo de la plataforma. */}
+              {puede(Permisos.Plataforma.EquipoGestionar) && <NavLink to="/admin/equipo" className={activo}><Icono>◑</Icono>Equipo de la plataforma</NavLink>}
               {puede(Permisos.Usuarios.BitacoraVer) && (
                 <NavLink to="/auditoria" className={activo}><Icono>◷</Icono>Auditoría</NavLink>
               )}
@@ -385,7 +410,9 @@ export function Disposicion() {
             </div>
           )}
           {/* 046: al cambiar de sucursal arriba, la pantalla se vuelve a cargar. */}
-          <Outlet key={alcance?.vista ?? 'todas'} />
+          {/* e191: cambiar de empresa (o de sucursal) vuelve a cargar la pantalla:
+              si no, se quedaban datos de la anterior (el certificado en Inicio). */}
+          <Outlet key={`${empresa?.id ?? 'sin-empresa'}:${alcance?.vista ?? 'todas'}`} />
         </main>
       </div>
     </div>
@@ -406,6 +433,7 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/facturacion/notas/nueva-debito')) return 'Nueva nota de débito'
   if (ruta.startsWith('/facturacion/clientes')) return 'Clientes'
   if (ruta.startsWith('/facturacion/productos')) return 'Productos'
+  if (ruta.startsWith('/compras')) return 'Compras y gastos'
   if (ruta.startsWith('/facturacion/sucursales')) return 'Sucursales'
   if (ruta.startsWith('/guias/nueva')) return 'Nueva guía'
   if (ruta.startsWith('/guias/transportista')) return 'Guía del transportista'
@@ -418,6 +446,9 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/inventario/operaciones')) return 'Inventario'
   if (ruta.startsWith('/inventario/ajustes')) return 'Ajustes y conteos'
   if (ruta.startsWith('/inventario/traslados')) return 'Traslados'
+  if (ruta.startsWith('/inventario/lotes')) return 'Lotes y vencimientos'
+  if (ruta.startsWith('/inventario/series')) return 'Números de serie'
+  if (ruta.startsWith('/inventario/almacenes')) return 'Almacenes'
   if (ruta.startsWith('/inventario/proveedores')) return 'Proveedores y categorías'
   if (ruta.startsWith('/inventario/configuracion')) return 'Configuración del inventario'
   if (ruta.startsWith('/inventario')) return 'Stock'
@@ -435,6 +466,7 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/perfil')) return 'Mi cuenta'
   if (ruta.startsWith('/admin/empresas')) return 'Empresas'
   if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'
+  if (ruta.startsWith('/admin/equipo')) return 'Equipo de la plataforma'
   if (ruta.startsWith('/admin/traspasos')) return 'Solicitudes de traspaso'
   if (ruta.startsWith('/admin/conexion-sunat')) return 'Conexión con SUNAT'
   if (ruta.startsWith('/admin/correos')) return 'Correos'

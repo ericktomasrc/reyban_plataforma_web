@@ -1389,3 +1389,60 @@ button.enlace:disabled { color: var(--tinta-3); cursor: wait; }
 .tabla-igv .fila-dia td { background: var(--hundido); font-size: 13px; }
 .tabla-igv .abrir-mes { font: inherit; white-space: nowrap; text-align: left; text-decoration: none; }
 .barras-reporte .barra.otros { opacity: .45; }
+
+/* e181: enlaces y códigos largos dentro de un texto: se cortan, no estiran la caja. */
+.texto-largo { overflow-wrap: anywhere; word-break: break-word; }
+
+/* e182: compra de mercaderia -> ingreso al stock */
+label.casilla-stock { display: flex; gap: var(--e2); align-items: flex-start; padding: 10px 12px; border-radius: 8px; background: var(--acento-suave); cursor: pointer; }
+label.casilla-stock input { width: 18px; height: 18px; margin-top: 2px; flex: none; }
+label.casilla-stock span { display: grid; gap: 2px; }
+label.casilla-stock em { font-style: normal; font-size: 13px; color: var(--tinta-2); }
+/* 061: presentaciones en el buscador de productos */
+.sugerencias .sugerencia-presentacion button { padding-left: 28px; }
+.sugerencias .sugerencia-presentacion .principal { font-weight: 500; }
+.presentaciones-editor { display: grid; gap: var(--e2); }
+.presentaciones-editor .pista { margin: 0; }
+.presentacion-fila { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--e2); align-items: end;
+  padding: var(--e2) var(--e3); border: 1px solid var(--borde); border-radius: 8px; }
+.presentacion-fila .campo { margin: 0; min-width: 0; }
+.presentacion-usos { grid-column: 1 / -1; display: flex; gap: var(--e3); align-items: center; font-size: 13.5px; }
+.presentacion-usos label { display: flex; gap: 6px; align-items: center; }
+.presentacion-usos .enlace { margin-left: auto; }
+@media (max-width: 640px) { .presentacion-fila { grid-template-columns: 1fr 1fr; } }
+/* 062: componentes de un kit */
+.componente-fila { display: grid; grid-template-columns: minmax(0, 1fr) 90px auto auto; gap: var(--e2); align-items: center;
+  padding: 6px var(--e3); border: 1px solid var(--borde); border-radius: 8px; }
+.componente-fila .campo { margin: 0; }
+.componente-fila .principal { font-weight: 500; }
+/* 063: variantes de un modelo */
+.variantes-lista { display: grid; max-height: 240px; overflow: auto; border: 1px solid var(--borde); border-radius: 8px; }
+.variante-fila { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) 80px 90px; gap: var(--e2); padding: 6px var(--e3); font-size: 13.5px; border-bottom: 1px solid var(--borde); }
+.variante-fila:last-child { border-bottom: 0; }
+.variante-fila.apagada { opacity: .55; }
+.variante-fila .der { text-align: right; }
+.atributo-fila { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: var(--e2); }
+.atributo-fila input { padding: 8px 10px; border: 1px solid var(--borde); border-radius: 6px; font: inherit; background: var(--superficie); color: var(--tinta); min-width: 0; }
+/* 067: equipo de la plataforma */
+.lista-permisos { margin: 0; padding-left: 1.1em; font-size: 13.5px; }
+.acciones-equipo { display: flex; gap: var(--e3); justify-content: flex-end; flex-wrap: wrap; }
+/* e191: Mis empresas — tarjetas filtro y certificado */
+.resumen-bandeja.resumen-cartera { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.nota-cartera { margin: 0 0 var(--e3); padding: 10px 14px; border: 1px dashed var(--borde); border-radius: var(--radio); background: var(--superficie); color: var(--tinta-2); font-size: 14px; }
+.cert-celda { display: grid; gap: 1px; }
+.cert-celda.cert-naranja strong { color: var(--aviso); }
+.cert-celda.cert-rojo strong, .cert-celda.cert-vencido strong { color: var(--peligro); }
+.etiqueta.abierta { background: var(--hundido); color: var(--tinta-2); white-space: nowrap; }
+/* e191: el selector en sus dos modos */
+.selector-boton { max-width: 440px; }
+.cabecera .selector-boton.modo-estudio { background: var(--hundido); border-color: var(--tinta-3); color: var(--tinta); }
+.selector-opcion.selector-estudio.elegida { background: var(--hundido); }
+.cabecera .selector-boton.modo-empresa { background: var(--acento-suave); border-color: var(--acento); }
+.selector-icono { flex: none; color: var(--tinta-2); }
+.selector-boton.modo-empresa .selector-icono { color: var(--acento); }
+.selector-cuantas { padding: 1px 8px; border-radius: 999px; background: var(--superficie); border: 1px solid var(--borde); font-size: 12px; color: var(--tinta-2); white-space: nowrap; }
+.selector-estudio { justify-content: flex-start !important; padding: 10px !important; }
+.selector-estudio-texto { flex: 1; }
+.selector-separador { height: 1px; background: var(--borde); margin: 6px 4px; }
+.selector-subtitulo { display: block; padding: 2px 10px 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-3); }
+.cabecera.en-empresa { box-shadow: inset 0 -3px 0 var(--acento); }

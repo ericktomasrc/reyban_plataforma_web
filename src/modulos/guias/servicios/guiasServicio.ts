@@ -104,7 +104,9 @@ export interface Punto { direccion: string; ubigeo: string; codigoEstablecimient
 export interface VehiculoPeticion { placa: string; descripcion?: string; tuc?: string; autorizacion?: string; entidad?: string }
 export interface ConductorPeticion { tipoDocumento: string; numeroDocumento: string; nombres: string; apellidos: string; licencia: string; usuarioId?: string | null }
 export interface TransportistaPeticion { ruc: string; razonSocial: string; mtc?: string }
-export interface BienPeticion { descripcion: string; cantidad: number; unidad: string; codigo?: string | null; productoId?: string | null; documentoLineaId?: string | null }
+export interface BienPeticion { descripcion: string; cantidad: number; unidad: string; codigo?: string | null; productoId?: string | null; documentoLineaId?: string | null
+  /** 068: en un traslado entre locales, los números de serie que viajan. */
+  series?: string[] | null }
 
 export interface PeticionGuia {
   clave: string
@@ -190,7 +192,7 @@ export interface GuiaCompleta {
   anuladaEn: string | null
   anuladaMotivo: string | null
   puedeIniciarTraslado: boolean
-  bienes: { numero: number; codigo: string | null; descripcion: string; unidad: string; cantidad: number; productoId: string | null }[]
+  bienes: { numero: number; codigo: string | null; descripcion: string; unidad: string; cantidad: number; productoId: string | null; series?: string[] | null }[]
   peticion: (PeticionGuia & { relevos?: ConductorPeticion[] }) | null
   /** 051: las GRE por evento hechas en SOL y registradas aquí. */
   eventos?: EventoGuia[]

@@ -9,6 +9,8 @@ export type NombreReporte = 'mi-dia' | 'ventas' | 'clientes' | 'productos' | 've
   | 'igv' | 'registro' | 'problemas' | 'anulados' | 'personas-notas'
   | 'cartera' | 'admin/plataforma' | 'admin/empresas' | 'admin/rechazos' | 'admin/cuentas'
   | 'admin/activacion' | 'admin/riesgo' | 'admin/consumo'
+  | 'pos' | 'compras'   // e178
+  | 'margen' | 'resultados' | 'valorizado'   // e179
 
 /** 036: los del super administrador viven en /api/admin/reportes. */
 function ruta(reporte: NombreReporte) {
@@ -66,6 +68,57 @@ export interface ReporteVentas extends Comun {
   porTipo: { tipo: string; cantidad: number; total: number }[]
   topClientes: { cliente: string; documento: string; total: number }[]
   anterior: { desde: string; hasta: string; total: number }
+}
+
+/** e179 (060): de dónde sale el costo. */
+export type FuenteCosto = 'real' | 'manual' | 'sin'
+
+export interface ReporteMargen extends Comun {
+  activadoEn: string | null
+  ventas: number
+  costo: number
+  ventasReal: number
+  ventasManual: number
+  ventasSinCosto: number
+  porProducto: { producto: string; codigo: string | null; unidad: string; cantidad: number; venta: number; costo: number | null; fuente: FuenteCosto }[]
+  porCliente: { cliente: string; documento: string; venta: number | null; costo: number | null; sinCosto: number }[]
+  porMes: { mes: string; venta: number; costo: number; sinCosto: number; manual: number }[]
+}
+
+export interface ReporteResultados extends Comun {
+  activadoEn: string | null
+  meses: { mes: string; ventas: number; costo: number; sinCosto: number; gastos: number }[]
+  gastos: { categoria: string; monto: number }[]
+}
+
+export interface ReporteValorizado extends Comun {
+  filas: { id: string; codigo: string; producto: string; unidad: string; sucursal: string; fisico: number; costo: number | null; fuente: FuenteCosto; valor: number | null }[]
+}
+
+/** e178 (059): compras y gastos. */
+export interface ReporteCompras extends Comun {
+  compras: number
+  gastos: number
+  igv: number
+  porProveedor: { proveedor: string; documento: string; comprobantes: number; base: number; igv: number; total: number }[]
+  porCategoria: { categoria: string; clase: 'compra' | 'gasto'; cuantos: number; total: number }[]
+  porMes: { mes: string; compras: number | null; gastos: number | null; igv: number | null }[]
+  registro: { id: string; fecha: string; tipo: string; serie: string | null; numero: string | null; tipoDoc: string | null; documento: string | null;
+              proveedor: string | null; moneda: string; tipoCambio: number | null; base: number; igv: number; noGravado: number; total: number;
+              clase: 'compra' | 'gasto'; categoria: string; descripcion: string | null }[]
+}
+
+/** e178: los reportes del punto de venta. */
+export interface ReportePos extends Comun {
+  ventas: number
+  total: number
+  cajeros: { cajero: string; caja: string; ventas: number; total: number; promedio: number; turnos: number }[]
+  medios: { medio: string; ventas: number; monto: number }[]
+  mediosPorDia: { fecha: string; medio: string; monto: number }[]
+  horas: { hora: number; ventas: number; total: number }[]
+  diferencias: { id: string; cerrada: string; cajero: string; caja: string; esperado: number | null; contado: number | null; diferencia: number | null; observacion: string | null }[]
+  movimientos: { tipo: 'ingreso' | 'retiro'; motivo: string; veces: number; monto: number }[]
+  productos: { codigo: string; producto: string; unidad: string; cantidad: number; total: number; ventas: number }[]
 }
 
 export interface ReporteClientes extends Comun {

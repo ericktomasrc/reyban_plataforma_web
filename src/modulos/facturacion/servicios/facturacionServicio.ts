@@ -2,7 +2,7 @@ import { api } from '../../../nucleo/api/cliente'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import type {
   Atrasados, CatalogosSunat, CodigoSunat, ClaveRevocada, ClienteEnLista, ComprobacionClave, ConfirmacionAlta,
-  Conexion, DocumentoCompleto, Emitido, EstadoFacturacion, PaginaDocumentos, ProductoEnLista,
+  Conexion, DocumentoCompleto, Emitido, EstadoFacturacion, PaginaDocumentos, Presentacion, ProductoEnLista,
   PruebaConexion, CalculoNotaCredito, PeticionNotaCredito, PreviaNotaCredito,
   CalculoNotaDebito, PeticionNotaDebito, PreviaNotaDebito, ComprobanteParaNota, SerieEmitida,
 } from '../tipos'
@@ -54,6 +54,14 @@ export interface DatosProducto {
   // 052: inventario
   controlaStock?: boolean
   categoriaId?: string | null
+  /** 062: kit o combo. */
+  esKit?: boolean
+  /** 063: modelo con variantes. */
+  esModelo?: boolean
+  /** 064: maneja lotes y vencimientos. */
+  manejaLotes?: boolean
+  /** 065: maneja números de serie. */
+  manejaSeries?: boolean
 }
 
 
@@ -198,6 +206,24 @@ export const productosServicio = {
   editar: (id: string, datos: DatosProducto) =>
     api.cambiar<{ mensaje: string }>(`/api/facturacion/productos/${id}`, datos),
 
+  /** 063: las variantes de un modelo y crear las combinaciones que faltan. */
+  variantes: (id: string) =>
+    api.obtener<VarianteDeModelo[]>(`/api/facturacion/productos/${id}/variantes`),
+  generarVariantes: (id: string, d: { atributos: { nombre: string; valores: string[] }[]; precioUnitario?: number | null }) =>
+    api.crear<{ creadas: number; mensaje: string }>(`/api/facturacion/productos/${id}/variantes/generar`, d),
+
+  /** 062: los componentes de un kit (se guardan todos juntos). */
+  componentes: (id: string) =>
+    api.obtener<ComponenteKit[]>(`/api/facturacion/productos/${id}/componentes`),
+  guardarComponentes: (id: string, lista: { componenteId: string; cantidad: number }[]) =>
+    api.cambiar<{ mensaje: string }>(`/api/facturacion/productos/${id}/componentes`, lista),
+
+  /** 061: las presentaciones (caja, paquete…): se guardan todas juntas. */
+  presentaciones: (id: string) =>
+    api.obtener<Presentacion[]>(`/api/facturacion/productos/${id}/presentaciones`),
+  guardarPresentaciones: (id: string, lista: (Omit<Presentacion, 'id'> & { id: string | null })[]) =>
+    api.cambiar<{ mensaje: string }>(`/api/facturacion/productos/${id}/presentaciones`, lista),
+
   desactivar: (id: string) =>
     api.crear<{ mensaje: string }>(`/api/facturacion/productos/${id}/desactivar`),
 
@@ -284,8 +310,37 @@ export const credencialesServicio = {
 }
 
 
+/** 063: una variante de un modelo. */
+export interface VarianteDeModelo {
+  id: string
+  codigo: string
+  descripcion: string
+  precioUnitario: number
+  incluyeIgv: boolean
+  activo: boolean
+  controlaStock: boolean
+  atributos: Record<string, string> | null
+  disponible: number | null
+}
+
+/** 062: un componente de un kit. */
+export interface ComponenteKit {
+  componenteId: string
+  codigo: string
+  descripcion: string
+  unidadMedida: string
+  cantidad: number
+  controlaStock: boolean
+}
+
 export interface DatosLinea {
   productoId: string | null
+  /** 061: vendida en una presentación (CAJA X 12). El factor lo pone la base. */
+  presentacionId?: string | null
+  /** 065: los números de serie vendidos. */
+  series?: string[] | null
+  /** 068: el lote del que se vende (null = el que vence primero). */
+  lote?: string | null
   codigo: string | null
   descripcion: string
   unidadMedida: string

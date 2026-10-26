@@ -96,6 +96,8 @@
 .estado.bueno { color: var(--bien); }
 .estado.malo  { color: var(--peligro); }
 .estado.aviso { color: var(--aviso); }
+/* e196: «estado aviso» no es la caja .aviso (borde, relleno y margen). */
+.estado.aviso { padding: 0; border: 0; border-radius: 0; margin-bottom: 0; background: none; }
 
 /* La fila de quien está mirando, marcada. Evita el susto de creer que te has
    desactivado a ti mismo. */

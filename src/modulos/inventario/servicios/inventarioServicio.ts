@@ -168,6 +168,16 @@ export interface LineaDeOperacion {
   contado: number | null
   fisicoAhora: number
   quedariaSiAnula: number
+  /** 061: comprado en una presentación: su nombre, lo que se escribió (10 cajas a 120). */
+  presentacion?: string | null
+  factor?: number | null
+  cantidadPresentacion?: number | null
+  costoPresentacion?: number | null
+  /** 064: el lote y su vencimiento. */
+  lote?: string | null
+  vence?: string | null
+  /** 065: los números de serie que entraron. */
+  series?: string[] | null
 }
 
 export interface Operacion {
@@ -192,7 +202,53 @@ export interface Operacion {
   lineas: LineaDeOperacion[]
 }
 
-export interface LineaOperacion { productoId: string; cantidad: number; costoUnitario?: number | null }
+export interface LineaOperacion { productoId: string; cantidad: number; costoUnitario?: number | null
+  /** 061: solo el ingreso por compra: comprado en una presentación (cantidad y costo por caja). */
+  presentacionId?: string | null
+  /** 064: producto con lotes: el lote y su vencimiento (AAAA-MM-DD). */
+  lote?: string | null
+  vence?: string | null
+  /** 065: producto con series: un número por unidad. */
+  series?: string[] | null }
+
+/** 066: un almacén dentro de una sucursal. */
+export interface Almacen { id: string; sucursalId: string; nombre: string; principal: boolean; orden: number }
+/** 066: un producto y cuánto hay en cada almacén (almacenId → físico). */
+export interface StockPorAlmacen { productoId: string; codigo: string; descripcion: string; unidad: string; almacenes: Record<string, number> }
+
+/** 065: un número de serie. */
+export interface FilaSerie {
+  id: string
+  productoId: string
+  codigo: string
+  descripcion: string
+  serie: string
+  estado: 'en_stock' | 'vendida' | 'anulada'
+  sucursalId: string
+  sucursal: string
+  creadoEn: string
+  documentoId: string | null
+  documento: string | null
+  cliente: string | null
+  vendidaEn: string | null
+}
+
+/** 064: un lote con stock. */
+export interface FilaLote {
+  productoId: string
+  codigo: string
+  descripcion: string
+  unidad: string
+  sucursalId: string
+  sucursal: string
+  lote: string
+  vence: string | null
+  fisico: number
+  dias: number | null
+}
+/** 068: un lote para elegir al vender. */
+export interface LoteParaVender { lote: string; vence: string | null; fisico: number; dias: number | null }
+export interface PaginaLotes { vencidos: number; porVencer30: number; filas: FilaLote[] }
 
 export interface ProveedorNuevo { tipoDocumento: string; numeroDocumento: string; razonSocial: string; direccion?: string | null }
 
@@ -247,13 +303,15 @@ export interface Traslado {
   recibidoEn: string | null
   nota: string | null
   puedeRecibir: boolean
-  lineas: { productoId: string; codigo: string | null; descripcion: string | null; unidad: string | null; enviado: number; recibido: number | null; motivoDiferencia: string | null }[]
+  lineas: { productoId: string; codigo: string | null; descripcion: string | null; unidad: string | null; enviado: number; recibido: number | null; motivoDiferencia: string | null
+    /** 068: los números de serie que viajan (o viajaron) en el traslado. */
+    series?: { serie: string; estado: string }[] }[]
 }
 
 export interface RevisionStockInicial {
   cargan: number
   errores: number
-  filas: { fila: number; codigo: string; descripcion?: string; sucursal?: string; cantidad?: number; costo?: number | null; resultado: 'carga' | 'error'; mensaje: string | null }[]
+  filas: { fila: number; codigo: string; descripcion?: string; sucursal?: string; cantidad?: number; costo?: number | null; lote?: string | null; resultado: 'carga' | 'error'; mensaje: string | null }[]
 }
 
 /** El tipo de movimiento en palabras (igual que en el back). */
@@ -339,9 +397,39 @@ export const inventarioServicio = {
     api.obtener<PaginaDe<FilaOperacion>>(`/api/inventario/operaciones?${parametros(f)}`),
   operacion: (id: string) => api.obtener<Operacion>(`/api/inventario/operaciones/${id}`),
 
+  /** 066: almacenes dentro de las sucursales. */
+  almacenes: (sucursalId?: string) =>
+    api.obtener<Almacen[]>(`/api/inventario/almacenes${sucursalId ? `?sucursalId=${sucursalId}` : ''}`),
+  crearAlmacen: (d: { sucursalId: string; nombre: string; principalNombre?: string }) =>
+    api.crear<{ mensaje: string }>('/api/inventario/almacenes', d),
+  renombrarAlmacen: (id: string, nombre: string) =>
+    api.cambiar<{ mensaje: string }>(`/api/inventario/almacenes/${id}`, { nombre }),
+  stockPorAlmacen: (sucursalId: string, q?: string) =>
+    api.obtener<StockPorAlmacen[]>(`/api/inventario/almacenes/stock?sucursalId=${sucursalId}${q ? `&q=${encodeURIComponent(q)}` : ''}`),
+  moverEntreAlmacenes: (d: { productoId: string; origenId: string; destinoId: string; cantidad: number; nota?: string | null }) =>
+    api.crear<{ mensaje: string }>('/api/inventario/almacenes/mover', d),
+
+  /** 065: números de serie (disponibles para vender, o buscar uno). */
+  series: (f: { productoId?: string; sucursalId?: string; disponibles?: boolean; q?: string }) =>
+    api.obtener<FilaSerie[]>(`/api/inventario/series?${new URLSearchParams(Object.entries({
+      productoId: f.productoId ?? '', sucursalId: f.sucursalId ?? '', disponibles: f.disponibles ? 'true' : '', q: f.q ?? '' })
+      .filter(([, v]) => v !== '')).toString()}`),
+
+  /** 068: los lotes con stock de un producto en una sucursal, para elegir al vender. */
+  lotesParaVender: (productoId: string, sucursalId?: string | null) =>
+    api.obtener<LoteParaVender[]>(`/api/inventario/lotes/para-vender?${new URLSearchParams(Object.entries({
+      productoId, sucursalId: sucursalId ?? '' }).filter(([, v]) => v !== '')).toString()}`),
+
+  /** 064: lotes con stock (dias: lo que vence en esos días y lo vencido). */
+  lotes: (f: { dias?: number | null; q?: string; productoId?: string }) =>
+    api.obtener<PaginaLotes>(`/api/inventario/lotes?${new URLSearchParams(Object.entries({
+      dias: f.dias == null ? '' : String(f.dias), q: f.q ?? '', productoId: f.productoId ?? '' }).filter(([, v]) => v !== '')).toString()}`),
+
   ingresar: (d: {
     sucursalId: string; proveedorId?: string | null; proveedor?: ProveedorNuevo | null; documentoProveedor?: string | null
     fecha?: string | null; moneda: string; nota?: string | null; lineas: LineaOperacion[]
+    /** 066: a qué almacén de la sucursal entra (null = el principal). */
+    almacenId?: string | null
   }) => api.crear<{ id: string; codigo: string; mensaje: string }>('/api/inventario/ingresos', d),
 
   ajustar: (d: { sucursalId: string; motivo: string; nota: string; lineas: LineaOperacion[] }) =>
@@ -368,7 +456,7 @@ export const inventarioServicio = {
   traslados: (f: { filtro?: string; desde?: string; hasta?: string; pagina?: number; porPagina?: number }) =>
     api.obtener<PaginaTraslados>(`/api/inventario/traslados?${parametros(f)}`),
   traslado: (id: string) => api.obtener<Traslado>(`/api/inventario/traslados/${id}`),
-  recibir: (id: string, lineas: { productoId: string; recibido: number; motivo?: string | null }[], nota?: string | null) =>
+  recibir: (id: string, lineas: { productoId: string; recibido: number; motivo?: string | null; faltan?: string[] | null }[], nota?: string | null) =>
     api.crear<{ estado: string; mensaje: string }>(`/api/inventario/traslados/${id}/recibir`, { lineas, nota }),
 
   // --- Maestras ------------------------------------------------------------------

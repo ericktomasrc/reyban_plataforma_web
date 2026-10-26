@@ -22,6 +22,12 @@ export const Permisos = {
     Suplantar:         'plataforma.suplantar',
     // 042: modo de consultas y padrón de SUNAT.
     ConsultasGestionar: 'plataforma.consultas_gestionar',
+    // 067: el equipo de la plataforma con permisos parciales.
+    CuentasGestionar:      'plataforma.cuentas_gestionar',
+    CredencialesGestionar: 'plataforma.credenciales_gestionar',
+    ReportesVer:           'plataforma.reportes_ver',
+    AccesosGestionar:      'plataforma.accesos_gestionar',
+    EquipoGestionar:       'plataforma.equipo_gestionar',
   },
 
   Usuarios: {
@@ -52,6 +58,12 @@ export const Permisos = {
     Emitir:     'guias.emitir',
     Anular:     'guias.anular',
     Transporte: 'guias.transporte',
+  },
+
+  // e178 (059): compras y gastos.
+  Compras: {
+    Ver:       'compras.ver',
+    Registrar: 'compras.registrar',
   },
 
   // 052: inventario por sucursal.
@@ -85,6 +97,8 @@ export const Permisos = {
     ConProblema:    'reportes.con_problema',
     AnuladosNotas:  'reportes.anulados_notas',
     DescargaMasiva: 'reportes.descarga_masiva',
+    // e179 (060): valorizado, margen y estado de resultados.
+    Ganancias:      'reportes.ganancias',
   },
 } as const
 

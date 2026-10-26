@@ -255,7 +255,7 @@ export function VerGuia() {
             {pb.visibles.map(b => (
               <tr key={b.numero}>
                 <td className="secundario">{b.numero}</td>
-                <td>{b.descripcion}{b.codigo && <div className="secundario mono">{b.codigo}</div>}</td>
+                <td>{b.descripcion}{b.codigo && <div className="secundario mono">{b.codigo}</div>}{b.series?.length ? <div className="secundario mono">{b.series.length === 1 ? 'Serie' : 'Series'}: {b.series.join(', ')}</div> : null}</td>
                 <td>{nombreUnidad(b.unidad)}</td>
                 <td className="derecha mono">{b.cantidad}</td>
               </tr>

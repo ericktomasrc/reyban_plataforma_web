@@ -270,12 +270,12 @@ export function Productos() {
               {productos.map(p => (
                 <tr key={p.id} className={p.activo ? undefined : 'apagada'}>
                   <td>
-                    <div className="principal">{p.descripcion}</div>
+                    <div className="principal">{p.descripcion}{p.esKit && <span className="etiqueta acento" title="Venderlo descuenta sus componentes"> Kit</span>}{p.esModelo && <span className="etiqueta acento" title="Se venden sus variantes"> Modelo · {p.variantes ?? 0} variante{p.variantes === 1 ? '' : 's'}</span>}</div>
                     <div className="secundario mono">{p.codigo}</div>
-                    {(p.categoria || (inventario && p.controlaStock === false && p.unidadMedida !== 'ZZ')) && (
+                    {(p.categoria || (inventario && p.controlaStock === false && p.unidadMedida !== 'ZZ' && !p.esKit && !p.esModelo)) && (
                       <div className="secundario">
                         {p.categoria}
-                        {inventario && p.controlaStock === false && p.unidadMedida !== 'ZZ' && <>{p.categoria ? ' · ' : ''}no controla stock</>}
+                        {inventario && p.controlaStock === false && p.unidadMedida !== 'ZZ' && !p.esKit && !p.esModelo && <>{p.categoria ? ' · ' : ''}no controla stock</>}
                       </div>
                     )}
                   </td>

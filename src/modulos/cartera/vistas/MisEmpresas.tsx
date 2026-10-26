@@ -11,13 +11,38 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha } from '../../../nucleo/formato/fechas'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion, useYo } from '../../../nucleo/sesion/SesionContexto'
-import { carteraServicio, estadoDe, hace, textoEstado } from '../servicios/carteraServicio'
+import { carteraServicio, diasHasta, enFiltro, estadoDe, hace, textoEstado, type FiltroCartera } from '../servicios/carteraServicio'
 import type { EmpresaCartera } from '../servicios/carteraServicio'
 import { pedidosServicio } from '../servicios/pedidosServicio'
 import type { Pedido, ReclamoSobreMia } from '../servicios/pedidosServicio'
 import { FranjaReclamos } from '../componentes/ResponderReclamo'
 
-type Filtro = 'todas' | 'atencion' | 'pausa' | 'pedidas'   // e175: los pedidos a su titular, en su pestaña
+// e175: los pedidos a su titular, en su pestaña. e191: las tarjetas son los filtros.
+type Filtro = FiltroCartera | 'pedidas'
+
+/** e191: las tarjetas-filtro, en este orden. */
+const TARJETAS: { id: FiltroCartera; titulo: string; pista: string; tono: string }[] = [
+  { id: 'todas',      titulo: 'En tu cartera',          pista: 'todas',                  tono: '' },
+  { id: 'lista',      titulo: 'Listas para emitir',     pista: 'sin pendientes',         tono: 'bien' },
+  { id: 'falta',      titulo: 'Faltan datos',           pista: 'configuración a medias', tono: 'ojo' },
+  { id: 'rechazos',   titulo: 'Con rechazos',           pista: 'de SUNAT',               tono: 'mal' },
+  { id: 'por_vencer', titulo: 'Certificado por vencer', pista: '30 días o menos',        tono: 'ojo' },
+  { id: 'vencido',    titulo: 'Certificado vencido',    pista: 'no pueden emitir',       tono: 'mal' },
+  { id: 'pausa',      titulo: 'En pausa',               pista: 'no emiten',              tono: 'gris' },
+]
+
+/** e191: la fecha del certificado y cuánto le queda, con su color. */
+function Certificado({ hasta }: { hasta: string | null }) {
+  if (!hasta) return <span className="secundario">—</span>
+  const d = diasHasta(hasta)
+  const clase = d < 0 ? 'cert-vencido' : d <= 7 ? 'cert-rojo' : d <= 30 ? 'cert-naranja' : ''
+  return (
+    <div className={`cert-celda ${clase}`}>
+      <strong>{fecha(hasta)}</strong>
+      <span className="secundario">{d < 0 ? `venció hace ${-d} día${d === -1 ? '' : 's'}` : d === 0 ? 'vence hoy' : d <= 30 ? `vence en ${d} día${d === 1 ? '' : 's'}` : 'vigente'}</span>
+    </div>
+  )
+}
 
 /**
  * «MIS EMPRESAS» (fase 3): la bandeja de la Cuenta Profesional.
@@ -104,8 +129,7 @@ export function MisEmpresas() {
   // «return» de abajo: un hook no puede quedar detrás de uno.
   const textoB = buscar.trim().toLowerCase()
   const filtradas = (empresas ?? [])
-    .filter(e => filtro === 'todas' ? true : filtro === 'pausa' ? !!e.pausadaEn
-                 : ['falta', 'rechazos', 'certificado'].includes(estadoDe(e)))
+    .filter(e => filtro === 'pedidas' || enFiltro(e, filtro))
     .filter(e => !textoB || e.nombre.toLowerCase().includes(textoB)
                  || (e.razonSocial ?? '').toLowerCase().includes(textoB) || (e.ruc ?? '').includes(textoB))
   const { visibles, paginacion } = usePaginaLocal(filtradas, `${textoB}|${filtro}`)
@@ -113,9 +137,7 @@ export function MisEmpresas() {
   if (fallo) return <Aviso>{fallo}</Aviso>
   if (!empresas) return <Cargando texto="Leyendo tu cartera…" />
 
-  const atencion = empresas.filter(e => ['falta', 'rechazos', 'certificado'].includes(estadoDe(e)))
-  const pausadas = empresas.filter(e => e.pausadaEn)
-  const listas = empresas.filter(e => estadoDe(e) === 'lista')
+  const cuantas = (f: FiltroCartera) => empresas.filter(e => enFiltro(e, f)).length
 
 
   return (
@@ -139,24 +161,38 @@ export function MisEmpresas() {
         </section>
       </>) : (
         <>
-          <div className="resumen-bandeja">
-            <div><strong>{empresas.length}</strong><span>en tu cartera</span></div>
-            <div className="bien"><strong>{listas.length}</strong><span>listas para emitir</span></div>
-            <div className="ojo"><strong>{atencion.length}</strong><span>necesitan atención</span></div>
-            <div className="gris"><strong>{pausadas.length}</strong><span>en pausa</span></div>
+          {/* e191: los números son de TODA la cartera, no de la empresa abierta. */}
+          <p className="nota-cartera">
+            Resumen de <strong>tus {empresas.length} empresa{empresas.length === 1 ? '' : 's'}</strong>. Toca una tarjeta para
+            filtrar la lista; para trabajar en una, pulsa «Entrar».
+          </p>
+          <div className="resumen-bandeja resumen-cartera" role="group" aria-label="Filtrar por estado">
+            {TARJETAS.map(t => {
+              const n = cuantas(t.id)
+              const tono = n > 0 && t.id !== 'todas' ? t.tono : ''
+              return (
+                <button key={t.id} type="button" aria-pressed={filtro === t.id}
+                        className={`tarjeta-filtro ${tono}${filtro === t.id ? ' elegida' : ''}`}
+                        onClick={() => setFiltro(t.id)}>
+                  <span>{t.titulo}</span>
+                  <strong>{n}</strong>
+                  <span>{t.pista}</span>
+                </button>
+              )
+            })}
+            {(pedidos.length > 0 || filtro === 'pedidas') && (
+              <button type="button" aria-pressed={filtro === 'pedidas'}
+                      className={`tarjeta-filtro${filtro === 'pedidas' ? ' elegida' : ''}`} onClick={() => setFiltro('pedidas')}>
+                <span>Pedidas a su titular</span>
+                <strong>{pedidos.length}</strong>
+                <span>esperan respuesta</span>
+              </button>
+            )}
           </div>
 
           <div className="filtros-bandeja">
             <input className="buscar-bandeja" placeholder="Buscar por nombre o RUC" value={buscar}
                    onChange={e => setBuscar(e.target.value)} aria-label="Buscar empresa" />
-            <div className="segmentado">
-              {([['todas', `Todas (${empresas.length})`], ['atencion', `Necesitan atención (${atencion.length})`],
-                 ['pausa', `En pausa (${pausadas.length})`],
-                 ...(pedidos.length > 0 || filtro === 'pedidas' ? [['pedidas', `Pedidas a su titular (${pedidos.length})`]] : [])] as [Filtro, string][]).map(([f, t]) => (
-                <button key={f} type="button" className={filtro === f ? 'elegido' : undefined}
-                        onClick={() => setFiltro(f)}>{t}</button>
-              ))}
-            </div>
           </div>
 
           {filtro === 'pedidas' ? (
@@ -165,7 +201,7 @@ export function MisEmpresas() {
           <div className="tabla-envoltura">
             <table className="tabla">
               <thead>
-                <tr><th>Empresa</th><th>Estado</th><th>Último comprobante</th><th>La ven</th><th /></tr>
+                <tr><th>Empresa</th><th>Estado</th><th>Certificado</th><th>Último comprobante</th><th>La ven</th><th /></tr>
               </thead>
               <tbody>
                 {visibles.map(e => {
@@ -173,7 +209,7 @@ export function MisEmpresas() {
                   return (
                     <tr key={e.id} className={e.pausadaEn ? 'apagada' : undefined}>
                       <td>
-                        <div className="principal">{e.nombre}{e.abierta && <span className="etiqueta acento abierta">abierta</span>}</div>
+                        <div className="principal">{e.nombre}{e.abierta && <span className="etiqueta abierta">última abierta</span>}</div>
                         <div className="secundario mono">RUC {e.ruc} · {e.ambiente === 'produccion' ? 'producción' : 'beta'}</div>
                         {e.correoTitular && <div className="secundario">Titular: {e.correoTitular}</div>}
                       </td>
@@ -182,6 +218,7 @@ export function MisEmpresas() {
                         {enRevision(e.id) && <span className="estado-empresa certificado en-revision">⇄ Traspaso en revisión</span>}
                         {e.pausadaEn && e.motivoPausa && <div className="secundario">«{e.motivoPausa}»</div>}
                       </td>
+                      <td><Certificado hasta={e.certificadoHasta} /></td>
                       <td>{hace(e.ultimoDocumento)}</td>
                       <td>{e.laVen.length ? e.laVen.join(', ') : <span className="secundario">Solo tú</span>}</td>
                       <td className="acciones-bandeja">
@@ -222,7 +259,7 @@ export function MisEmpresas() {
                   )
                 })}
                 {visibles.length === 0 && (
-                  <tr><td colSpan={5} className="centro secundario">Ninguna empresa con ese filtro.</td></tr>
+                  <tr><td colSpan={6} className="centro secundario">Ninguna empresa con ese filtro.</td></tr>
                 )}
               </tbody>
             </table>

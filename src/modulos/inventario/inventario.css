@@ -89,3 +89,19 @@ button.enlace:hover { color: var(--acento-fuerte); }
 }
 .inv-guardar > span { margin-right: auto; }
 .inv-guardar.pendiente { background: var(--aviso-suave); border-color: var(--aviso-borde); color: var(--aviso); font-weight: 600; }
+/* 064: lote y vencimiento en el ingreso */
+.inv-lote { display: flex; gap: 6px; margin-top: 6px; }
+.inv-lote input { padding: 4px 8px; border: 1px solid var(--borde); border-radius: 6px; font: inherit; font-size: 13px; min-width: 0; background: var(--superficie); color: var(--tinta); }
+.inv-lote input:first-child { width: 110px; }
+/* 065: números de serie en el ingreso */
+.inv-series { display: grid; gap: 2px; margin-top: 6px; }
+.inv-series textarea { padding: 4px 8px; border: 1px solid var(--borde); border-radius: 6px; font: inherit; font-size: 13px; width: 220px; max-width: 100%; background: var(--superficie); color: var(--tinta); text-transform: uppercase; }
+.series-lista { display: grid; max-height: 320px; overflow: auto; border: 1px solid var(--borde); border-radius: 8px; margin-top: var(--e2); }
+.series-fila { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--e2); align-items: center; padding: 6px var(--e3); border-bottom: 1px solid var(--borde); cursor: pointer; }
+.series-fila:last-child { border-bottom: 0; }
+.series-lista > .secundario { padding: var(--e3); margin: 0; }
+/* 068: los números de serie que no llegaron (al recibir un traslado). */
+.inv-no-llego { margin: var(--e2) 0 0; padding: 0; border: 1px solid var(--borde); border-radius: 8px; }
+.inv-no-llego legend { padding: 0 var(--e2); }
+/* 068: el lote al vender. */
+.lote-venta { margin-top: 4px; max-width: 260px; font-size: 13px; }

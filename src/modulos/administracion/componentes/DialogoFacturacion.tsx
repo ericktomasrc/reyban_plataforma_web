@@ -670,7 +670,7 @@ export function DialogoFacturacion({ empresa, onCerrar, onCambiado }: Props) {
               <summary className="secundario">Configuración manual (solo emergencias)</summary>
 
               <p className="nota">
-                Dirección del webhook: <span className="mono">{w.url}</span>. Secreto guardado:{' '}
+                Dirección del webhook: <span className="mono texto-largo">{w.url}</span>. Secreto guardado:{' '}
                 {w.configurado ? <span className="mono">····{w.pista ?? '????'}</span> : 'ninguno'}.
                 Lo normal es no tocar esto: «Conectar» registra el webhook y guarda el secreto solo.
               </p>

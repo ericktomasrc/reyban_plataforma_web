@@ -3,6 +3,7 @@ import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
+import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { whatsappLegible } from '../../facturacion/componentes/PanelWhatsapp'
 import { guiasServicio, type MensajeWhatsappGuia } from '../servicios/guiasServicio'
 
@@ -23,6 +24,13 @@ export function PanelWhatsappGuia({ guiaId, conductor, clienteWhatsapp }: {
   const [ocupado, setOcupado] = useState(false)
   const [fallo, setFallo] = useState<string>()
   const [preparado, setPreparado] = useState<MensajeWhatsappGuia & { para: Para }>()
+  const mensaje = useMensaje()
+
+  // e181: el enlace es largo y sin espacios: escrito en la tarjeta la estiraba. Se copia con un toque.
+  async function copiar(enlace: string) {
+    try { await navigator.clipboard.writeText(enlace); mensaje.bien('Enlace copiado.') }
+    catch { mensaje.error('No se pudo copiar. Ábrelo y cópialo desde WhatsApp.') }
+  }
 
   function elegir(p: Para) {
     setPara(p)
@@ -58,7 +66,7 @@ export function PanelWhatsappGuia({ guiaId, conductor, clienteWhatsapp }: {
         <p className="nota">
           Se abrió WhatsApp para {preparado.para === 'conductor' ? 'el conductor' : 'el cliente'} ({preparado.numeroLegible}).
           {' '}¿No se abrió? <a href={preparado.abrir} target="_blank" rel="noopener noreferrer">Ábrelo aquí</a>
-          {' '}o copia el enlace del PDF: <span className="mono">{preparado.enlace}</span>
+          {' '}o <button type="button" className="enlace" onClick={() => void copiar(preparado.enlace)}>copia el enlace del PDF</button> y pégalo donde quieras.
         </p>
       ) : (
         <p className="nota">Manda el PDF de la guía con un enlace que vale 30 días.</p>

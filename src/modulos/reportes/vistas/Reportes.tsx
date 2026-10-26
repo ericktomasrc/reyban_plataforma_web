@@ -27,7 +27,7 @@ import {
  */
 
 /** Los reportes de esta entrega, en el orden del menú, con su permiso. */
-export const REPORTES: { ruta: string; nombre: string; permiso: string; grupo: string; conSucursales?: boolean }[] = [
+export const REPORTES: { ruta: string; nombre: string; permiso: string; grupo: string; conSucursales?: boolean; modulo?: string }[] = [
   { ruta: '/reportes/mi-dia',     nombre: 'Mi día',              permiso: Permisos.Reportes.MiDia,          grupo: 'Mi negocio' },
   { ruta: '/reportes/ventas',     nombre: 'Tablero de ventas',   permiso: Permisos.Reportes.TableroVentas,  grupo: 'Mi negocio' },
   { ruta: '/reportes/comparar',   nombre: 'Comparar periodos',   permiso: Permisos.Reportes.TableroVentas,  grupo: 'Mi negocio' },   // e176
@@ -42,6 +42,14 @@ export const REPORTES: { ruta: string; nombre: string; permiso: string; grupo: s
   { ruta: '/reportes/problemas', nombre: 'Comprobantes con problema',   permiso: Permisos.Reportes.ConProblema,    grupo: 'SUNAT y contabilidad' },
   { ruta: '/reportes/anulados',  nombre: 'Anulados y notas de crédito', permiso: Permisos.Reportes.AnuladosNotas,  grupo: 'SUNAT y contabilidad' },
   { ruta: '/reportes/personas-notas', nombre: 'Notas y anulaciones por persona', permiso: Permisos.Reportes.AnuladosNotas, grupo: 'SUNAT y contabilidad' },
+  // e179 (060): ganancias.
+  { ruta: '/reportes/margen',     nombre: 'Margen bruto',                permiso: Permisos.Reportes.Ganancias,      grupo: 'Ganancias' },
+  { ruta: '/reportes/resultados', nombre: 'Estado de resultados',        permiso: Permisos.Reportes.Ganancias,      grupo: 'Ganancias' },
+  { ruta: '/reportes/valorizado', nombre: 'Inventario valorizado',       permiso: Permisos.Reportes.Ganancias,      grupo: 'Ganancias', modulo: 'inventario' },
+  // e178 (059): compras y gastos.
+  { ruta: '/reportes/compras',   nombre: 'Compras y gastos',            permiso: Permisos.Compras.Ver,            grupo: 'Compras' },
+  // e178: solo con el módulo «Punto de venta».
+  { ruta: '/reportes/pos',       nombre: 'Punto de venta',              permiso: Permisos.Pos.CajasVer,           grupo: 'Punto de venta', modulo: 'pos' },
   { ruta: '/reportes/descarga',  nombre: 'Descarga masiva',             permiso: Permisos.Reportes.DescargaMasiva, grupo: 'SUNAT y contabilidad' },
 ]
 

@@ -45,6 +45,8 @@ export interface LineaPos {
   valorUnitario: number
   descuento: number
   tipoAfectacion: string
+  /** 061: vendida en una presentación (CAJA X 12). */
+  presentacionId?: string | null
 }
 
 export interface PeticionCobrar {

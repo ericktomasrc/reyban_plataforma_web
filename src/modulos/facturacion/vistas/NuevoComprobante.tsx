@@ -28,6 +28,10 @@ import { sucursalesServicio } from '../servicios/facturacionServicio'
 import { cantidad, inventarioServicio, type Disponible } from '../../inventario/servicios/inventarioServicio'
 import '../comprobante.css'
 import { afectacionBase, codigoRegalo, deRegalo, esRegalo, motivosPara, NOMBRE_REGALO, sePuedeRegalar, type MotivoRegalo } from '../regalos'
+import { importesGravada, precioConIgv } from '../importesLinea'
+import { ElegirSeries } from '../../inventario/componentes/ElegirSeries'
+import { ElegirLote } from '../../inventario/componentes/ElegirLote'
+
 
 /**
  * 046: con qué sucursal abre la pantalla. Con una elegida arriba, la API ya
@@ -58,12 +62,33 @@ interface LineaEnEdicion {
   codigoNuevo?: string
   /** e165: «No, dejarlo libre»: ya no se ofrece el producto del catálogo. */
   libreAProposito?: boolean
+  /** e183: lo que se escribió como precio CON IGV (vale mientras cuadre con valorUnitario). */
+  precioTexto?: string
+  /** 061: vendida en una presentación (CAJA X 12): su id, cuántas unidades trae y la unidad del producto. */
+  presentacionId?: string | null
+  factor?: number | null
+  presentacionNombre?: string
+  unidadBase?: string
+  /** 065: el producto maneja números de serie, y los elegidos. */
+  manejaSeries?: boolean
+  series?: string[]
+  /** 068: el producto maneja lotes, y el elegido (vacío = el que vence primero). */
+  manejaLotes?: boolean
+  lote?: string | null
 }
 
 /** e165: para comparar una descripción escrita a mano con el catálogo. */
 const normal = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
 
 const IGV = 0.18
+
+// e183: «Escribo los precios con IGV / sin IGV», recordado en este equipo.
+const CLAVE_PRECIOS = 'nc-precios-con-igv'
+function leerModoPrecios(): boolean {
+  try { return localStorage.getItem(CLAVE_PRECIOS) !== 'no' } catch { return true }
+}
+/** El valor sin IGV (6 decimales) de un precio con IGV escrito. */
+const sinIgvDe = (texto: string) => texto.trim() === '' ? '' : (num(texto) / (1 + IGV)).toFixed(6)
 
 function vacia(): LineaEnEdicion {
   return {
@@ -187,6 +212,21 @@ export function NuevoComprobante() {
   const [porWhatsapp, setPorWhatsapp] = useState<boolean | null>(null)
   // 24 oct (e161): arranca sin líneas; se agregan con el buscador o «Línea libre».
   const [lineas, setLineas] = useState<LineaEnEdicion[]>([])
+  // e183: como Nubefact o Bsale: el precio se escribe con IGV (lo que cobras) o sin IGV.
+  const [conIgvModo, setConIgvModo] = useState(leerModoPrecios)
+  function elegirModoPrecios(v: boolean) {
+    setConIgvModo(v)
+    try { localStorage.setItem(CLAVE_PRECIOS, v ? 'si' : 'no') } catch { /* solo por esta vez */ }
+  }
+  /** e183: lo que se ve en la casilla del precio de una línea gravada, en modo «con IGV». */
+  const textoPrecio = (l: LineaEnEdicion) => {
+    if (l.precioTexto !== undefined && sinIgvDe(l.precioTexto) === l.valorUnitario) return l.precioTexto
+    if (l.valorUnitario.trim() === '') return ''
+    const vu = num(l.valorUnitario)
+    return (precioConIgv(vu) ?? r2(vu * (1 + IGV))).toFixed(2)
+  }
+  const cambiarPrecioConIgv = (clave: string, texto: string) =>
+    setLineas(ls => ls.map(l => l.clave === clave ? { ...l, precioTexto: texto, valorUnitario: sinIgvDe(texto) } : l))
   // A qué campo saltar después de agregar una línea (cantidad o descripción).
   const [enfocar, setEnfocar] = useState<{ id: string }>()
   // e162: con muchas líneas, buscar entre ellas y verlas de 20 en 20.
@@ -244,6 +284,8 @@ export function NuevoComprobante() {
 
   // e162: el «ojito»: el detalle de una línea, solo lectura.
   const [verLinea, setVerLinea] = useState<string>()
+  // 065: la línea a la que se le eligen los números de serie.
+  const [eligiendoSeries, setEligiendoSeries] = useState<string>()
   // 052: inventario. Lo disponible de los productos elegidos en la sucursal de
   // la serie, y «se entrega después» (null = el modo de la empresa).
   const [disp, setDisp] = useState<Disponible>()
@@ -301,7 +343,8 @@ export function NuevoComprobante() {
   const faltan = useMemo(() => {
     if (!productosElegidos || !disp?.encendido || !disp.productos) return []
     const pedido = new Map<string, number>()
-    for (const l of lineas) if (l.productoId) pedido.set(l.productoId, (pedido.get(l.productoId) ?? 0) + num(l.cantidad))
+    // 061: una caja de 12 pide 12 unidades.
+    for (const l of lineas) if (l.productoId) pedido.set(l.productoId, (pedido.get(l.productoId) ?? 0) + num(l.cantidad) * (l.factor ?? 1))
     return disp.productos
       .filter(p => p.controla && (pedido.get(p.productoId) ?? 0) > p.disponible)
       .map(p => ({ ...p, pedido: pedido.get(p.productoId) ?? 0, descripcion: lineas.find(l => l.productoId === p.productoId)?.descripcion ?? '' }))
@@ -418,6 +461,12 @@ export function NuevoComprobante() {
             valorUnitario: String(l.valorUnitario),
             descuento: String(l.descuento),
             tipoAfectacion: l.tipoAfectacion,
+            presentacionId: l.presentacionId ?? null,   // 061
+            factor: l.factor ?? null,
+            series: l.series ?? undefined,              // 065
+            manejaSeries: (l.series?.length ?? 0) > 0,
+            lote: l.lote ?? null,                       // 068
+            manejaLotes: !!l.lote,
           })))
         }
       } catch (e) {
@@ -469,8 +518,10 @@ export function NuevoComprobante() {
       descuentos += desc
 
       if (l.tipoAfectacion === '10') {
-        gravado += neto
-        igv += r2(neto * IGV)
+        // e182: desde el total si el precio se dio con IGV (como el servicio).
+        const x = importesGravada(num(l.cantidad), num(l.valorUnitario), desc)
+        gravado += x.valorVenta
+        igv += x.igv
       } else if (l.tipoAfectacion === '17') {
         // El arroz pilado tributa IVAP al 4%, no IGV al 18%. Con el 18 el
         // total de pantalla saldría un 14% por encima del real.
@@ -716,6 +767,15 @@ export function NuevoComprobante() {
       unidadMedida: p.unidadMedida,
       tipoAfectacion: afectacion,
       valorUnitario: sinIgv.toFixed(6),
+      // 061: la presentación elegida en el buscador (o ninguna: la unidad del producto).
+      presentacionId: p.presentacion?.id ?? null,
+      factor: p.presentacion?.factor ?? null,
+      presentacionNombre: p.presentacion?.nombre,
+      unidadBase: p.unidadBase,
+      manejaSeries: !!p.manejaSeries && !p.presentacion,   // 065
+      series: undefined,
+      manejaLotes: !!p.manejaLotes,                        // 068
+      lote: null,
     }
     return { afectacion, sinIgv, delProducto }
   }
@@ -732,6 +792,7 @@ export function NuevoComprobante() {
     if (!aparte) {
       const iguales = lineas.findIndex(l =>
         l.productoId === p.id &&
+        (l.presentacionId ?? null) === (p.presentacion?.id ?? null) &&
         Math.abs(num(l.valorUnitario) - sinIgv) < 0.000001 &&
         num(l.descuento) === 0 &&
         l.tipoAfectacion === afectacion &&
@@ -769,6 +830,7 @@ export function NuevoComprobante() {
     if (!libre) return
     const { afectacion, sinIgv, delProducto } = datosDeProducto(p)
     const igual = lineas.find(l => l.clave !== clave && l.productoId === p.id &&
+      (l.presentacionId ?? null) === (p.presentacion?.id ?? null) &&
       Math.abs(num(l.valorUnitario) - sinIgv) < 0.000001 && num(l.descuento) === 0 &&
       l.tipoAfectacion === afectacion && l.unidadMedida === p.unidadMedida)
     if (igual && num(libre.descuento) === 0) {
@@ -853,6 +915,9 @@ export function NuevoComprobante() {
       valorUnitario: num(l.valorUnitario),
       descuento: num(l.descuento),
       tipoAfectacion: l.tipoAfectacion,
+      presentacionId: l.productoId ? l.presentacionId ?? null : null,   // 061
+      series: l.productoId && l.series?.length ? l.series : null,         // 065
+      lote: l.productoId && l.lote ? l.lote : null,                       // 068
     })),
     // El tipo explícito no es cosmético: sin él, TypeScript deduce del
     // ternario un `{ordenCompra: string} | {}` que no encaja con
@@ -1254,10 +1319,11 @@ export function NuevoComprobante() {
   }
   // e163: para la ventana del ojo, todas las líneas con sus importes.
   const filasDetalle: FilaDetalle[] = lineas.map((l, i) => {
-    const vv = r2(Math.max(0, num(l.cantidad) * num(l.valorUnitario) - num(l.descuento)))
     const regalo = esRegalo(l.tipoAfectacion)
-    const tasa = regalo ? 0 : l.tipoAfectacion === '10' ? IGV : l.tipoAfectacion === '17' ? 0.04 : 0
-    const ig = r2(vv * tasa)
+    const g = !regalo && l.tipoAfectacion === '10' ? importesGravada(num(l.cantidad), num(l.valorUnitario), num(l.descuento)) : null   // e182
+    const vv = g ? g.valorVenta : r2(Math.max(0, num(l.cantidad) * num(l.valorUnitario) - num(l.descuento)))
+    const tasa = regalo ? 0 : l.tipoAfectacion === '17' ? 0.04 : 0
+    const ig = g ? g.igv : r2(vv * tasa)
     return {
       numero: i + 1, codigo: l.codigo || null, descripcion: l.descripcion, cantidad: num(l.cantidad), unidad: l.unidadMedida,
       valorUnitario: num(l.valorUnitario), descuento: num(l.descuento), valorVenta: vv, igv: ig, total: regalo ? 0 : vv + ig,
@@ -1502,9 +1568,19 @@ export function NuevoComprobante() {
           </Aviso>
         )}
 
+        {/* e183: en qué se escriben los precios. */}
+        <div className="nc-modo-precios">
+          <span id="nc-modo-precios">Escribo los precios</span>
+          <div className="segmentado" role="group" aria-labelledby="nc-modo-precios">
+            <button type="button" className={conIgvModo ? 'elegido' : undefined} aria-pressed={conIgvModo} onClick={() => elegirModoPrecios(true)}>Con IGV</button>
+            <button type="button" className={!conIgvModo ? 'elegido' : undefined} aria-pressed={!conIgvModo} onClick={() => elegirModoPrecios(false)}>Sin IGV</button>
+          </div>
+          <span className="nota">{conIgvModo ? 'El precio que cobras: el IGV ya va dentro.' : 'El valor de venta: el IGV se suma encima.'}</span>
+        </div>
+
         {/* e162: ARRIBA, para no tener que bajar al final con veinte líneas. */}
         <div className="nc-agregar">
-          <BuscadorProducto onElegir={agregarProducto} placeholder="+ Agregar producto: busca por código o nombre…" />
+          <BuscadorProducto onElegir={agregarProducto} presentaciones="venta" placeholder="+ Agregar producto: busca por código o nombre…" />
           <Boton estilo="secundario" onClick={lineaLibre}>Línea libre</Boton>
           {lineas.length > 0 && (
             <label className="nc-buscar-linea">
@@ -1546,9 +1622,9 @@ export function NuevoComprobante() {
               <span role="columnheader">Descripción</span>
               <span role="columnheader" className="der">Cantidad</span>
               <span role="columnheader">Unidad</span>
-              <span role="columnheader" className="der">V. unitario <small>sin IGV</small></span>
-              <span role="columnheader" className="der">Descuento</span>
-              <span role="columnheader" className="der">Importe</span>
+              <span role="columnheader" className="der">{conIgvModo ? <>Precio <small>con IGV</small></> : <>V. unitario <small>sin IGV</small></>}</span>
+              <span role="columnheader" className="der">Descuento <small>sin IGV</small></span>
+              <span role="columnheader" className="der">Importe{conIgvModo && <> <small>con IGV</small></>}</span>
               <span role="columnheader"><span className="solo-lector">Quitar</span></span>
             </div>
           )}
@@ -1562,9 +1638,14 @@ export function NuevoComprobante() {
 
           {lineasVisibles.map(({ l, i }) => {
             const bruto = num(l.cantidad) * num(l.valorUnitario)
-            const importe = Math.max(0, bruto - num(l.descuento))
             // e169: el regalo: su código lo dice todo (motivo y afectación del producto).
             const regalo = deRegalo(l.tipoAfectacion)
+            // e183: con IGV, la casilla del precio y el importe son lo que se cobra.
+            const gravada = afectacionBase(l.tipoAfectacion) === '10'
+            const precioEnIgv = conIgvModo && gravada
+            const importe = precioEnIgv && !regalo
+              ? importesGravada(num(l.cantidad), num(l.valorUnitario), num(l.descuento)).total
+              : Math.max(0, bruto - num(l.descuento))
             const conIgv = afectacionBase(l.tipoAfectacion) === '10' && num(l.valorUnitario) > 0 ? num(l.valorUnitario) * (1 + IGV) : null
             const desajustada = !!cliente?.afectacionHabitual && afectacionBase(l.tipoAfectacion) !== cliente.afectacionHabitual
             // e166: en cero (sin precio o con todo descontado): SUNAT la rechaza.
@@ -1603,10 +1684,11 @@ export function NuevoComprobante() {
                     </select>
                   </label>
                   <label className="nc-celda" role="cell">
-                    <span className="nc-et">V. unitario sin IGV</span>
-                    <input className="der" value={l.valorUnitario} inputMode="decimal" placeholder="0.00"
-                           onChange={e => cambiar(l.clave, 'valorUnitario', e.target.value)}
-                           aria-label={`Valor unitario sin IGV de la línea ${i + 1}`}
+                    <span className="nc-et">{precioEnIgv ? 'Precio con IGV' : conIgvModo ? 'Precio (sin IGV)' : 'V. unitario sin IGV'}</span>
+                    <input className="der" value={precioEnIgv ? textoPrecio(l) : l.valorUnitario} inputMode="decimal" placeholder="0.00"
+                           onChange={e => precioEnIgv ? cambiarPrecioConIgv(l.clave, e.target.value) : cambiar(l.clave, 'valorUnitario', e.target.value)}
+                           title={conIgvModo && !gravada ? 'Esta línea no lleva IGV: el precio es el valor.' : undefined}
+                           aria-label={precioEnIgv ? `Precio con IGV de la línea ${i + 1}` : `Valor unitario sin IGV de la línea ${i + 1}`}
                            aria-invalid={num(l.valorUnitario) < 0 || (enCeroLinea && num(l.descuento) === 0) ? true : undefined} />
                   </label>
                   <label className="nc-celda" role="cell">
@@ -1681,6 +1763,24 @@ export function NuevoComprobante() {
                     <span className="nc-repetido" title={`Este producto ya está en la línea ${lineas.findIndex(x => x.clave === primeraDe.get(l.productoId!)) + 1}`}>repetido</span>
                   )}
                   {l.codigo && <span className="nc-dato">Código <span className="mono">{l.codigo}</span></span>}
+                  {/* 065: números de serie: cuáles se venden. */}
+                  {l.productoId && l.manejaSeries && (
+                    <button type="button" className={`enlace${(l.series?.length ?? 0) !== num(l.cantidad) ? ' nc-series-falta' : ''}`}
+                            onClick={() => setEligiendoSeries(l.clave)}>
+                      {l.series?.length ? `S/N: ${l.series.join(', ')}` : 'Elegir números de serie'}
+                    </button>
+                  )}
+                  {/* 068: con lotes, de cuál se vende (por defecto, el que vence primero). */}
+                  {l.productoId && l.manejaLotes && disp?.encendido && (
+                    <ElegirLote productoId={l.productoId} sucursalId={disp?.sucursalId} valor={l.lote} descripcion={l.descripcion}
+                                onCambiar={lote => setLineas(ls => ls.map(x => x.clave === l.clave ? { ...x, lote } : x))} />
+                  )}
+                  {/* 061: en una presentación: cuántas unidades del producto salen del stock. */}
+                  {l.presentacionId && l.factor && (
+                    <span className="nc-dato" title="El stock se cuenta en la unidad del producto">
+                      {l.presentacionNombre ?? l.unidadMedida} · salen <strong className="mono">{cantidad(num(l.cantidad) * l.factor)}</strong>{l.unidadBase ? ` ${l.unidadBase}` : ' unidades'}
+                    </span>
+                  )}
                   {/* e165: línea libre → se puede guardar en el catálogo. */}
                   {!l.productoId && puedeCrearProductos && l.descripcion.trim() && !coincide[l.clave] && (
                     <span className="nc-guardar">
@@ -1698,7 +1798,9 @@ export function NuevoComprobante() {
                   )}
                   {conIgv != null && (regalo
                     ? <span className="nc-dato">Vale <span className="mono">{conIgv.toFixed(2)}</span> c/u con IGV · <strong>no se cobra</strong></span>
-                    : <span className="nc-dato">Con IGV <span className="mono">{conIgv.toFixed(2)}</span> c/u</span>)}
+                    : conIgvModo
+                      ? <span className="nc-dato">Sin IGV <span className="mono">{num(l.valorUnitario).toFixed(2)}</span> c/u</span>
+                      : <span className="nc-dato">Con IGV <span className="mono">{conIgv.toFixed(2)}</span> c/u</span>)}
                   {regalo && conIgv == null && <span className="nc-dato"><strong>No se cobra</strong>: el valor es lo que vale</span>}
                   {p && !p.controla && <span className="nc-dato">No se cuenta en el inventario</span>}
                   {p && p.controla && !falta && (
@@ -1729,9 +1831,11 @@ export function NuevoComprobante() {
                     <strong>No alcanza: pides {cantidad(falta.pedido)} y aquí hay {cantidad(p.disponible)} disponibles.</strong>
                     {p.otras.length > 0 && <> En otras sucursales: {p.otras.map(o => <strong key={o.sucursalId}> {o.codigo} {o.nombre} {cantidad(o.disponible)}</strong>)}.</>}
                     <div className="acciones-falta">
-                      {p.disponible > 0 && lineas.filter(x => x.productoId === p.productoId).length === 1 && (
-                        <button type="button" className="enlace" onClick={() => cambiar(l.clave, 'cantidad', String(p.disponible))}>Bajar a {cantidad(p.disponible)}</button>
-                      )}
+                      {/* 061: en cajas, a las cajas completas que alcanzan. */}
+                      {Math.floor(p.disponible / (l.factor ?? 1) * 10000) / 10000 >= (l.factor ? 1 : 0.0001) && lineas.filter(x => x.productoId === p.productoId).length === 1 && (() => {
+                        const hasta = l.factor ? Math.floor(p.disponible / l.factor) : p.disponible
+                        return <button type="button" className="enlace" onClick={() => cambiar(l.clave, 'cantidad', String(hasta))}>Bajar a {cantidad(hasta)}{l.factor ? ` ${l.unidadMedida}` : ''}</button>
+                      })()}
                       {p.otras.length > 0 && <span className="secundario">o pide un traslado, o emite la factura desde la sucursal que tiene</span>}
                       {!disp?.bloquea && <span className="secundario">· {disp?.permitirSinStock ? 'se permite vender sin stock: quedará en negativo' : 'todavía no se controla: solo avisa'}</span>}
                     </div>
@@ -1904,6 +2008,22 @@ export function NuevoComprobante() {
 
       {/* e162: EL OJITO. El detalle de una línea, solo para mirar: los importes
           con y sin IGV, la afectación y el stock, sin el resto del formulario. */}
+      {/* 065: elegir los números de serie de una línea. */}
+      {eligiendoSeries && (() => {
+        const l = lineas.find(x => x.clave === eligiendoSeries)
+        if (!l?.productoId) return null
+        return (
+          <ElegirSeries productoId={l.productoId} sucursalId={disp?.sucursalId} descripcion={l.descripcion}
+                        elegidas={l.series ?? []} onCerrar={() => setEligiendoSeries(undefined)}
+                        onElegir={series => {
+                          setLineas(ls => ls.map(x => x.clave === l.clave
+                            ? { ...x, series, cantidad: series.length > 0 ? String(series.length) : x.cantidad }
+                            : x))
+                          setEligiendoSeries(undefined)
+                        }} />
+        )
+      })()}
+
       {lineaVista >= 0 && (() => {
         const l = lineas[lineaVista]
         const bruto = num(l.cantidad) * num(l.valorUnitario)
