@@ -147,6 +147,12 @@ export function Ingreso() {
           <p className="enlace-recuperar">
             <Link to="/recuperar">¿Tu empresa está en pausa? Recupérala</Link>
           </p>
+
+          {/* 074: la página pública (precios y textos legales). */}
+          <p className="enlaces-publicos">
+            <Link to="/conoce">Conoce Reyban Facturación</Link> · <Link to="/precios">Precios</Link> ·{' '}
+            <Link to="/terminos">Términos</Link> · <Link to="/privacidad">Privacidad</Link>
+          </p>
         </div>
       </main>
     </div>

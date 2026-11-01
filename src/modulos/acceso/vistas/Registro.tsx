@@ -256,8 +256,8 @@ export function Registro() {
         <label className="casilla-terminos">
           <input type="checkbox" checked={acepta} onChange={e => setAcepta(e.target.checked)} />
           <span>
-            Acepto los términos de uso y la política de privacidad.
-            {/* Los textos llegan en la fase 5; el registro ya guarda cuándo se aceptaron. */}
+            Acepto los <Link to="/terminos" target="_blank">términos y condiciones</Link> y la <Link to="/privacidad" target="_blank">política de privacidad</Link>.
+            {/* 074: los textos están en la página pública; el registro guarda cuándo se aceptaron. */}
           </span>
         </label>
         {errores.aceptaTerminos && <p className="pista mal">{errores.aceptaTerminos}</p>}

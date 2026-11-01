@@ -23,6 +23,9 @@ type Metodo = 'GET' | 'POST' | 'PUT' | 'DELETE'
 /** 048: lo lanza `llamar` cuando la API pide completar la ficha. */
 export const EVENTO_FICHA_INCOMPLETA = 'reyban:ficha-incompleta'
 
+/** 1 nov: la API dijo «esto ya no viene en tu plan» (402): se vuelve a leer /api/yo al momento. */
+export const EVENTO_PLAN_CAMBIO = 'reyban:plan-cambio'
+
 // =============================================================================
 // 046 — LA SUCURSAL ELEGIDA ARRIBA («Sucursal: Todas ▾»)
 //
@@ -82,6 +85,9 @@ async function llamar<T>(metodo: Metodo, ruta: string, cuerpo?: unknown): Promis
     // cabecera escucha y abre «Completa tus datos» (el mensaje sale encima).
     if (respuesta.status === 409 && datos?.codigo === 'ficha_incompleta') {
       window.dispatchEvent(new CustomEvent(EVENTO_FICHA_INCOMPLETA))
+    }
+    if (respuesta.status === 402 && datos?.codigo === 'plan') {
+      window.dispatchEvent(new CustomEvent(EVENTO_PLAN_CAMBIO))
     }
     throw new ErrorApi(
       respuesta.status,

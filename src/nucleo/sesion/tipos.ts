@@ -122,8 +122,29 @@ export interface FichaYo {
   pedirAhora: boolean
 }
 
+/**
+ * 069: EL PLAN DE LA EMPRESA ABIERTA. Sin empresa (super administrador,
+ * estudio) solo trae `encendidos`.
+ *
+ * `bloqueadas.web`: prefijos de pantallas que su plan no trae; `libres`: los
+ * que sí. Gana el prefijo MÁS LARGO (Stock en Pro y Lotes en Max).
+ */
+export interface PlanYo {
+  /** El interruptor general. Apagados = todos ven todo y no se cobra. */
+  encendidos: boolean
+  plan?: 'basico' | 'pro' | 'max'
+  /** Lo que ve hoy: «todo» (apagados o acceso total), «max» (mes gratis) o su plan / cortesía. */
+  efectivo?: 'todo' | 'basico' | 'pro' | 'max'
+  pruebaHasta?: string | null
+  accesoTotal?: boolean
+  bloqueadas?: { web: string[]; libres: string[]; minimos: Record<string, string> }
+}
+
 export interface Yo {
   usuario: Usuario
+
+  /** 069. */
+  plan?: PlanYo | null
 
   /** 048. */
   ficha?: FichaYo | null

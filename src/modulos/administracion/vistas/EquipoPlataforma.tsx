@@ -156,16 +156,53 @@ function DialogoMiembro({ datos, miembro, onCerrar, onHecho }: {
       {!duenio && (
         <div className="casillas-acceso">
           <span className="etiqueta">Qué puede hacer (además de ver la lista de empresas)</span>
-          {datos.permisos.map(p => (
-            <label key={p.codigo}>
-              <input type="checkbox" checked={marcados.includes(p.codigo)}
-                     onChange={e => setMarcados(m => e.target.checked ? [...m, p.codigo] : m.filter(x => x !== p.codigo))} />
-              <span>{p.descripcion}</span>
-            </label>
+          {/* 069 / 31 oct: agrupados por el menú de la plataforma donde se usan. */}
+          {ORDEN_MENUS.filter(g => datos.permisos.some(p => grupoDe(p.codigo) === g)).map(g => (
+            <fieldset key={g} className="grupo-permisos">
+              <legend>Menú «{g}»</legend>
+              {datos.permisos.filter(p => grupoDe(p.codigo) === g).map(p => (
+                <label key={p.codigo}>
+                  <input type="checkbox" checked={marcados.includes(p.codigo)}
+                         onChange={e => setMarcados(m => e.target.checked ? [...m, p.codigo] : m.filter(x => x !== p.codigo))} />
+                  <span>{sinGrupo(p.descripcion)}</span>
+                </label>
+              ))}
+            </fieldset>
           ))}
         </div>
       )}
       {miembro && <p className="nota">Lo nuevo vale desde su próximo ingreso (se cierran sus sesiones abiertas).</p>}
     </Dialogo>
   )
+}
+
+/**
+ * 31 oct: cada permiso bajo el MENÚ de la plataforma donde se usa, en el mismo
+ * orden que el menú de la izquierda, para que se vea a qué pantalla da acceso.
+ */
+const MENU_DE_PERMISO: Record<string, string> = {
+  'plataforma.empresas_gestionar':     'Empresas y Solicitudes de traspaso',
+  'plataforma.modulos_gestionar':      'Empresas y Solicitudes de traspaso',
+  'plataforma.suplantar':              'Empresas y Solicitudes de traspaso',
+  'plataforma.cuentas_gestionar':      'Cuentas',
+  'plataforma.planes_ver':             'Planes y cobros',
+  'plataforma.planes_descuentos':      'Planes y cobros',
+  'plataforma.planes_armar':           'Planes y cobros',
+  'plataforma.cobros_configurar':      'Planes y cobros',
+  'plataforma.cobros_registrar':       'Planes y cobros',
+  'plataforma.mi_empresa':             'Mi empresa',
+  'plataforma.reportes_ver':           'Reportes',
+  'plataforma.credenciales_gestionar': 'Conexión con SUNAT (y la de cada empresa)',
+  'plataforma.accesos_gestionar':      'Correos',
+  'plataforma.consultas_gestionar':    'Consultas SUNAT',
+  'plataforma.equipo_gestionar':       'Equipo de la plataforma',
+}
+const ORDEN_MENUS = [...new Set(Object.values(MENU_DE_PERMISO)), 'Otros']
+function grupoDe(codigo: string) { return MENU_DE_PERMISO[codigo] ?? 'Otros' }
+/** «Planes y cobros: dar descuentos…» → «Dar descuentos…» (el menú ya va en el título). */
+function sinGrupo(descripcion: string) {
+  const i = descripcion.indexOf(':')
+  if (!(i > 0 && i < 40)) return descripcion
+  const resto = descripcion.slice(i + 1).trim()
+  return resto.charAt(0).toUpperCase() + resto.slice(1)
 }

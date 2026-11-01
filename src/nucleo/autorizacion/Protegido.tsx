@@ -1,6 +1,8 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useSesion, useYo } from '../sesion/SesionContexto'
+import { planQueLaTrae, rutaPermitida } from '../planes/planes'
+import { PantallaPlan } from '../../modulos/planes/componentes/PantallaPlan'
 
 interface Props {
   /** El permiso que hace falta. */
@@ -28,6 +30,7 @@ interface Props {
 export function Protegido({ permiso, modulo, soloSuperAdmin, children }: Props) {
   const { puede } = useSesion()
   const yo = useYo()
+  const ubicacion = useLocation()
 
   if (soloSuperAdmin && !yo.usuario.esSuperAdmin) {
     return <Navigate to="/" replace />
@@ -41,6 +44,18 @@ export function Protegido({ permiso, modulo, soloSuperAdmin, children }: Props) 
   // EMPRESA. Pasaba al entrar después de otro usuario: el navegador seguía en
   // la última dirección (un comprobante de esa empresa) y se le enseñaba. Para
   // dar soporte está «Ver como», que sí le pone la empresa.
+  // 069: lo que el plan de la empresa no trae (antes que el módulo: sin
+  // módulo contratado también sale «Esto viene en el plan…», no el inicio). Dentro del marco ya lo para
+  // Disposicion; esto cubre las pantallas sin marco (el punto de venta).
+  if (yo.empresa && !rutaPermitida(yo.plan, ubicacion.pathname)) {
+    return (
+      <div className="marco-solo">
+        <PantallaPlan minimo={planQueLaTrae(yo.plan, ubicacion.pathname) ?? 'sin'}
+                      puedeCambiar={yo.cuenta?.nivel === 'dueno' || yo.cuenta?.nivel === 'colaborador_admin'} />
+      </div>
+    )
+  }
+
   if (modulo && yo.usuario.esSuperAdmin && !yo.empresa) {
     return <Navigate to="/" replace />
   }

@@ -5,6 +5,7 @@ import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Campo } from '../../../componentes/Campo'
 import { Cargando } from '../../../componentes/Cargando'
+import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha } from '../../../nucleo/formato/fechas'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
@@ -226,6 +227,8 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
   // pregunta si ya está en Reyban. Si está, en vez del resto del formulario
   // sale «pedírsela a su titular».
   const [revision, setRevision] = useState<RevisionPedido | null>(null)
+  // 069: la Cartera se pasa de su cupo: se dice lo que cuesta y se confirma.
+  const [pasaCupo, setPasaCupo] = useState<string | null>(null)
   const rucEscrito = d.ruc.trim()
   const rucCompleto = !estado.empresa && rucEscrito.length === 11 && rucValido(rucEscrito)
 
@@ -294,9 +297,10 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
   const ruc = d.ruc.trim()
   const rucBien = ruc.length === 11 && rucValido(ruc)
 
-  const enviar = async (ev: FormEvent) => {
-    ev.preventDefault()
+  const enviar = async (ev: FormEvent | null, confirmoCupo = false) => {
+    ev?.preventDefault()
     setGeneral(null)
+    setPasaCupo(null)
 
     if (!rucBien) { setErrores({ ruc: 'Revisa el RUC: son 11 dígitos y el último no cuadra.' }); return }
     if (noActiva(ficha)) {
@@ -310,7 +314,7 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
 
     setOcupado(true)
     try {
-      const r = await configuracionServicio.crearEmpresa({ ...d, ruc })
+      const r = await configuracionServicio.crearEmpresa({ ...d, ruc, confirmoCupo })
 
       // OTRA PETICIÓN, ya con la empresa guardada: le dice al servicio que el
       // alta quedó. La de arriba termina de guardarse un instante DESPUÉS de
@@ -324,6 +328,7 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
       mensaje.bien(r.mensaje)
       await alTerminar()
     } catch (err) {
+      if (err instanceof ErrorApi && err.codigo === 'cupo') { setPasaCupo(err.message); return }
       // Ocupado entre que se escribió el RUC y se guardó: se ofrece pedirla.
       if (err instanceof ErrorApi && err.esConflicto && campoDe(err) === 'ruc') {
         try {
@@ -403,6 +408,13 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
         <Boton type="submit" ocupado={ocupado} textoOcupado="Creando la empresa…">Guardar y seguir</Boton>
       </Pie>
       </>}
+
+      <Dialogo titulo="Te pasas del cupo de tu Cartera" abierto={!!pasaCupo} onCerrar={() => setPasaCupo(null)}
+               acciones={<><Boton estilo="secundario" onClick={() => setPasaCupo(null)}>Cancelar</Boton>
+                 <Boton ocupado={ocupado} onClick={() => void enviar(null, true)}>Sumar la empresa</Boton></>}>
+        <p>{pasaCupo}</p>
+        <p className="nota">Las empresas que ya tienes siguen igual. Puedes ver el detalle en «Plan Cartera».</p>
+      </Dialogo>
     </form>
   )
 }

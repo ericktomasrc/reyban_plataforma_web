@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Cargando } from '../../../componentes/Cargando'
+import { Pestanas } from '../../../componentes/Pestanas'
+import { usePestana } from '../../../nucleo/hooks/usePestana'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { fechaYHora } from '../../../nucleo/formato/fechas'
 import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
@@ -46,7 +48,11 @@ const TEXTOS: Record<TipoPadron, {
  * cuándo se cargó, «Descargar ahora», «Subir archivo», su barra de avance y
  * la vigilancia de sus cargas con el motivo cuando algo falla.
  */
+const PADRONES = ['ruc', 'anexos'] as const
+
 export function ConsultasSunatPagina() {
+  // 31 oct: los dos padrones en pestañas (RUC · Locales anexos).
+  const [verPadron, setVerPadron] = usePestana(PADRONES, 'padron')
   const mensaje = useMensaje()
   const { pedir, dialogo } = useConfirmar()
   const [estado, setEstado] = useState<EstadoConsultas | null>(null)
@@ -210,13 +216,18 @@ export function ConsultasSunatPagina() {
             </div>
           </div>
 
-          {/* --- Los dos padrones ------------------------------------------- */}
-          <BloquePadron
+          {/* --- Los dos padrones, en pestañas ------------------------------ */}
+          <Pestanas etiqueta="Padrones de SUNAT" valor={verPadron} onCambio={setVerPadron} opciones={[
+            { valor: 'ruc', texto: 'Padrón de RUC', aviso: corre('ruc', p) },
+            { valor: 'anexos', texto: 'Padrón de locales anexos', aviso: !!p.anexos && corre('anexos', p.anexos) },
+          ]} />
+
+          {verPadron === 'ruc' && <BloquePadron
             padron="ruc" datos={p} estado={estado} enMarcha={enMarcha} ocupado={ocupado} subida={subida}
             otroCorriendo={!!p.anexos && corre('anexos', p.anexos)} onDestrabar={() => void destrabar()}
-            onDescargar={() => void descargar('ruc')} onSubir={a => void subir('ruc', a)} />
+            onDescargar={() => void descargar('ruc')} onSubir={a => void subir('ruc', a)} />}
 
-          {p.anexos ? (
+          {verPadron === 'anexos' && (p.anexos ? (
             <BloquePadron
               padron="anexos" datos={p.anexos} estado={estado} enMarcha={enMarcha} ocupado={ocupado} subida={subida}
               otroCorriendo={corre('ruc', p)} onDestrabar={() => void destrabar()}
@@ -226,7 +237,7 @@ export function ConsultasSunatPagina() {
               <h2 className="subtitulo">{TEXTOS.anexos.titulo}</h2>
               <Aviso tono="ojo">Falta la migración 045 en la base de datos (corre migrar.sh en el servidor de base).</Aviso>
             </div>
-          )}
+          ))}
         </>
       )}
       {dialogo}

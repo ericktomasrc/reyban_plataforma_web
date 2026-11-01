@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ErrorApi } from '../api/errores'
-import { fijarSucursalVista } from '../api/cliente'
+import { EVENTO_PLAN_CAMBIO, fijarSucursalVista } from '../api/cliente'
 import { accesoServicio } from '../../modulos/acceso/servicios/accesoServicio'
 import type { Yo } from './tipos'
 
@@ -73,6 +73,42 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => { void refrescar() }, [refrescar])
+
+  // 1 nov: EL PLAN AL DÍA SIN RECARGAR LA PÁGINA. Cuando termina el mes gratis
+  // (o una cortesía, o el super administrador cambia el plan), el menú cambia
+  // solo: a la hora exacta en que vence, cada 2 minutos, al volver a la
+  // pestaña y en cuanto la API responde «no viene en tu plan». En silencio: un
+  // corte de internet no saca a nadie de su sesión.
+  const dentro = estado.fase === 'dentro'
+  const pruebaHasta = estado.fase === 'dentro' ? estado.yo.plan?.pruebaHasta ?? null : null
+  useEffect(() => {
+    if (!dentro) return
+    let ultimo = Date.now()
+    const callado = async () => {
+      ultimo = Date.now()
+      try {
+        const yo = await accesoServicio.yo()
+        setEstado(e => e.fase === 'dentro' ? { fase: 'dentro', yo } : e)
+      } catch (e) {
+        if (e instanceof ErrorApi && e.esNoAutenticado) setEstado({ fase: 'fuera' })
+      }
+    }
+    const alVolver = () => { if (document.visibilityState === 'visible' && Date.now() - ultimo > 30_000) void callado() }
+    const cada = window.setInterval(() => { if (document.visibilityState === 'visible') void callado() }, 120_000)
+    window.addEventListener(EVENTO_PLAN_CAMBIO, callado)
+    document.addEventListener('visibilitychange', alVolver)
+    window.addEventListener('focus', alVolver)
+    // A la hora exacta en que termina el mes gratis (si es dentro de un día).
+    const falta = pruebaHasta ? new Date(pruebaHasta).getTime() - Date.now() : -1
+    const alVencer = falta > 0 && falta < 86_400_000 ? window.setTimeout(() => void callado(), falta + 2_000) : undefined
+    return () => {
+      window.clearInterval(cada)
+      if (alVencer) window.clearTimeout(alVencer)
+      window.removeEventListener(EVENTO_PLAN_CAMBIO, callado)
+      document.removeEventListener('visibilitychange', alVolver)
+      window.removeEventListener('focus', alVolver)
+    }
+  }, [dentro, pruebaHasta])
 
   const puede = useCallback((permiso: string) => {
     if (estado.fase !== 'dentro') return false

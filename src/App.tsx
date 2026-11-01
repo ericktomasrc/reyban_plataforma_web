@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Cargando } from './componentes/Cargando'
 import { CambiarClave } from './modulos/acceso/vistas/CambiarClave'
 import { Ingreso } from './modulos/acceso/vistas/Ingreso'
@@ -20,6 +20,10 @@ import { ProveedorMensajes } from './nucleo/mensajes/ProveedorMensajes'
 import { AvisoVersion } from './nucleo/pwa/AvisoVersion'
 import { ProveedorSesion, useSesion } from './nucleo/sesion/SesionContexto'
 import { Rutas } from './rutas/rutas'
+import { MarcoPublico } from './modulos/publico/vistas/Vitrina'
+import { ContactoPublico, InicioPublico, PreciosPublico } from './modulos/publico/vistas/PaginasPublicas'
+import { DevolucionesPublico, PrivacidadPublico, TerminosPublico } from './modulos/publico/vistas/Legales'
+import { esDominioVitrina } from './modulos/publico/servicios/vitrinaServicio'
 
 /**
  * EL ROUTER ENVUELVE TODO, también lo que se ve sin sesión.
@@ -62,6 +66,18 @@ export default function App() {
             {/* 048: el enlace que llega al correo nuevo. Sin sesión: puede abrirse en el teléfono. */}
             <Route path="/confirmar-correo/:token" element={<ConfirmarCorreo />} />
 
+            {/* 074: LA PÁGINA PÚBLICA, sin sesión (la piden Culqi y Google).
+                En facturacion.reybanconsulting.com, la raíz también es la vitrina. */}
+            <Route element={<MarcoPublico />}>
+              <Route path="/conoce" element={<InicioPublico />} />
+              <Route path="/precios" element={<PreciosPublico />} />
+              <Route path="/contacto" element={<ContactoPublico />} />
+              <Route path="/terminos" element={<TerminosPublico />} />
+              <Route path="/privacidad" element={<PrivacidadPublico />} />
+              <Route path="/devoluciones" element={<DevolucionesPublico />} />
+            </Route>
+            <Route path="/entrar" element={<Entrar />} />
+
             <Route path="*" element={<Puerta />} />
           </Routes>
         </BrowserRouter>
@@ -96,8 +112,17 @@ export default function App() {
  * Todo esto es comodidad: la obligación la impone el back, que no responde a
  * ningún otro endpoint mientras la sesión esté a medias.
  */
+/** 074: «Entrar» desde la página pública. Con sesión, directo a la plataforma. */
+function Entrar() {
+  const { estado } = useSesion()
+  if (estado.fase === 'cargando') return <Cargando />
+  if (estado.fase === 'fuera') return <Ingreso />
+  return <Navigate to="/" replace />
+}
+
 function Puerta() {
   const { estado } = useSesion()
+  const ruta = useLocation()
   const [luego, setLuego] = useState(() => {
     try { return sessionStorage.getItem(CLAVE_TUS_DATOS_LUEGO) === '1' } catch { return false }
   })
@@ -105,6 +130,8 @@ function Puerta() {
   if (estado.fase === 'cargando') return <Cargando />
   if (estado.fase === 'fuera') {
     if (luego) setLuego(false)   // al volver a entrar, «Tus datos» se pregunta otra vez
+    // 074: en facturacion.…, quien llega a la raíz sin sesión ve la vitrina.
+    if (esDominioVitrina() && ruta.pathname === '/') return <MarcoPublico><InicioPublico /></MarcoPublico>
     return <Ingreso />
   }
 

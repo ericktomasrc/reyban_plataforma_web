@@ -92,7 +92,7 @@ export function RegistroGoogle() {
 
         <label className="casilla-terminos">
           <input type="checkbox" checked={acepta} onChange={e => setAcepta(e.target.checked)} />
-          <span>Acepto los términos de uso y la política de privacidad.</span>
+          <span>Acepto los <Link to="/terminos" target="_blank">términos y condiciones</Link> y la <Link to="/privacidad" target="_blank">política de privacidad</Link>.</span>
         </label>
 
         <Boton type="submit" ancho ocupado={enviando} textoOcupado="Creando tu cuenta…" disabled={!acepta || !tipo}>

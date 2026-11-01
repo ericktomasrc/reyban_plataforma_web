@@ -19,6 +19,8 @@ import { REPORTES_CARTERA, REPORTES_PLATAFORMA } from '../modulos/reportes/vista
 import { MenuDesplegable } from './MenuDesplegable'
 import { Campanita, IndicadorCertificado } from '../modulos/avisos/Campanita'
 import { useAvisos } from '../modulos/avisos/avisosServicio'
+import { PantallaPlan } from '../modulos/planes/componentes/PantallaPlan'
+import { NOMBRE_PLAN, diasQueFaltan, planQueLaTrae, rutaPermitida } from '../nucleo/planes/planes'
 
 /**
  * El marco: la cabecera arriba, UN SOLO MENÚ a la izquierda y el contenido.
@@ -43,7 +45,7 @@ import { useAvisos } from '../modulos/avisos/avisosServicio'
  */
 export function Disposicion() {
   const { salir, puede } = useSesion()
-  const { usuario, empresa, cuenta, menu, roles, alcance, ficha } = useYo()
+  const { usuario, empresa, cuenta, menu, roles, alcance, ficha, plan, suplantacion } = useYo()
   const ruta = useLocation()
   const navegar = useNavigate()
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -94,10 +96,26 @@ export function Disposicion() {
 
   const facturacion = menu.some(m => m.codigo === 'facturacion')
 
+  // 069: LO QUE EL PLAN DE LA EMPRESA ABIERTA TRAE. Con los planes apagados,
+  // con acceso total o sin empresa, todo. La API responde 402 igual.
+  const enPlan = (r: string) => rutaPermitida(plan, r)
+  // 1 nov: lo que su plan no trae SE VE, con candado y el plan que lo trae
+  // (al entrar, «Esto viene en el plan…» y sus datos guardados). Solo se
+  // esconde lo que todavía no está en ningún plan («Sin plan»).
+  const candadoDe = (r: string) => { const m = planQueLaTrae(plan, r); return m && m !== 'sin' ? m : undefined }
+  const visible = (r: string) => planQueLaTrae(plan, r) !== 'sin'
+  const conCandado = <T extends { ruta: string }>(items: T[]) =>
+    items.filter(i => visible(i.ruta)).map(i => ({ ...i, candado: candadoDe(i.ruta) }))
+  const bloqueadaAqui = !!empresa && !enPlan(ruta.pathname)
+  const cambiaPlan = !!cuenta && (cuenta.nivel === 'dueno' || cuenta.nivel === 'colaborador_admin')
+  // 31 oct: el mes gratis se avisa siempre (también con los planes apagados).
+  const diasGratis = plan && !plan.accesoTotal ? diasQueFaltan(plan.pruebaHasta) : null
+
   // 032: REPORTES. Sale si puede ver al menos uno; sus submenús, al entrar.
   // e147: «Ventas por sucursal», solo con más de un local.
   const reportes = REPORTES.filter(r => puede(r.permiso) && (!r.conSucursales || (alcance?.total ?? 0) > 1)
-    && (!r.modulo || menu.some(m => m.codigo === r.modulo)))   // e178
+    && (!r.modulo || menu.some(m => m.codigo === r.modulo) || !!candadoDe(r.ruta))   // e178; 1 nov: con candado si su plan no lo trae
+    && visible(r.ruta)).map(r => ({ ...r, candado: candadoDe(r.ruta) }))
   // 036: «Reportes» lo abre y lo cierra MenuDesplegable.
   // 053: el inventario se contrata aparte y tiene su propio menú desplegable.
   const inventario = menu.some(m => m.codigo === 'inventario')
@@ -109,11 +127,11 @@ export function Disposicion() {
   // equipo, reportes de la cartera, agregar empresa) o DENTRO de una empresa.
   // El menú enseña solo lo del modo; el selector de arriba cambia de uno a otro.
   const enEstudio = cartera && (!empresa
-    || ['/empresas', '/colaboradores', '/mi-cartera'].some(r => ruta.pathname === r || ruta.pathname.startsWith(r + '/'))
+    || ['/empresas', '/colaboradores', '/mi-cartera', '/mi-plan'].some(r => ruta.pathname === r || ruta.pathname.startsWith(r + '/'))
     || (ruta.pathname === '/configurar' && new URLSearchParams(ruta.search).has('nueva')))
 
   const pagina = nombreDePagina(ruta.pathname)
-  const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil'].includes(ruta.pathname)
+  const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil', '/mi-plan', '/mi-plan/pagos'].includes(ruta.pathname)
     && !ruta.pathname.startsWith('/admin')
 
   return (
@@ -128,6 +146,17 @@ export function Disposicion() {
         conexion.modo === 'real'
           ? <div className="franja-sunat real" role="status">● QA · SUNAT REAL — solo emiten las empresas marcadas. Lo emitido vale ante SUNAT.</div>
           : <div className="franja-sunat beta" role="status">⚠ MODO PRUEBA · SUNAT beta — los comprobantes no tienen valor ante SUNAT.</div>
+      )}
+
+      {/* 069: los planes apagados (lo ve el super administrador) y el mes gratis. */}
+      {usuario.esSuperAdmin && !suplantacion && plan && !plan.encendidos && (
+        <div className="franja-planes" role="status">⚙ PLANES APAGADOS · todas las cuentas ven todos los menús y no se cobra nada</div>
+      )}
+      {!usuario.esSuperAdmin && empresa && diasGratis !== null && !enEstudio && (
+        <div className="franja-planes gratis" role="status">
+          Mes gratis: te quedan {diasGratis} día{diasGratis === 1 ? '' : 's'} con todo lo del Max.
+          {cambiaPlan && <> <Link to="/mi-plan">Elige tu plan</Link></>}
+        </div>
       )}
 
       <header className={'cabecera' + (cartera && !enEstudio ? ' en-empresa' : '')}>
@@ -181,6 +210,10 @@ export function Disposicion() {
           <div className="menu-quien" role="menu">
             <Link to="/perfil" role="menuitem">Mi cuenta</Link>
             <Link to="/perfil?pestana=seguridad" role="menuitem">Seguridad</Link>
+            {/* 069: el plan de la cuenta (lo ven todos los de la cuenta; lo cambia el dueño). */}
+            {!usuario.esSuperAdmin && cuenta?.nivel && <Link to="/mi-plan" role="menuitem">{cuenta.tipo === 'profesional' ? 'Plan Cartera' : 'Mi plan'}</Link>}
+            {/* 073: tarjeta, datos del comprobante e historial de pagos. */}
+            {!usuario.esSuperAdmin && cuenta?.nivel && <Link to="/mi-plan/pagos" role="menuitem">Mis pagos</Link>}
             {/* e171: la app instalable. Solo si el navegador lo permite (o en iPhone, con los pasos). */}
             {(instalarApp.puede || instalarApp.soloPasos) && (
               <button type="button" role="menuitem" onClick={() => {
@@ -252,6 +285,8 @@ export function Disposicion() {
               {/* 036: los reportes de toda la cartera. */}
               <MenuDesplegable icono="▥" titulo="Reportes de la cartera" inicio="/mi-cartera/reportes"
                                prefijos={['/mi-cartera']} grupos={[{ titulo: 'Mi cartera', items: REPORTES_CARTERA }]} />
+              {/* 069: cuántas empresas paga y cuáles van en Pro o Max. */}
+              <NavLink to="/mi-plan" className={activo}><Icono>◈</Icono>Plan Cartera</NavLink>
             </nav>
           )}
 
@@ -272,21 +307,21 @@ export function Disposicion() {
               {facturacion && (
                 <>
                   {/* 24 oct: «Comprobantes» se despliega, con las notas sueltas como en SOL. */}
-                  {puede(Permisos.Facturacion.NotasCredito) ? (
+                  {puede(Permisos.Facturacion.NotasCredito) && (visible('/facturacion/notas/nueva-credito') || visible('/facturacion/notas/nueva-debito')) ? (
                     <MenuDesplegable icono="▤" titulo="Comprobantes" inicio="/facturacion/comprobantes"
                       prefijos={['/facturacion/comprobantes', '/facturacion/notas']}
-                      grupos={[{ titulo: '', items: [
+                      grupos={[{ titulo: '', items: conCandado([
                         { ruta: '/facturacion/comprobantes', nombre: 'Comprobantes emitidos' },
                         { ruta: '/facturacion/notas/nueva-credito', nombre: 'Nueva nota de crédito' },
                         { ruta: '/facturacion/notas/nueva-debito', nombre: 'Nueva nota de débito' },
-                      ] }]} />
+                      ]) }]} />
                   ) : (
                     <NavLink to="/facturacion/comprobantes" className={activo}><Icono>▤</Icono>Comprobantes</NavLink>
                   )}
                   <NavLink to="/facturacion/clientes" className={activo}><Icono>☺</Icono>Clientes</NavLink>
                   <NavLink to="/facturacion/productos" className={activo}><Icono>◫</Icono>Productos</NavLink>
                   {/* e178 (059) */}
-                  {puede(Permisos.Compras.Ver) && <NavLink to="/compras" className={activo}><Icono>⇣</Icono>Compras y gastos</NavLink>}
+                  {puede(Permisos.Compras.Ver) && visible('/compras') && <NavLink to="/compras" className={activo}><Icono>⇣</Icono>Compras y gastos<Candado plan={candadoDe('/compras')} /></NavLink>}
                   {/* 044: los locales del mismo RUC. */}
                   {puede(Permisos.Facturacion.SucursalesGestionar) && (
                     <NavLink to="/facturacion/sucursales" className={activo}><Icono>⌖</Icono>Sucursales</NavLink>
@@ -295,7 +330,7 @@ export function Disposicion() {
               )}
 
               {/* 050: guías de remisión, con su transporte guardado y su configuración. */}
-              {facturacion && puede(Permisos.Guias.Ver) && (
+              {facturacion && puede(Permisos.Guias.Ver) && visible('/guias') && (
                 <MenuDesplegable icono="⛟" titulo="Guías de remisión" inicio="/guias" prefijos={['/guias']}
                   grupos={[{ titulo: '', items: [
                     { ruta: '/guias', nombre: 'Guías emitidas' },
@@ -305,18 +340,18 @@ export function Disposicion() {
               )}
 
               {/* e173: punto de venta (a pantalla completa) y las cajas. */}
-              {facturacion && pos && puede(Permisos.Pos.Vender) && (
+              {facturacion && (pos || !!candadoDe('/pos')) && puede(Permisos.Pos.Vender) && visible('/pos') && (
                 <MenuDesplegable icono="▣" titulo="Punto de venta" inicio="/pos" prefijos={['/pos']}
-                  grupos={[{ titulo: '', items: [
+                  grupos={[{ titulo: '', items: conCandado([
                     { ruta: '/pos', nombre: 'Vender', exacto: true },
                     { ruta: '/pos/cajas', nombre: puede(Permisos.Pos.CajasVer) ? 'Cajas y arqueos' : 'Mis cajas' },
-                  ] }]} />
+                  ]) }]} />
               )}
 
               {/* 052: inventario por sucursal. 053: solo si la empresa lo contrató. */}
-              {facturacion && inventario && puede(Permisos.Inventario.Ver) && (
+              {facturacion && (inventario || !!candadoDe('/inventario')) && puede(Permisos.Inventario.Ver) && visible('/inventario') && (
                 <MenuDesplegable icono="▦" titulo="Inventario" inicio="/inventario" prefijos={['/inventario']}
-                  grupos={[{ titulo: '', items: [
+                  grupos={[{ titulo: '', items: conCandado([
                     { ruta: '/inventario', nombre: 'Stock', exacto: true },
                     { ruta: '/inventario/ingresos', nombre: 'Ingresos por compra' },
                     { ruta: '/inventario/traslados', nombre: 'Traslados' },
@@ -326,7 +361,7 @@ export function Disposicion() {
                     { ruta: '/inventario/almacenes', nombre: 'Almacenes' },
                     { ruta: '/inventario/proveedores', nombre: 'Proveedores y categorías' },
                     { ruta: '/inventario/configuracion', nombre: 'Configuración' },
-                  ] }]} />
+                  ]) }]} />
               )}
 
               {/* 036: Reportes se abre y se cierra (la flecha). */}
@@ -356,6 +391,10 @@ export function Disposicion() {
               {configura && (
                 <NavLink to="/configurar" className={activo}><Icono>⚙</Icono>Configuración</NavLink>
               )}
+              {/* 31 oct: «Mi plan» a la vista (Cuenta Negocio). En la Cartera va en «Mi estudio». */}
+              {!cartera && cambiaPlan && (
+                <NavLink to="/mi-plan" className={activo}><Icono>◈</Icono>Mi plan</NavLink>
+              )}
             </nav>
           )}
 
@@ -367,6 +406,13 @@ export function Disposicion() {
               <NavLink to="/admin/empresas" className={activo}><Icono>▦</Icono>Empresas</NavLink>
               {/* 067: cada entrada, con su permiso (el dueño los tiene todos). */}
               {puede(Permisos.Plataforma.CuentasGestionar) && <NavLink to="/admin/cuentas" className={activo}><Icono>◎</Icono>Cuentas</NavLink>}
+              {/* 069: planes y cobros. */}
+              {puede(Permisos.Plataforma.PlanesVer) && <NavLink to="/admin/planes" className={activo}><Icono>◈</Icono>Planes y cobros</NavLink>}
+              {/* 075: la empresa de Reyban que cobra los planes (no confundir con «Empresas», los clientes). */}
+              {puede(Permisos.Plataforma.MiEmpresa) && (
+                <MenuDesplegable icono="◆" titulo="Mi empresa" inicio="/admin/mi-empresa" prefijos={['/admin/mi-empresa']}
+                                 grupos={[{ titulo: 'Mi empresa', items: MENU_MI_EMPRESA }]} />
+              )}
               {puede(Permisos.Plataforma.EmpresasGestionar) && <NavLink to="/admin/traspasos" className={activo}><Icono>⇄</Icono>Solicitudes de traspaso</NavLink>}
               {/* 036: reportes de la plataforma. */}
               {puede(Permisos.Plataforma.ReportesVer) && (
@@ -412,7 +458,10 @@ export function Disposicion() {
           {/* 046: al cambiar de sucursal arriba, la pantalla se vuelve a cargar. */}
           {/* e191: cambiar de empresa (o de sucursal) vuelve a cargar la pantalla:
               si no, se quedaban datos de la anterior (el certificado en Inicio). */}
-          <Outlet key={`${empresa?.id ?? 'sin-empresa'}:${alcance?.vista ?? 'todas'}`} />
+          {/* 069: una pantalla que su plan no trae (por enlace o URL a mano). */}
+          {bloqueadaAqui
+            ? <PantallaPlan minimo={planQueLaTrae(plan, ruta.pathname) ?? 'sin'} puedeCambiar={cambiaPlan} />
+            : <Outlet key={`${empresa?.id ?? 'sin-empresa'}:${alcance?.vista ?? 'todas'}`} />}
         </main>
       </div>
     </div>
@@ -464,6 +513,10 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/empresas')) return 'Mis empresas'
   if (ruta.startsWith('/colaboradores')) return 'Mi equipo'
   if (ruta.startsWith('/perfil')) return 'Mi cuenta'
+  if (ruta.startsWith('/mi-plan/pagos')) return 'Mis pagos'
+  if (ruta.startsWith('/mi-plan')) return 'Mi plan'
+  if (ruta.startsWith('/admin/planes')) return 'Planes y cobros'
+  if (ruta.startsWith('/admin/mi-empresa')) return 'Mi empresa'
   if (ruta.startsWith('/admin/empresas')) return 'Empresas'
   if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'
   if (ruta.startsWith('/admin/equipo')) return 'Equipo de la plataforma'
@@ -474,3 +527,17 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/admin/consultas-sunat')) return 'Consultas SUNAT'
   return null
 }
+
+/** 1 nov: el candado de lo que su plan no trae, con el plan que lo trae. */
+function Candado({ plan }: { plan?: string }) {
+  if (!plan) return null
+  return <span className="candado-menu" title={`Viene en el plan ${NOMBRE_PLAN[plan]}`}>🔒 {NOMBRE_PLAN[plan]}</span>
+}
+
+/** 075: los submenús de «Mi empresa». */
+const MENU_MI_EMPRESA = [
+  { ruta: '/admin/mi-empresa', nombre: 'Datos de la empresa', exacto: true },
+  { ruta: '/admin/mi-empresa/facturacion', nombre: 'Facturación electrónica' },
+  { ruta: '/admin/mi-empresa/series', nombre: 'Series' },
+  { ruta: '/admin/mi-empresa/comprobantes', nombre: 'Comprobantes de cobros' },
+]

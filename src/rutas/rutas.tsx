@@ -10,6 +10,10 @@ import { SolicitudesTraspaso } from '../modulos/administracion/vistas/Solicitude
 import { ConexionSunatPagina } from '../modulos/administracion/vistas/ConexionSunat'
 import { CorreosPagina } from '../modulos/administracion/vistas/Correos'
 import { EquipoPlataformaPagina } from '../modulos/administracion/vistas/EquipoPlataforma'
+import { MiPlanPagina } from '../modulos/planes/vistas/MiPlan'
+import { MisPagosPagina } from '../modulos/planes/vistas/MisPagos'
+import { MiEmpresaPagina } from '../modulos/miempresa/vistas/MiEmpresa'
+import { PlanesCobrosPagina } from '../modulos/planes/vistas/PlanesCobros'
 import { RecuperacionesPagina } from '../modulos/administracion/vistas/Recuperaciones'
 import { ConsultasSunatPagina } from '../modulos/administracion/vistas/ConsultasSunat'
 import { Cambios } from '../modulos/auditoria/vistas/Cambios'
@@ -200,6 +204,12 @@ export function Rutas() {
         />
         {/* 067: el equipo de la plataforma con permisos parciales. */}
         <Route path="/admin/equipo" element={<Protegido soloSuperAdmin><EquipoPlataformaPagina /></Protegido>} />
+        {/* 069: planes y cobros (super administrador) y el plan de la cuenta. */}
+        <Route path="/admin/planes" element={<Protegido soloSuperAdmin><PlanesCobrosPagina /></Protegido>} />
+        {/* 075: Mi empresa (la de Reyban, que cobra los planes). */}
+        <Route path="/admin/mi-empresa/*" element={<Protegido soloSuperAdmin><MiEmpresaPagina /></Protegido>} />
+        <Route path="/mi-plan" element={<MiPlanPagina />} />
+        <Route path="/mi-plan/pagos" element={<MisPagosPagina />} />
         {/* 038: los correos de acceso que no salieron. */}
         <Route
           path="/admin/correos"

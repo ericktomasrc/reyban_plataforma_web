@@ -1,0 +1,217 @@
+import { api } from '../../../nucleo/api/cliente'
+
+/** 069: Básico, Pro o Max. */
+export type CodigoPlan = 'basico' | 'pro' | 'max'
+
+export interface PlanCatalogo {
+  codigo: CodigoPlan
+  nombre: string
+  orden: number
+  paraQuien: string | null
+  precioRegular: number
+  precioOferta: number | null
+  sucursalesMax: number | null
+  carteraExtraRegular: number
+  carteraExtraOferta: number | null
+  funciones: { menu: string; nombre: string }[]
+}
+export interface Tramo { desde: number; hasta: number | null; precioOferta: number; precioRegular: number }
+export interface Reglas {
+  diasPrueba: number
+  pruebaCarteraEmpresas: number
+  rucGratisActivo: boolean
+  rucGratisTope: number
+  carteraMinimo: number
+  ofertaHasta: string | null
+  anualMesesGratis: number
+  /** 071: qué ve una empresa en su mes gratis. */
+  planPrueba: CodigoPlan
+}
+export interface Catalogo {
+  encendidos: boolean
+  enOferta: boolean
+  reglas: Reglas
+  planes: PlanCatalogo[]
+  tramos: Tramo[]
+}
+
+export interface EmpresaDeCuenta {
+  id: string
+  nombre: string
+  ruc: string | null
+  plan: CodigoPlan
+  efectivo: 'todo' | CodigoPlan
+  /** 070: lo que vería con los planes encendidos. */
+  efectivoEncendido: 'todo' | CodigoPlan
+  /** 071: lo que usó de lo que no trae el Básico y el plan que le conviene. */
+  uso: { usos: string[]; recomendado: CodigoPlan } | null
+  pruebaHasta: string | null
+  pruebaMotivo: 'cuenta' | 'ruc_nuevo' | 'ajuste' | null
+  esDelEstudio: boolean
+  pausada: boolean
+  suspendida: boolean
+}
+export type TipoAjuste = 'cortesia' | 'meses_gratis' | 'precio_especial' | 'plan_mejor' | 'ampliar_prueba'
+export interface AjusteCuenta {
+  id: string
+  tipo: TipoAjuste
+  plan: CodigoPlan | null
+  meses: number | null
+  precio: number | null
+  hasta: string
+  motivo: string
+  creadoEn: string
+  anuladoEn: string | null
+  anuladoMotivo: string | null
+  vigente: boolean
+}
+export type EstadoCuenta = 'apagado' | 'acceso_total' | 'prueba' | 'cortesia' | 'meses_gratis' | 'precio_especial' | 'al_dia'
+export interface ResumenCuenta {
+  id: string
+  tipo: 'negocio' | 'profesional'
+  titular: string | null
+  estadoCuenta: 'pendiente' | 'activa' | 'suspendida'
+  creadaEn: string
+  origen: 'registro' | 'alta'
+  encendidos: boolean
+  enOferta: boolean
+  ofertaHasta: string | null
+  pruebaHasta: string | null
+  accesoTotal: boolean
+  accesoTotalMotivo: string | null
+  cupos: number | null
+  usados: number
+  cobradas: number
+  minimo: number
+  empresas: EmpresaDeCuenta[]
+  ajustes: AjusteCuenta[]
+  estado: EstadoCuenta
+  /** 070: el dueño de la cuenta (quien se registró). */
+  dueno: { nombre: string; correo: string } | null
+  /** 070: lo que pasaría con los planes encendidos (con los planes apagados, `estado` dice «apagado»). */
+  estadoEncendido: Exclude<EstadoCuenta, 'apagado'>
+  totalEncendido: number
+  planPrueba: CodigoPlan
+  mensual: { base: number; extras: number; total: number; regular: number; anual: number }
+}
+
+export interface MiPlan {
+  catalogo: Catalogo
+  cuenta: ResumenCuenta | null
+  puedeCambiar: boolean
+  empresa: { id: string; nombre: string; plan: CodigoPlan; efectivo: string; pruebaHasta: string | null } | null
+}
+
+export interface FuncionArmador {
+  codigo: string
+  menu: string
+  menuOrden: number
+  /** 072: el grupo dentro del menú (Reportes › Ganancias…). */
+  grupo: string | null
+  nombre: string
+  orden: number
+  plan: CodigoPlan | null
+  fija: boolean
+  nueva: boolean
+  rutas: string[]
+}
+export interface Armador {
+  encendidos: boolean
+  planes: { codigo: CodigoPlan; nombre: string; orden: number }[]
+  funciones: FuncionArmador[]
+  empresasPorPlan: Record<string, number>
+}
+export interface Afectados { empresas: number; ganan: number; pierden: number; porPlan: Record<string, number> }
+
+export interface ConfigPlanes {
+  catalogo: Catalogo
+  interruptor: { encendidos: boolean; decidido: boolean; cambiadoEn: string | null; cambiadoPor: string | null }
+  /** 074: los datos de la página pública. */
+  publica: DatosPublicos
+}
+
+/** 074: lo que se muestra de Reyban en la página pública. */
+export interface DatosPublicos {
+  razonSocial: string
+  ruc: string | null
+  direccion: string
+  correo: string
+  whatsapp: string | null
+  actualizado: string
+}
+
+type Mensaje = { mensaje: string }
+
+export const planesServicio = {
+  // La cuenta
+  mio: () => api.obtener<MiPlan>('/api/planes/mio'),
+  elegir: (empresaId: string, plan: CodigoPlan) => api.crear<Mensaje & { efectivo: string }>('/api/planes/elegir', { empresaId, plan }),
+  cupos: (cupos: number) => api.crear<Mensaje & { cupos: number }>('/api/planes/cupos', { cupos }),
+  estudio: (empresaId: string | null) => api.crear<Mensaje>('/api/planes/estudio', { empresaId }),
+
+  // La plataforma
+  config: () => api.obtener<ConfigPlanes>('/api/admin/planes/config'),
+  interruptor: (encendidos: boolean) => api.cambiar<Mensaje & { encendidos: boolean }>('/api/admin/planes/interruptor', { encendidos }),
+  reglas: (r: Reglas) => api.cambiar<Mensaje>('/api/admin/planes/reglas', r),
+  precios: (planes: Omit<PlanCatalogo, 'nombre' | 'orden' | 'paraQuien' | 'funciones'>[], tramos: Tramo[]) =>
+    api.cambiar<Mensaje>('/api/admin/planes/precios', { planes, tramos }),
+  armador: () => api.obtener<Armador>('/api/admin/planes/armador'),
+  afectados: (cambios: { codigo: string; plan: CodigoPlan | null }[]) =>
+    api.crear<Afectados>('/api/admin/planes/armador/afectados', { cambios }),
+  guardarArmador: (cambios: { codigo: string; plan: CodigoPlan | null }[]) =>
+    api.cambiar<Mensaje & { cambiadas: number }>('/api/admin/planes/armador', { cambios }),
+  cuentas: () => api.obtener<ResumenCuenta[]>('/api/admin/planes/cuentas'),
+  cuenta: (id: string) => api.obtener<ResumenCuenta>(`/api/admin/planes/cuentas/${id}`),
+  ajustar: (id: string, d: { tipo: TipoAjuste; plan?: CodigoPlan | null; meses?: number | null; precio?: number | null; hasta: string; motivo: string }) =>
+    api.crear<Mensaje>(`/api/admin/planes/cuentas/${id}/ajustes`, d),
+  anularAjuste: (id: string, motivo: string) => api.crear<Mensaje>(`/api/admin/planes/ajustes/${id}/anular`, { motivo }),
+  accesoTotal: (id: string, activo: boolean, motivo: string) =>
+    api.cambiar<Mensaje>(`/api/admin/planes/cuentas/${id}/acceso-total`, { activo, motivo }),
+  planEmpresa: (empresaId: string, plan: CodigoPlan) => api.cambiar<Mensaje>(`/api/admin/planes/empresas/${empresaId}/plan`, { plan }),
+  cuposCuenta: (id: string, cupos: number) => api.cambiar<Mensaje>(`/api/admin/planes/cuentas/${id}/cupos`, { cupos }),
+  paginaPublica: (d: DatosPublicos) => api.cambiar<Mensaje>('/api/admin/planes/pagina-publica', d),
+}
+
+/** El precio de hoy de un plan (el de lanzamiento mientras dure la oferta). */
+export const precioHoy = (p: PlanCatalogo, oferta: boolean) => oferta ? (p.precioOferta ?? p.precioRegular) : p.precioRegular
+export const extraHoy = (p: PlanCatalogo, oferta: boolean) => oferta ? (p.carteraExtraOferta ?? p.carteraExtraRegular) : p.carteraExtraRegular
+
+/** Lo que paga la Cartera por n empresas (cada una al precio de su tramo). */
+export function precioCartera(tramos: Tramo[], n: number, regular: boolean): number {
+  return tramos.reduce((s, t) => {
+    if (t.desde > n) return s
+    const cuantas = Math.min(n, t.hasta ?? n) - t.desde + 1
+    return s + Math.max(0, cuantas) * (regular ? t.precioRegular : t.precioOferta)
+  }, 0)
+}
+
+export const NOMBRE_ESTADO: Record<EstadoCuenta, string> = {
+  apagado: 'Planes apagados', acceso_total: 'Acceso total', prueba: 'Mes gratis', cortesia: 'Cortesía',
+  meses_gratis: 'Meses gratis', precio_especial: 'Precio especial', al_dia: 'Al día',
+}
+export const NOMBRE_AJUSTE: Record<TipoAjuste, string> = {
+  cortesia: 'Cortesía', meses_gratis: 'Meses gratis', precio_especial: 'Precio especial',
+  plan_mejor: 'Un plan mejor', ampliar_prueba: 'Más prueba',
+}
+
+/** 1 nov: lo que un plan agrega, agrupado por menú: «Inventario: stock, traslados…». */
+export function menusDelPlan(funciones: { menu: string; nombre: string }[]): string[] {
+  const porMenu = new Map<string, string[]>()
+  for (const f of funciones) porMenu.set(f.menu, [...(porMenu.get(f.menu) ?? []), f.nombre])
+  return [...porMenu.entries()].map(([m, fs]) =>
+    fs.length === 1 && fs[0] === m ? m
+    : fs.length > 4 ? `${m} (${fs.length}): ${fs.slice(0, 3).join(', ').toLowerCase()} y ${fs.length - 3} más`
+    : `${m}: ${fs.join(', ').toLowerCase()}`)
+}
+
+/**
+ * 1 nov: la etiqueta «contiene» de cada plan, armada con lo que esté en el
+ * armador: Básico «Lo esencial para emitir»; los demás «Todo lo del anterior +
+ * los menús que agrega».
+ */
+export function etiquetaPlan(planes: { nombre: string; funciones: { menu: string }[] }[], i: number): string {
+  if (i === 0) return 'Lo esencial para emitir'
+  const menus = [...new Set(planes[i].funciones.map(f => f.menu))].map(m => m.toLowerCase())
+  const lista = menus.length <= 1 ? menus.join('') : menus.slice(0, -1).join(', ') + ' y ' + menus[menus.length - 1]
+  return `Todo lo del ${planes[i - 1].nombre}${lista ? ' + ' + lista : ''}`
+}

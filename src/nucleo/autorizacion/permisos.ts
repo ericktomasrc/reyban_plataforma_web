@@ -28,6 +28,15 @@ export const Permisos = {
     ReportesVer:           'plataforma.reportes_ver',
     AccesosGestionar:      'plataforma.accesos_gestionar',
     EquipoGestionar:       'plataforma.equipo_gestionar',
+    // 069: Planes y cobros.
+    PlanesVer:             'plataforma.planes_ver',
+    PlanesDescuentos:      'plataforma.planes_descuentos',
+    PlanesArmar:           'plataforma.planes_armar',
+    // 073: Cobros.
+    CobrosConfigurar:      'plataforma.cobros_configurar',
+    CobrosRegistrar:       'plataforma.cobros_registrar',
+    // 075: Mi empresa (la de Reyban, que cobra los planes).
+    MiEmpresa:             'plataforma.mi_empresa',
   },
 
   Usuarios: {

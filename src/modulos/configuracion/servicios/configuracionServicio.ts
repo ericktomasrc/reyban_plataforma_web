@@ -93,6 +93,8 @@ export interface DatosEmpresa {
   provincia: string
   departamento: string
   correoTitular: string
+  /** 069: «sí, súmala aunque me pase del cupo de mi Cartera». */
+  confirmoCupo?: boolean
 }
 
 export interface CertificadoGuardado {
