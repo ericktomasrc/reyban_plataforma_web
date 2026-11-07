@@ -6,6 +6,7 @@ import { Boton } from '../../../componentes/Boton'
 import { Cargando } from '../../../componentes/Cargando'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha } from '../../../nucleo/formato/fechas'
+import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { NOMBRE_PLAN, diasQueFaltan, soles } from '../../../nucleo/planes/planes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
@@ -69,6 +70,8 @@ export function MiPlanPagina() {
       {cuenta?.tipo === 'profesional'
         ? <PlanCartera catalogo={catalogo} cuenta={cuenta} puede={datos.puedeCambiar} onHecho={hecho} />
         : <ElegirPlan catalogo={catalogo} cuenta={cuenta} empresa={datos.empresa} puede={datos.puedeCambiar} onHecho={hecho} />}
+
+      {cuenta && !cuenta.accesoTotal && <CancelarPlan cuenta={cuenta} puede={datos.puedeCambiar} onHecho={hecho} />}
     </>
   )
 }
@@ -118,6 +121,7 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
   const laEmpresa = cuenta?.empresas[0] ?? (empresa ? { id: empresa.id, plan: empresa.plan, pruebaHasta: empresa.pruebaHasta } : null)
   // 31 oct: en su mes gratis el plan elegido es «para después»; lo que usa ahora es el Max.
   const enGratis = !cuenta?.accesoTotal && diasQueFaltan(laEmpresa?.pruebaHasta ?? cuenta?.pruebaHasta) !== null
+  const enOferta = conOferta(catalogo, cuenta)   // 079: también si la cuenta guarda el precio de lanzamiento
   const uso = cuenta?.empresas[0]?.uso ?? null
   const meses = 12 - catalogo.reglas.anualMesesGratis
 
@@ -150,7 +154,7 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
 
       <div className="tarjetas-plan">
         {catalogo.planes.map((p, i) => {
-          const hoy = precioHoy(p, catalogo.enOferta)
+          const hoy = precioHoy(p, enOferta)
           const actual = laEmpresa?.plan === p.codigo
           const ahora = enGratis && p.codigo === (cuenta?.planPrueba ?? 'max')
           const recomendado = enGratis && uso?.recomendado === p.codigo
@@ -167,9 +171,7 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
                 <strong>{soles(anual ? hoy * meses : hoy)}</strong>
                 <span>{anual ? '/año' : '/mes'}</span>
               </div>
-              {catalogo.enOferta && hoy < p.precioRegular && catalogo.reglas.ofertaHasta && (
-                <p className="nota oferta-plan">Precio de lanzamiento hasta el {fecha(catalogo.reglas.ofertaHasta)}</p>
-              )}
+              {enOferta && hoy < p.precioRegular && <p className="nota oferta-plan">{TextoLanzamiento(catalogo, cuenta)}</p>}
               <ul className="lista-plan">
                 {Menus(p).map(m => <li key={m} className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{m}</li>)}
                 <li className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{p.sucursalesMax === null ? 'Sucursales ilimitadas' : p.sucursalesMax === 1 ? '1 sucursal' : `Hasta ${p.sucursalesMax} sucursales`}</li>
@@ -190,7 +192,7 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
       </div>
       {laEmpresa && (() => {
         const elegido = catalogo.planes.find(p => p.codigo === laEmpresa.plan) ?? catalogo.planes[0]
-        const mensual = precioHoy(elegido, catalogo.enOferta)
+        const mensual = precioHoy(elegido, enOferta)
         const fin = laEmpresa.pruebaHasta ?? cuenta?.pruebaHasta ?? null
         return (
           <ResumenPago
@@ -225,7 +227,7 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
   const minimo = catalogo.reglas.carteraMinimo
   const [n, setN] = useState(Math.max(cuenta.cupos ?? cuenta.usados, minimo))
   const [guardando, setGuardando] = useState<string>()
-  const oferta = catalogo.enOferta
+  const oferta = conOferta(catalogo, cuenta)   // 079
   const plan = (c: CodigoPlan) => catalogo.planes.find(p => p.codigo === c)!
 
   const base = precioCartera(catalogo.tramos, n, !oferta)
@@ -399,6 +401,20 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
 /** informativa: se muestra, pero no bloquea el botón (con los planes apagados se paga en modo de prueba). */
 interface Condicion { ok: boolean; texto: string; informativa?: boolean }
 
+/** 079: la oferta para esta cuenta: la de hoy, o la que guarda por haber entrado en ella. */
+function conOferta(catalogo: Catalogo, cuenta: ResumenCuenta | null) {
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' })
+  return catalogo.enOferta || (!!cuenta?.lanzamientoHasta && cuenta.lanzamientoHasta >= hoy)
+}
+
+/** 079: qué se le promete con el precio de lanzamiento (Indecopi: con fecha). */
+function TextoLanzamiento(catalogo: Catalogo, cuenta: ResumenCuenta | null) {
+  if (cuenta?.lanzamientoHasta) return `Tu precio de lanzamiento se mantiene hasta el ${fecha(cuenta.lanzamientoHasta)}`
+  const meses = catalogo.reglas.lanzamientoMeses ?? 12
+  return `Precio de lanzamiento para quien contrate hasta el ${catalogo.reglas.ofertaHasta ? fecha(catalogo.reglas.ofertaHasta) : 'fin de la oferta'}` +
+         (meses > 0 ? `: lo mantienes ${meses} meses pagando` : '')
+}
+
 function ResumenPago({ filas, condiciones, boton, nota }: {
   filas: { texto: ReactNode; monto?: string; fuerte?: boolean }[]
   condiciones: Condicion[]
@@ -423,5 +439,79 @@ function ResumenPago({ filas, condiciones, boton, nota }: {
         : <button type="button" className="boton" disabled title="Falta lo marcado con ✗">💳 {boton}</button>}
       {nota && <p className="nota">{nota}</p>}
     </div>
+  )
+}
+
+// =============================================================================
+// 081 — CANCELAR MI PLAN (tan fácil como contratar; nada se borra)
+// =============================================================================
+const MOTIVOS = ['Es muy caro para mí', 'Ya no lo necesito', 'Me cambio a otro sistema', 'Me falta una función', 'Cerré mi negocio', 'Otro motivo']
+
+function CancelarPlan({ cuenta, puede, onHecho }: { cuenta: ResumenCuenta; puede: boolean; onHecho: (m: string) => Promise<void> }) {
+  const mensaje = useMensaje()
+  const { pedir, dialogo } = useConfirmar()
+  const [abierto, setAbierto] = useState(false)
+  const [motivo, setMotivo] = useState('')
+  const [ocupado, setOcupado] = useState(false)
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' })
+  const hasta = cuenta.activoHasta && cuenta.activoHasta >= hoy ? cuenta.activoHasta : null
+
+  async function cancelar() {
+    const ok = await pedir({
+      titulo: '¿Cancelar tu plan?',
+      mensaje: <>No se te cobrará más.{hasta ? <> Sigues usando todo hasta el <strong>{fecha(hasta)}</strong>.</> : null} Después podrás entrar,
+        ver y descargar todos tus comprobantes, pero no emitir nuevos. <strong>No se borra nada</strong> y puedes reactivarlo cuando quieras.</>,
+      confirmar: 'Sí, cancelar mi plan', tono: 'peligro',
+    })
+    if (!ok) return
+    setOcupado(true)
+    try { await onHecho((await planesServicio.cancelar(motivo || null)).mensaje); setAbierto(false) }
+    catch (e) { mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo cancelar.') }
+    finally { setOcupado(false) }
+  }
+
+  async function reactivar() {
+    setOcupado(true)
+    try { await onHecho((await planesServicio.reactivar()).mensaje) }
+    catch (e) { mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo reactivar.') }
+    finally { setOcupado(false) }
+  }
+
+  if (cuenta.canceladoEn) return (
+    <section className="bloque cancelar-plan cancelado">
+      <h2>Tu plan está cancelado</h2>
+      <p>Lo cancelaste el <strong>{fecha(cuenta.canceladoEn)}</strong>. No se te cobra nada.{' '}
+        {hasta ? <>Sigues usando todo hasta el <strong>{fecha(hasta)}</strong>; después podrás ver y descargar todo, pero no emitir.</>
+               : <>Puedes entrar, ver y descargar todo, pero no emitir.</>} No se borró nada.</p>
+      {puede && <Boton ocupado={ocupado} onClick={() => void reactivar()}>Reactivar mi plan</Boton>}
+      {dialogo}
+    </section>
+  )
+
+  if (!puede) return null
+  return (
+    <section className="bloque cancelar-plan">
+      {!abierto ? (
+        <p className="secundario">¿Ya no lo necesitas? <button type="button" className="enlace" onClick={() => setAbierto(true)}>Cancelar mi plan</button>.
+          Sigues usando lo que pagaste hasta el final del periodo, y nada se borra.</p>
+      ) : (
+        <>
+          <h2>Cancelar mi plan</h2>
+          <p className="secundario">No se te cobrará más.{hasta ? <> Sigues usando todo hasta el <strong>{fecha(hasta)}</strong>.</> : null} Después
+            podrás entrar, ver y descargar todo, pero no emitir. Puedes reactivarlo cuando quieras.</p>
+          <label className="campo"><span>¿Por qué cancelas? (opcional, nos ayuda a mejorar)</span>
+            <select value={motivo} onChange={e => setMotivo(e.target.value)}>
+              <option value="">— Prefiero no decir —</option>
+              {MOTIVOS.map(m => <option key={m}>{m}</option>)}
+            </select>
+          </label>
+          <div className="acciones-bloque">
+            <Boton estilo="secundario" onClick={() => setAbierto(false)}>Mejor no</Boton>
+            <Boton estilo="peligro" ocupado={ocupado} onClick={() => void cancelar()}>Cancelar mi plan</Boton>
+          </div>
+        </>
+      )}
+      {dialogo}
+    </section>
   )
 }

@@ -19,7 +19,8 @@ import { fecha } from '../../../nucleo/formato/fechas'
 import { Si } from '../../../nucleo/autorizacion/Protegido'
 import { Permisos } from '../../../nucleo/autorizacion/permisos'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
-import type { EmpresaEnLista } from '../tipos'
+import type { EmpresaEnLista, PlanesDeEmpresas } from '../tipos'
+import { NOMBRE_PLAN } from '../../../nucleo/planes/planes'
 
 /**
  * La pantalla del super administrador: sus clientes.
@@ -37,6 +38,7 @@ export function ListaEmpresas() {
 
   const empresas = useCargar<EmpresaEnLista[]>(() => empresasServicio.listar())
   const catalogo = useCargar(() => empresasServicio.modulos())
+  const planes = useCargar(() => empresasServicio.planes())   // e215
 
   const [creando, setCreando] = useState(false)
   const [editandoModulos, setEditandoModulos] = useState<EmpresaEnLista>()
@@ -144,6 +146,7 @@ export function ListaEmpresas() {
                     <td className="centro">{e.usuarios}</td>
 
                     <td>
+                      <PlanDeEmpresa info={planes.datos} id={e.id} />
                       {e.modulos.length > 0 ? (
                         <div className="etiquetas">
                           {e.modulos.map(c => (
@@ -289,6 +292,7 @@ export function ListaEmpresas() {
         <DialogoModulos
           empresa={editandoModulos}
           modulos={modulos}
+          planes={planes.datos}
           onCerrar={() => setEditandoModulos(undefined)}
           onCambiado={() => void empresas.recargar()}
         />
@@ -413,4 +417,14 @@ function CertificadosPorVencer({ empresas, filtrando, onVer }: { empresas: Empre
       )}
     </Aviso>
   )
+}
+
+/** e215: con los planes encendidos, de qué plan vienen sus módulos. */
+export function PlanDeEmpresa({ info, id }: { info?: PlanesDeEmpresas; id: string }) {
+  const p = info?.encendidos ? info.empresas[id] : undefined
+  if (!p) return null
+  const [texto, clase] = p.accesoTotal ? ['Acceso total', 'total']
+    : p.prueba ? [`Max · mes gratis`, 'max']
+    : [NOMBRE_PLAN[p.efectivo] ?? p.efectivo, p.efectivo]
+  return <div className={'plan-chico ' + clase}>{texto}</div>
 }

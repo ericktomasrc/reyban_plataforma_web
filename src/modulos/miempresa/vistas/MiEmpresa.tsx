@@ -11,7 +11,8 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { noActiva, noHabida, useFichaRuc } from '../../../nucleo/sunat/useFichaRuc'
 import { SelectorUbigeo, buscarUbigeo } from '../../../nucleo/ubigeo/SelectorUbigeo'
 import { FilaRegla, GrupoRegla } from '../../planes/componentes/Reglas'
-import { NOMBRE_TIPO, miEmpresaServicio, type DatosMiEmpresa, type MiEmpresa } from '../servicios/miEmpresaServicio'
+import { soles } from '../../../nucleo/planes/planes'
+import { NOMBRE_TIPO, miEmpresaServicio, type ComprobanteCobro, type DatosMiEmpresa, type MiEmpresa } from '../servicios/miEmpresaServicio'
 
 type Seccion = 'datos' | 'facturacion' | 'series' | 'comprobantes'
 
@@ -19,7 +20,7 @@ const SECCIONES: { seccion: Seccion; ruta: string; titulo: string; texto: string
   { seccion: 'datos', ruta: '/admin/mi-empresa', titulo: 'Datos de la empresa', texto: 'RUC 20 (empresa) o RUC 10 (persona natural con negocio), razón social y dirección fiscal.' },
   { seccion: 'facturacion', ruta: '/admin/mi-empresa/facturacion', titulo: 'Facturación electrónica', texto: 'Certificado digital, usuario SOL, correo y logo del PDF.' },
   { seccion: 'series', ruta: '/admin/mi-empresa/series', titulo: 'Series', texto: 'F001 para facturas, B001 para boletas y las de notas de crédito.' },
-  { seccion: 'comprobantes', ruta: '/admin/mi-empresa/comprobantes', titulo: 'Comprobantes de cobros', texto: 'Con qué series y qué texto sale la factura o boleta de cada pago de tus clientes.' },
+  { seccion: 'comprobantes', ruta: '/admin/mi-empresa/comprobantes', titulo: 'Comprobantes de cobros', texto: 'Con qué series sale la factura o boleta de cada pago, y la lista de las que ya salieron.' },
 ]
 
 /**
@@ -396,9 +397,60 @@ function Comprobantes({ d, onHecho }: { d: MiEmpresa; onHecho: () => Promise<voi
         </FilaRegla>
       </GrupoRegla>
       <div className="acciones-bloque"><Boton ocupado={ocupado} onClick={() => void guardar()}>Guardar</Boton></div>
-      <GrupoRegla titulo="Comprobantes emitidos" texto="La lista de facturas y boletas de tus cobros aparecerá aquí cuando llegue la emisión automática (siguiente entrega).">
-        <p className="pista">Todavía no hay comprobantes de cobros.</p>
-      </GrupoRegla>
+      <Emitidos />
     </div>
+  )
+}
+
+// 076: LOS QUE YA SALIERON. Los emite el sistema solo (unos minutos después de
+// cada pago); aquí solo se miran y, si uno falló, se pide otra vez.
+const ESTADO_COMP: Record<ComprobanteCobro['estado'], [string, string]> = {
+  pendiente: ['Por emitir', 'aviso'], emitido: ['Emitido', 'acento'], error: ['No salió', 'peligro'],
+  rechazado: ['Rechazado por SUNAT', 'peligro'], no_aplica: ['Sin comprobante', ''],
+}
+
+function Emitidos() {
+  const mensaje = useMensaje()
+  const [lista, setLista] = useState<ComprobanteCobro[] | null>(null)
+  const [ocupado, setOcupado] = useState<string | null>(null)
+  const cargar = useCallback(async () => {
+    try { setLista(await miEmpresaServicio.comprobantes()) }
+    catch (e) { setLista([]); mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo leer la lista.') }
+  }, [mensaje])
+  useEffect(() => { void cargar() }, [cargar])
+
+  async function reintentar(id: string) {
+    setOcupado(id)
+    try { mensaje.bien((await miEmpresaServicio.reintentar(id)).mensaje); await cargar() }
+    catch (e) { mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo pedir otra vez.') }
+    finally { setOcupado(null) }
+  }
+
+  return (
+    <GrupoRegla titulo="Comprobantes emitidos" texto="Cada pago de un plan genera su factura o boleta, sola, a los pocos minutos. Si una no sale (por ejemplo, falta la serie o el servicio no respondió), el sistema lo reintenta; también puedes pedirlo tú.">
+      {lista === null ? <Cargando /> : lista.length === 0 ? <p className="pista">Todavía no hay pagos con comprobante.</p> : (
+        <div className="tabla-desliza">
+          <table className="tabla compacta comprobantes-cobros">
+            <thead><tr><th>Pago</th><th>Cliente</th><th>Monto</th><th>Comprobante</th><th>Estado</th><th /></tr></thead>
+            <tbody>{lista.map(c => {
+              const [texto, tono] = ESTADO_COMP[c.estado] ?? [c.estado, '']
+              return (
+                <tr key={c.id}>
+                  <td>{c.numero ?? '—'}<div className="secundario">{fecha(c.fecha)}{c.modo !== 'real' && c.modo !== 'manual' ? ' · prueba' : ''}</div></td>
+                  <td>{c.comprador ?? '—'}<div className="secundario">{c.documento ?? ''}</div></td>
+                  <td>{soles(c.monto)}</td>
+                  <td>{c.comprobante ? <strong>{c.comprobante}</strong> : '—'}{c.sunat && <div className="secundario">SUNAT: {c.sunat}</div>}</td>
+                  <td><span className={'etiqueta ' + tono}>{texto}</span>
+                    {c.error && <div className="secundario">{c.error}</div>}
+                    {c.estado === 'error' && <div className="secundario">{c.intentos} intento{c.intentos === 1 ? '' : 's'}</div>}</td>
+                  <td>{(c.estado === 'error' || (c.estado === 'pendiente' && c.intentos > 0)) && (
+                    <Boton estilo="secundario" ocupado={ocupado === c.id} onClick={() => void reintentar(c.id)}>Reintentar</Boton>)}</td>
+                </tr>
+              )
+            })}</tbody>
+          </table>
+        </div>
+      )}
+    </GrupoRegla>
   )
 }

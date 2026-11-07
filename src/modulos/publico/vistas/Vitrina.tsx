@@ -59,10 +59,11 @@ export function MarcoPublico({ children }: { children?: ReactNode }) {
               <p>Facturas, boletas, notas y guías de remisión electrónicas, enviadas a SUNAT desde tu navegador.</p>
             </div>
             <div>
-              <h4>Producto</h4>
-              <Link to="/conoce">Inicio</Link>
-              <Link to="/precios">Precios</Link>
-              <Link to="/registro?tipo=negocio">Crear cuenta</Link>
+              <h4>Servicios</h4>
+              <Link to="/precios">Plan Básico</Link>
+              <Link to="/precios">Plan Pro</Link>
+              <Link to="/precios">Plan Max</Link>
+              <Link to="/precios">Cuenta Profesional</Link>
               <Link to="/entrar">Entrar</Link>
             </div>
             <div>
@@ -70,16 +71,25 @@ export function MarcoPublico({ children }: { children?: ReactNode }) {
               <Link to="/terminos">Términos y condiciones</Link>
               <Link to="/privacidad">Política de privacidad</Link>
               <Link to="/devoluciones">Cambios, cancelaciones y devoluciones</Link>
+              <Link to="/libro-reclamaciones">Libro de Reclamaciones</Link>
             </div>
             <div>
               <h4>Contacto</h4>
-              {e && <a href={`mailto:${e.correo}`}>{e.correo}</a>}
-              {e?.whatsapp && <a href={`https://wa.me/${e.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">WhatsApp {e.whatsapp}</a>}
+              {e?.whatsapp && <a href={`tel:+${numeroPeru(e.whatsapp)}`}>📞 {e.whatsapp}</a>}
+              {e && <a href={`mailto:${e.correo}`}>✉ {e.correo}</a>}
+              {e?.direccion && <span className="pub-pie-dato">📍 {e.direccion}</span>}
+              {e?.whatsapp && <a href={`https://wa.me/${numeroPeru(e.whatsapp)}`} target="_blank" rel="noreferrer">WhatsApp</a>}
               <Link to="/contacto">Escríbenos</Link>
+            </div>
+            <div>
+              <Link to="/libro-reclamaciones" className="pub-libro" aria-label="Libro de Reclamaciones">
+                <span className="pub-libro-icono" aria-hidden="true" />
+                <span>LIBRO DE<br />RECLAMACIONES</span>
+              </Link>
             </div>
           </div>
           <div className="pub-ancho pub-pie-legal">
-            © {new Date().getFullYear()} {e?.razonSocial ?? 'Reyban Consulting SAC'}{e?.ruc ? ` · RUC ${e.ruc}` : ''}{e?.direccion ? ` · ${e.direccion}` : ''}
+            © {new Date().getFullYear()} {e?.razonSocial ?? 'Reyban Consulting'}{e?.ruc ? ` · RUC ${e.ruc}` : ''}{e?.direccion ? ` · ${e.direccion}` : ''}
             {' · '}Pagos seguros con Culqi · Precios en soles, con IGV
           </div>
         </footer>
@@ -112,4 +122,10 @@ export function QuienesSomos() {
 export function CorreoContacto() {
   const c = useVitrina()?.empresa.correo ?? 'reybanconsulting@gmail.com'
   return <a href={`mailto:${c}`}>{c}</a>
+}
+
+/** e221: el número con el código del Perú (51), como lo piden WhatsApp y el teléfono: 983138058 → 51983138058. */
+export function numeroPeru(n: string) {
+  const d = n.replace(/\D/g, '')
+  return d.length === 9 ? '51' + d : d
 }

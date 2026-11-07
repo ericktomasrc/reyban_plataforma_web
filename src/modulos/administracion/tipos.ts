@@ -172,3 +172,14 @@ export interface UsuariosDeEmpresa {
     roles: string[]
   }[]
 }
+
+/**
+ * e215: el plan de cada empresa y desde qué plan viene cada módulo. Con los
+ * planes apagados, `empresas` llega vacío y los módulos se dan a mano.
+ */
+export interface PlanesDeEmpresas {
+  encendidos: boolean
+  /** inventario → 'pro', pos → 'max' (lo que diga el armador). */
+  minimos: Record<string, string>
+  empresas: Record<string, { efectivo: string; plan: string; prueba: boolean; accesoTotal: boolean; cuenta: string | null }>
+}

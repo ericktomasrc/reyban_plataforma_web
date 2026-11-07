@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Dialogo } from '../../../componentes/Dialogo'
@@ -6,11 +7,14 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { credencialesServicio } from '../../facturacion/servicios/facturacionServicio'
 import { empresasServicio } from '../servicios/empresasServicio'
-import type { EmpresaEnLista, ModuloDelCatalogo } from '../tipos'
+import { NOMBRE_PLAN } from '../../../nucleo/planes/planes'
+import type { EmpresaEnLista, ModuloDelCatalogo, PlanesDeEmpresas } from '../tipos'
 
 interface Props {
   empresa: EmpresaEnLista
   modulos: ModuloDelCatalogo[]
+  /** e215: con los planes encendidos, los módulos (menos facturación) los da el plan. */
+  planes?: PlanesDeEmpresas
   onCerrar: () => void
 
   /** Para que la lista de atrás se entere del cambio. */
@@ -37,7 +41,21 @@ interface Props {
  */
 const FACTURACION = 'facturacion'
 
-export function DialogoModulos({ empresa, modulos, onCerrar, onCambiado }: Props) {
+const ORDEN: Record<string, number> = { basico: 1, pro: 2, max: 3 }
+
+export function DialogoModulos({ empresa, modulos, planes, onCerrar, onCambiado }: Props) {
+  const navegar = useNavigate()
+  // e215: ¿manda el plan? (encendidos). Entonces solo se mira, menos facturación.
+  const info = planes?.encendidos ? planes.empresas[empresa.id] : undefined
+  const mandaPlan = !!planes?.encendidos
+  const efectivo = info ? (info.accesoTotal ? 'todo' : info.prueba ? 'max' : info.efectivo) : 'todo'
+  const nombrePlan = info?.accesoTotal ? 'Acceso total' : info?.prueba ? 'Max (mes gratis)' : NOMBRE_PLAN[efectivo] ?? efectivo
+  const loDa = (codigo: string) => {
+    const min = planes?.minimos[codigo]
+    return efectivo === 'todo' || (!!min && (ORDEN[min] ?? 9) <= (ORDEN[efectivo] ?? 0))
+  }
+  const ajustar = info?.cuenta ? () => navegar(`/admin/planes?ajustar=${info.cuenta}`) : undefined
+
   const [activos, setActivos] = useState<string[]>(empresa.modulos)
   const [trabajando, setTrabajando] = useState<string>()
   const mensaje = useMensaje()
@@ -83,8 +101,15 @@ export function DialogoModulos({ empresa, modulos, onCerrar, onCambiado }: Props
       titulo={`Módulos de ${empresa.nombre}`}
       abierto
       onCerrar={onCerrar}
-      acciones={<Boton onClick={onCerrar}>Cerrar</Boton>}
+      acciones={<>
+        {mandaPlan && ajustar && <Boton estilo="secundario" onClick={ajustar}>Ajustar su cuenta</Boton>}
+        <Boton onClick={onCerrar}>Cerrar</Boton>
+      </>}
     >
+      {mandaPlan
+        ? <div className="etiqueta-plan encendidos">Sus módulos los da su plan: <strong>{nombrePlan}</strong>. Aquí solo se mira (menos la facturación, que sigue a mano).</div>
+        : planes && <div className="etiqueta-plan">⚙ Planes <strong>apagados</strong>: los módulos los das tú, a mano.</div>}
+
       {noLista && (
         <Aviso tono="ojo">
           <strong>{noLista.error}</strong>
@@ -99,33 +124,47 @@ export function DialogoModulos({ empresa, modulos, onCerrar, onCambiado }: Props
         <p className="vacio">No hay módulos en el catálogo.</p>
       ) : (
         <div className="casillas">
-          {modulos.map(m => (
-            <label key={m.codigo} className="casilla">
+          {modulos.map(m => {
+            // 077: la facturación activa no se quita aquí (es automática; para parar, Suspender).
+            const factActiva = m.codigo === FACTURACION && activos.includes(FACTURACION)
+            const bloqueada = (mandaPlan && m.codigo !== FACTURACION) || factActiva
+            const daPlan = bloqueada && !factActiva && loDa(m.codigo)
+            const tiene = activos.includes(m.codigo)
+            return (
+            <label key={m.codigo} className={'casilla' + (bloqueada ? ' bloqueada' : '')}>
               <input
                 type="checkbox"
-                checked={activos.includes(m.codigo)}
-                disabled={trabajando === m.codigo}
+                checked={factActiva || (bloqueada ? daPlan : tiene)}
+                disabled={bloqueada || trabajando === m.codigo}
                 onChange={e => void alternar(m.codigo, e.target.checked)}
               />
               <span>
-                <strong>{m.nombre}</strong>
+                <strong>{m.nombre}
+                  {bloqueada && !factActiva && (daPlan
+                    ? <span className="tag-plan si">Lo da {efectivo === 'todo' ? 'el acceso total' : `el ${NOMBRE_PLAN[efectivo]}`}</span>
+                    : <span className={'tag-plan ' + (tiene ? 'guardado' : 'no')}>
+                        {tiene ? 'Guardado · ' : ''}viene en el {NOMBRE_PLAN[planes?.minimos[m.codigo] ?? ''] ?? 'otro plan'}</span>)}
+                </strong>
                 {m.descripcion && <em>{m.descripcion}</em>}
                 {m.codigo === FACTURACION && !activos.includes(FACTURACION) && (
                   <em>
                     {empresa.facturacion?.listoParaEmitir === true
-                      ? 'El emisor está listo: se puede activar.'
-                      : 'Solo se activa si el emisor tiene certificado, usuario SOL, al menos una serie y la dirección revisada. Se comprueba con el servicio al marcarla.'}
+                      ? 'El emisor está listo: se activa sola cuando la empresa termina «Configurar facturación», o márcala tú.'
+                      : 'Se activa sola cuando la empresa termina «Configurar facturación» (certificado, usuario SOL, una serie y la dirección). Si le falta algo, el asistente le dice qué.'}
                   </em>
                 )}
+                {factActiva && <em>Activa. Se activa y se mantiene sola; para que deje de emitir, usa «Suspender» (le muestra el motivo).</em>}
+                {bloqueada && !factActiva && !daPlan && tiene && <em>Sus datos siguen guardados: vuelven a verse si sube de plan.</em>}
               </span>
             </label>
-          ))}
+          )})}
         </div>
       )}
 
       <p className="nota">
-        Quitar un módulo no borra nada: su configuración se guarda por si vuelve
-        a contratarse.
+        {mandaPlan
+          ? <>Para darle algo que su plan no trae, usa <strong>Ajustar su cuenta</strong> (cortesía, meses gratis, precio especial o acceso total, con fecha de fin). Bajar de plan no borra nada.</>
+          : <>Quitar un módulo no borra nada: su configuración se guarda por si vuelve a contratarse. Al encender los planes, cada empresa recibe lo que trae su plan.</>}
       </p>
     </Dialogo>
   )

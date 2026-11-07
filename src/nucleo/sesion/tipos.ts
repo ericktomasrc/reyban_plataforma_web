@@ -137,6 +137,8 @@ export interface PlanYo {
   efectivo?: 'todo' | 'basico' | 'pro' | 'max'
   pruebaHasta?: string | null
   accesoTotal?: boolean
+  /** 076: cómo va su pago. Solo con los planes encendidos. */
+  pago?: 'al_dia' | 'reintento' | 'gracia' | 'no_emite' | 'cancelado' | null
   bloqueadas?: { web: string[]; libres: string[]; minimos: Record<string, string> }
 }
 

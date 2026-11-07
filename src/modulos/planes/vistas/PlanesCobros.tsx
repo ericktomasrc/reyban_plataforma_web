@@ -149,7 +149,8 @@ function Cuentas({ puedeAjustar, encendidos }: { puedeAjustar: boolean; encendid
   const [error, setError] = useState<string>()
   const [filtro, setFiltro] = useState<Filtro>('todas')
   const [buscar, setBuscar] = useState('')
-  const [ajustando, setAjustando] = useState<string>()
+  // e215: «Ajustar su cuenta» desde Empresas › Módulos llega con ?ajustar=<cuenta>.
+  const [ajustando, setAjustando] = useState<string | undefined>(() => new URLSearchParams(window.location.search).get('ajustar') ?? undefined)
   const [abiertas, setAbiertas] = useState<string[]>([])
   const alternar = (id: string) => setAbiertas(a => a.includes(id) ? a.filter(x => x !== id) : [...a, id])
 
@@ -292,6 +293,7 @@ function EstadoCuenta({ c }: { c: ResumenCuenta }) {
         {c.estado === 'acceso_total' && (c.accesoTotalMotivo ?? 'Cuenta de prueba')}
         {vigente && ['cortesia', 'meses_gratis', 'precio_especial'].includes(c.estado) && `hasta ${fecha(vigente.hasta)}`}
       </div>
+      {c.canceladoEn && <div className="texto-peligro">Canceló el {fecha(c.canceladoEn)}{c.activoHasta ? ` · activo hasta el ${fecha(c.activoHasta)}` : ''}{c.canceladoMotivo ? ` · «${c.canceladoMotivo}»` : ''}</div>}
     </>
   )
 }
@@ -312,6 +314,7 @@ function AjustarCuenta({ id, puede, onCerrar, onCambio }: { id: string; puede: b
   const [hasta, setHasta] = useState(hoyMas(90))
   const [motivo, setMotivo] = useState('')
   const [motivoTotal, setMotivoTotal] = useState('Cuenta de prueba')
+  const [lanzamiento, setLanzamiento] = useState('')
   const [cupos, setCupos] = useState('')
   const [error, setError] = useState<string>()
 
@@ -394,6 +397,25 @@ function AjustarCuenta({ id, puede, onCerrar, onCambio }: { id: string; puede: b
                 </span>
               </div>
             )}
+          </section>
+
+          {/* ---- 079. Precio de lanzamiento de esta cuenta --------------------- */}
+          <section>
+            <h3>Precio de lanzamiento</h3>
+            <div className="fila-ajuste">
+              {c.lanzamientoHasta && c.lanzamientoHasta >= hoyMas(0)
+                ? <span className="etiqueta acento">Paga el precio de lanzamiento hasta el {fecha(c.lanzamientoHasta)}</span>
+                : <span className="etiqueta">{c.ofertaGeneral ? 'Paga el precio de lanzamiento mientras dure la oferta' : 'Paga el precio real'}</span>}
+              {puede && <>
+                <label className="campo"><span className="rotulo">Conservarlo hasta</span>
+                  <input type="date" value={lanzamiento} onChange={e => setLanzamiento(e.target.value)} /></label>
+                <Boton estilo="secundario" ocupado={ocupado === 'lanzamiento'} disabled={!lanzamiento}
+                       onClick={() => void hacer('lanzamiento', () => planesServicio.lanzamiento(c.id, lanzamiento))}>Guardar fecha</Boton>
+                {c.lanzamientoHasta && <Boton estilo="plano" ocupado={ocupado === 'sin-lanzamiento'}
+                       onClick={() => void hacer('sin-lanzamiento', () => planesServicio.lanzamiento(c.id, null))}>Quitar (paga el real)</Boton>}
+              </>}
+            </div>
+            <p className="secundario">Quien se registra durante la oferta lo conserva los meses que digan las reglas, aunque la oferta termine.</p>
           </section>
 
           {/* ---- 2. Acceso total -------------------------------------------- */}
@@ -706,8 +728,16 @@ function PreciosYReglas({ config, puede, onHecho }: { config: ConfigPlanes; pued
           </GrupoRegla>
 
           <GrupoRegla titulo="Precios" texto="Para todos los planes y la Cartera.">
-            <FilaRegla etiqueta="Fin del precio de lanzamiento" ayuda="Hasta ese día se cobra el precio de lanzamiento; después, el real. Vacío = el de lanzamiento no vence.">
-              <input type="date" disabled={!puede} value={reglas.ofertaHasta ?? ''} onChange={e => regla('ofertaHasta', e.target.value || null)} />
+            <FilaRegla etiqueta="Oferta (precio de lanzamiento)" ayuda="Encendida: se muestra el precio real tachado y se cobra el de lanzamiento hasta la fecha de fin. Apagada: solo el precio real.">
+              <label className="interruptor-chico"><input type="checkbox" disabled={!puede} checked={reglas.ofertaActiva ?? true}
+                onChange={e => regla('ofertaActiva', e.target.checked)} /><span>{(reglas.ofertaActiva ?? true) ? 'Encendida' : 'Apagada'}</span></label>
+            </FilaRegla>
+            <FilaRegla etiqueta="Fin de la oferta" ayuda="El último día con precio de lanzamiento. Llegado ese día termina sola, aunque siga encendida. Indecopi pide que toda oferta diga hasta cuándo.">
+              <input type="date" disabled={!puede || !(reglas.ofertaActiva ?? true)} value={reglas.ofertaHasta ?? ''} onChange={e => regla('ofertaHasta', e.target.value || null)} />
+            </FilaRegla>
+            <FilaRegla etiqueta="Quien entra en la oferta la conserva" ayuda="Una cuenta que se registra mientras hay oferta sigue pagando el precio de lanzamiento estos meses, aunque la oferta termine. 0 = la pierde al terminar la oferta.">
+              <span className="con-unidad"><input type="number" min={0} max={60} disabled={!puede} value={reglas.lanzamientoMeses ?? 12}
+                onChange={e => regla('lanzamientoMeses', Number(e.target.value))} /><em>meses</em></span>
             </FilaRegla>
             <FilaRegla etiqueta="Meses gratis del pago anual" ayuda="Quien paga el año completo paga 12 menos estos meses (2 = paga 10).">
               <span className="con-unidad"><input type="number" min={0} max={11} disabled={!puede} value={reglas.anualMesesGratis}

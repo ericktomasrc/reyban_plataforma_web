@@ -51,6 +51,7 @@ export function TerminosPublico() {
         <li>El pago con tarjeta lo procesa <strong>Culqi</strong>: tu tarjeta la guarda Culqi, no Reyban. Si dejas tu tarjeta, el cobro se renueva solo en la misma fecha de cada periodo hasta que canceles.</li>
         <li>Con cada pago te emitimos factura o boleta electrónica.</li>
         <li>Si un cobro falla, lo reintentamos y te avisamos. Si no se regulariza en el plazo de gracia, podrás entrar y ver todo, pero no emitir hasta pagar. No se borra nada.</li>
+        <li><strong>Precio de lanzamiento:</strong> si contratas mientras hay una oferta, conservas ese precio durante los meses que indica la página de precios (12 meses pagados, salvo que diga otra cosa), aunque la oferta termine. Después pasa al precio vigente.</li>
         <li>Si cambiamos los precios, te avisaremos con al menos 30 días de anticipación; el cambio rige desde tu siguiente periodo.</li>
       </ul>
 
@@ -142,6 +143,7 @@ export function DevolucionesPublico() {
       <ul>
         <li>Puedes cancelar cuando quieras desde «Mi plan» o escribiéndonos. No hay penalidad ni permanencia mínima.</li>
         <li>Sigues usando el servicio hasta el final del periodo que ya pagaste, y no se te vuelve a cobrar.</li>
+        <li>Después de esa fecha puedes seguir entrando para ver y descargar todo, pero no emitir. Puedes reactivar tu plan cuando quieras desde «Mi plan».</li>
         <li>Tus comprobantes siguen siendo tuyos: puedes descargarlos, y los conservamos el tiempo que exige la ley.</li>
       </ul>
 

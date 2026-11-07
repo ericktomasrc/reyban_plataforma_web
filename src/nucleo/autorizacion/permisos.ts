@@ -37,6 +37,8 @@ export const Permisos = {
     CobrosRegistrar:       'plataforma.cobros_registrar',
     // 075: Mi empresa (la de Reyban, que cobra los planes).
     MiEmpresa:             'plataforma.mi_empresa',
+    // 078: Libro de Reclamaciones.
+    Reclamos:              'plataforma.reclamos',
   },
 
   Usuarios: {

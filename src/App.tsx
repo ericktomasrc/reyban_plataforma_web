@@ -24,6 +24,7 @@ import { MarcoPublico } from './modulos/publico/vistas/Vitrina'
 import { ContactoPublico, InicioPublico, PreciosPublico } from './modulos/publico/vistas/PaginasPublicas'
 import { DevolucionesPublico, PrivacidadPublico, TerminosPublico } from './modulos/publico/vistas/Legales'
 import { esDominioVitrina } from './modulos/publico/servicios/vitrinaServicio'
+import { LibroReclamaciones } from './modulos/publico/vistas/LibroReclamaciones'
 
 /**
  * EL ROUTER ENVUELVE TODO, también lo que se ve sin sesión.
@@ -75,6 +76,7 @@ export default function App() {
               <Route path="/terminos" element={<TerminosPublico />} />
               <Route path="/privacidad" element={<PrivacidadPublico />} />
               <Route path="/devoluciones" element={<DevolucionesPublico />} />
+              <Route path="/libro-reclamaciones" element={<LibroReclamaciones />} />
             </Route>
             <Route path="/entrar" element={<Entrar />} />
 

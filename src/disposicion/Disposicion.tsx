@@ -159,6 +159,19 @@ export function Disposicion() {
         </div>
       )}
 
+      {/* 076: EL PAGO DEL PLAN. Sin enlace para quien no puede pagar: se le dice a quién avisar. */}
+      {!usuario.esSuperAdmin && empresa && !enEstudio && plan?.pago && plan.pago !== 'al_dia' && (
+        <div className={'franja-planes pago ' + plan.pago} role="status">
+          {plan.pago === 'reintento' && <>No pudimos cobrar tu plan. Lo volveremos a intentar; revisa tu tarjeta.</>}
+          {plan.pago === 'gracia' && <>Tu plan está pendiente de pago: estás en días de gracia. Ponte al día para no dejar de emitir.</>}
+          {plan.pago === 'no_emite' && <>Tu plan está pendiente de pago: puedes ver todo, pero no emitir. Al pagar se desbloquea al instante.</>}
+          {plan.pago === 'cancelado' && <>Cancelaste tu plan: puedes ver y descargar todo, pero no emitir.</>}
+          {cambiaPlan
+            ? plan.pago === 'cancelado' ? <> <Link to="/mi-plan">Reactivar mi plan</Link></> : <> <Link to="/mi-plan/pagos">Ir a Mis pagos</Link></>
+            : <> Avísale al dueño de la cuenta.</>}
+        </div>
+      )}
+
       <header className={'cabecera' + (cartera && !enEstudio ? ' en-empresa' : '')}>
         <button type="button" className="boton-menu" aria-label="Abrir el menú"
                 aria-expanded={menuAbierto} onClick={() => setMenuAbierto(a => !a)}>☰</button>
@@ -414,6 +427,8 @@ export function Disposicion() {
                                  grupos={[{ titulo: 'Mi empresa', items: MENU_MI_EMPRESA }]} />
               )}
               {puede(Permisos.Plataforma.EmpresasGestionar) && <NavLink to="/admin/traspasos" className={activo}><Icono>⇄</Icono>Solicitudes de traspaso</NavLink>}
+              {/* 078: el Libro de Reclamaciones (la hoja la llena el cliente en la página pública). */}
+              {puede(Permisos.Plataforma.Reclamos) && <NavLink to="/admin/reclamos" className={activo}><Icono>✎</Icono>Libro de Reclamaciones</NavLink>}
               {/* 036: reportes de la plataforma. */}
               {puede(Permisos.Plataforma.ReportesVer) && (
                 <MenuDesplegable icono="▥" titulo="Reportes" inicio="/admin/reportes/plataforma"
@@ -517,6 +532,7 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/mi-plan')) return 'Mi plan'
   if (ruta.startsWith('/admin/planes')) return 'Planes y cobros'
   if (ruta.startsWith('/admin/mi-empresa')) return 'Mi empresa'
+  if (ruta.startsWith('/admin/reclamos')) return 'Libro de Reclamaciones'
   if (ruta.startsWith('/admin/empresas')) return 'Empresas'
   if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'
   if (ruta.startsWith('/admin/equipo')) return 'Equipo de la plataforma'

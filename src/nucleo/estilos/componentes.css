@@ -1453,6 +1453,11 @@ label.casilla-stock em { font-style: normal; font-size: 13px; color: var(--tinta
   background: var(--hundido); color: var(--tinta-2); border-bottom: 1px solid var(--borde); }
 .franja-planes.gratis { background: var(--acento-suave); color: var(--acento-fuerte); font-weight: 500; }
 .franja-planes.gratis a { color: inherit; font-weight: 600; margin-left: var(--e1); }
+/* 076: el pago del plan (reintento / gracia / no emite). */
+.franja-planes.pago { font-weight: 500; background: var(--peligro-suave); color: var(--peligro); border-bottom-color: var(--peligro-borde); }
+.franja-planes.pago.reintento, .franja-planes.pago.gracia { background: var(--aviso-suave); color: var(--aviso); border-bottom-color: var(--aviso-borde); }
+.franja-planes.pago a { color: inherit; font-weight: 600; margin-left: var(--e1); }
+.comprobantes-cobros td:nth-child(1), .comprobantes-cobros td:nth-child(3), .comprobantes-cobros td:nth-child(4) strong { white-space: nowrap; }
 .franja-plan { margin: 0 0 var(--e4); padding: 10px 14px; border-radius: var(--radio); background: var(--acento-suave); color: var(--acento-fuerte); font-size: 14px; }
 
 .periodo-plan { margin: 0 0 var(--e4); }
@@ -1995,3 +2000,114 @@ code.ref { font-size: 12px; word-break: break-all; }
 .mi-empresa-form h2:first-of-type { margin-top: 0; }
 .serie-nueva { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 700px) { .serie-nueva { grid-template-columns: minmax(0, 1fr); } }
+
+/* e215: módulos y planes (Empresas). */
+.plan-chico { display: inline-block; margin-bottom: 4px; padding: 1px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .03em; text-transform: uppercase; background: var(--tinta-2); color: #fff; }
+.plan-chico.pro { background: var(--acento); } .plan-chico.max { background: var(--aviso); } .plan-chico.total { background: #7a3db8; }
+.etiqueta-plan { margin-bottom: var(--e3); padding: 8px 12px; border-radius: var(--radio); background: var(--hundido); color: var(--tinta-2); font-size: 14px; }
+.etiqueta-plan.encendidos { background: var(--acento-suave); color: var(--acento-fuerte); }
+.casilla.bloqueada { opacity: .9; background: var(--hundido); }
+.tag-plan { margin-left: var(--e2); padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.tag-plan.si { background: var(--acento-suave); color: var(--acento); }
+.tag-plan.no { background: var(--aviso-suave); color: var(--aviso); }
+.tag-plan.guardado { background: var(--hundido); color: var(--tinta-2); border: 1px solid var(--borde); }
+
+/* ==========================================================================
+   e217 — Página pública para Culqi: servicios con imagen, Libro de Reclamaciones
+   ========================================================================== */
+.pub-productos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+.pub-producto { position: relative; display: flex; flex-direction: column; border: 1px solid var(--borde); border-radius: 16px; background: var(--superficie); overflow: hidden; }
+.pub-producto.destacado { border: 2px solid var(--acento); box-shadow: 0 12px 32px rgb(15 111 108 / 14%); }
+.pub-producto-cuerpo { display: flex; flex-direction: column; gap: 8px; padding: 18px 18px 16px; flex: 1; }
+.pub-producto h3 { margin: 0; font-size: 19px; }
+.pub-producto .pub-para { min-height: 0; margin: 0; }
+.pub-producto .pub-precio strong { font-size: 28px; }
+.pub-producto .pub-precio small { color: var(--tinta-2); font-size: 13px; }
+.pub-descripcion { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--tinta); }
+.pub-producto ul { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 6px; font-size: 13px; color: var(--tinta-2); flex: 1; align-content: start; }
+.pub-producto ul li { padding-left: 16px; position: relative; }
+.pub-producto ul li::before { content: '•'; position: absolute; left: 4px; color: var(--acento); }
+.pub-mini { text-align: center; font-size: 12px; color: var(--tinta-2); }
+.pub-como-compro { margin: 18px 0 8px; padding: 14px 18px; background: var(--hundido); border-radius: 12px; font-size: 14px; line-height: 1.6; color: var(--tinta-2); }
+
+.pub-captura { position: relative; height: 150px; padding: 14px; background: linear-gradient(135deg, #e6f2f1, #f6f8f9); border-bottom: 1px solid var(--borde); }
+.pub-captura-cinta { position: absolute; top: 8px; right: 8px; z-index: 1; background: var(--acento); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.pub-ventana { height: 100%; background: #fff; border: 1px solid #cfd8de; border-radius: 7px; overflow: hidden; box-shadow: 0 4px 10px rgb(0 0 0 / 8%); display: flex; flex-direction: column; font-size: 9px; color: #16202a; }
+.pub-ventana-barra { display: flex; align-items: center; gap: 3px; padding: 3px 6px; background: #e8edf0; }
+.pub-ventana-barra i { width: 6px; height: 6px; border-radius: 50%; background: #c3ccd2; }
+.pub-ventana-barra span { margin-left: 6px; font-weight: 600; color: #5b6b77; }
+.pub-ventana-cuerpo { flex: 1; display: flex; min-height: 0; }
+.pub-ventana-menu { width: 30%; background: #f3f6f7; padding: 5px 4px; display: grid; align-content: start; gap: 3px; }
+.pub-ventana-menu b { font-weight: 500; color: #5b6b77; padding: 2px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pub-ventana-menu b.on { background: var(--acento-suave); color: var(--acento); font-weight: 700; }
+.pub-ventana-main { flex: 1; padding: 5px 7px; display: grid; align-content: start; gap: 3px; min-width: 0; }
+.pub-vtitulo { font-weight: 700; font-size: 10px; margin-bottom: 1px; }
+.pub-vfila { display: flex; justify-content: space-between; gap: 4px; border-bottom: 1px solid #eef1f3; padding-bottom: 2px; }
+.pub-vfila span { color: #5b6b77; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pub-vfila em { font-style: normal; font-weight: 600; white-space: nowrap; }
+.pub-vfila em.ok { color: var(--acento); } .pub-vfila em.mal { color: #a6301f; }
+.pub-vboton { margin-top: 3px; background: var(--acento); color: #fff; border-radius: 3px; padding: 3px; text-align: center; font-weight: 600; }
+.pub-vtotal { font-weight: 800; font-size: 11px; text-align: right; }
+.pub-vkpis { display: flex; gap: 4px; margin-top: 2px; } .pub-vkpis span { flex: 1; background: var(--acento-suave); border-radius: 3px; padding: 2px 4px; color: #5b6b77; }
+.pub-vkpis b { color: var(--acento); }
+.pub-vbarras { display: flex; align-items: flex-end; gap: 2px; height: 48px; } .pub-vbarras span { flex: 1; background: var(--acento); opacity: .75; border-radius: 2px 2px 0 0; }
+
+.pub-pie-rejilla { grid-template-columns: 1.6fr 1fr 1.3fr 1.3fr 1fr; }
+.pub-pie-dato { display: block; margin-bottom: 8px; font-size: 14px; }
+.pub-libro { display: flex !important; align-items: center; gap: 10px; background: #fff; color: #16202a !important; border-radius: 10px; padding: 10px 12px; font-weight: 800; font-size: 12.5px; line-height: 1.2; }
+.pub-libro-icono { width: 30px; height: 36px; flex: none; border: 2px solid #16202a; border-radius: 3px; position: relative; }
+.pub-libro-icono::after { content: ''; position: absolute; left: 5px; right: 5px; top: 8px; height: 2px; background: #16202a; box-shadow: 0 6px 0 #16202a, 0 12px 0 #16202a; }
+
+.libro { max-width: 900px; border: 1px solid var(--borde); border-radius: 16px; padding: 28px 32px; background: var(--superficie); }
+.libro h1 { margin: 0 0 4px; font-size: 26px; }
+.libro-cabeza { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+.libro-cabeza > div:first-child { flex: 1; min-width: 0; }
+.libro .libro-proveedor { flex: none; }
+@media (max-width: 700px) { .libro-cabeza { flex-direction: column; } }
+.libro-proveedor { display: grid; gap: 2px; background: var(--hundido); border-radius: 10px; padding: 10px 14px; font-size: 13px; text-align: right; }
+.libro .libro-seccion { margin: 22px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--borde); font-size: 16px; color: var(--acento); }
+.libro-rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.libro-campo { display: grid; gap: 4px; margin-bottom: 10px; font-size: 13px; color: var(--tinta-2); }
+.libro-campo input, .libro-campo select, .libro-campo textarea { font: inherit; font-size: 15px; color: var(--tinta); padding: 9px 11px; border: 1px solid var(--borde); border-radius: 8px; background: #fff; text-transform: none; }
+.libro-campo textarea { resize: vertical; }
+.libro-campo.mal input, .libro-campo.mal textarea, .libro-campo.mal select { border-color: #a6301f; box-shadow: 0 0 0 3px rgb(166 48 31 / 12%); }
+.libro-doc { display: flex; gap: 8px; } .libro-doc select { flex: none; width: 46%; } .libro-doc input { flex: 1; min-width: 0; }
+.libro-opciones { display: flex; gap: 10px; margin-bottom: 10px; }
+.libro-opcion { font: inherit; padding: 8px 16px; border: 1px solid var(--borde); border-radius: 8px; background: #fff; cursor: pointer; color: var(--tinta); }
+.libro-opcion.activa { border-color: var(--acento); background: var(--acento-suave); color: var(--acento); font-weight: 600; }
+.libro-captcha { margin: 12px 0; }
+.libro-error { margin: 12px 0; padding: 10px 14px; border-radius: 8px; background: #fbe9e6; color: #a6301f; border: 1px solid #f1c4bc; }
+.libro-acciones { display: flex; align-items: center; gap: 14px; margin-top: 8px; flex-wrap: wrap; }
+.libro-legal { margin-top: 14px; }
+.libro-hecho { text-align: center; display: grid; gap: 10px; justify-items: center; padding: 20px 0; }
+.libro-check { width: 56px; height: 56px; border-radius: 50%; background: var(--acento-suave); color: var(--acento); display: grid; place-items: center; font-size: 28px; font-weight: 800; }
+
+.texto-peligro { color: var(--peligro); font-size: 13px; }
+.celda-texto { max-width: 280px; font-size: 13.5px; }
+.ficha-hoja { display: grid; grid-template-columns: 110px 1fr; gap: 8px 14px; margin: 0 0 16px; font-size: 14px; }
+.ficha-hoja dt { color: var(--tinta-2); } .ficha-hoja dd { margin: 0; }
+.texto-largo { white-space: pre-line; }
+
+@media (max-width: 1200px) { .pub-productos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 860px) {
+  .pub-productos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pub-pie-rejilla { grid-template-columns: 1fr 1fr; }
+  .libro-rejilla { grid-template-columns: 1fr; }
+  .libro { padding: 20px 16px; }
+  .libro-proveedor { text-align: left; }
+}
+@media (max-width: 560px) { .pub-productos { grid-template-columns: minmax(0, 1fr); } .pub-pie-rejilla { grid-template-columns: 1fr; } }
+
+/* e218: oferta y precio de lanzamiento */
+.pub-tramos-mini { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 2px 0 8px; }
+.pub-tramos-mini td { padding: 3px 0; border-bottom: 1px solid var(--borde); color: var(--tinta-2); }
+.pub-tramos-mini td:last-child { text-align: right; white-space: nowrap; color: var(--tinta); }
+.nota-lanzamiento { margin: 8px 0 0; padding: 8px 10px; border-radius: var(--radio); background: var(--acento-suave); color: var(--acento-fuerte); font-size: 13px; text-align: center; }
+.pub-tramos-mini s { color: var(--tinta-3); margin-right: 4px; font-size: 11.5px; }
+
+/* e221: cancelar mi plan */
+.cancelar-plan { margin-top: var(--e5); }
+.cancelar-plan h2 { font-size: 18px; margin: 0 0 var(--e2); }
+.cancelar-plan.cancelado { border: 1px solid var(--borde); background: var(--hundido); border-radius: var(--radio-grande); padding: var(--e4); }
+.cancelar-plan .campo select { max-width: 360px; }

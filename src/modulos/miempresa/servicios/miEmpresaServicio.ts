@@ -21,6 +21,14 @@ export interface DatosMiEmpresa {
   direccion: string; ubigeo: string; distrito: string; provincia: string; departamento: string
 }
 
+/** 076: el comprobante de un pago (lo emite el sistema solo). */
+export interface ComprobanteCobro {
+  id: string; numero: string | null; fecha: string | null; monto: number; concepto: string
+  modo: 'real' | 'prueba' | 'simulado' | 'manual'; comprador: string | null; documento: string | null
+  estado: 'pendiente' | 'emitido' | 'error' | 'rechazado' | 'no_aplica'
+  sunat: string | null; comprobante: string | null; error: string | null; intentos: number
+}
+
 type Mensaje = { mensaje: string }
 const B = '/api/admin/mi-empresa'
 
@@ -45,6 +53,8 @@ export const miEmpresaServicio = {
   quitarSerie: (id: string) => api.borrar<Mensaje>(`${B}/series/${id}`),
   comprobante: (d: { serieFactura: string | null; serieBoleta: string | null; enviarCorreo: boolean; descripcion: string }) =>
     api.cambiar<Mensaje>(`${B}/comprobante`, d),
+  comprobantes: () => api.obtener<ComprobanteCobro[]>(`${B}/comprobantes`),
+  reintentar: (id: string) => api.crear<Mensaje>(`${B}/comprobantes/${id}/reintentar`),
 }
 
 export const NOMBRE_TIPO: Record<string, string> = {

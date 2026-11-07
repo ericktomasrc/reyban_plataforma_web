@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { soles } from '../../../nucleo/planes/planes'
 import { etiquetaPlan, extraHoy, menusDelPlan, precioHoy } from '../../planes/servicios/planesServicio'
-import { CorreoContacto, useVitrina } from './Vitrina'
+import { CorreoContacto, numeroPeru, useVitrina } from './Vitrina'
+import { CapturaPlan } from '../componentes/CapturaPlan'
 
 // =============================================================================
 // INICIO
@@ -99,12 +100,20 @@ export function InicioPublico() {
 // =============================================================================
 // PRECIOS
 // =============================================================================
+const DESCRIPCION: Record<string, string> = {
+  basico: 'Emite facturas, boletas, notas de crédito y débito y guías de remisión ante SUNAT, desde el navegador o el celular. Con tus clientes, productos y reportes de ventas.',
+  pro: 'Todo lo del Básico más el control de tu negocio: registra tus compras y gastos, lleva tu inventario con kardex y mira tus ganancias.',
+  max: 'Todo lo del Pro más punto de venta con apertura y cierre de caja, lotes y vencimientos, series y varios almacenes.',
+}
+
+// =============================================================================
 export function PreciosPublico() {
   const v = useVitrina()
   if (!v) return <div className="pub-ancho pub-seccion"><p>Cargando precios…</p></div>
   const { catalogo } = v
   const oferta = catalogo.enOferta
   const anual = catalogo.reglas.anualMesesGratis
+  const medio = catalogo.planes.find(p => p.codigo === 'pro') ?? catalogo.planes[Math.min(1, catalogo.planes.length - 1)]
   const ofertaHasta = catalogo.reglas.ofertaHasta
     ? new Date(catalogo.reglas.ofertaHasta + 'T12:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })
     : null
@@ -116,32 +125,90 @@ export function PreciosPublico() {
           <h1 className="pub-titulo">Precios simples, sin sorpresas</h1>
           <p className="pub-bajada centro">
             {catalogo.reglas.diasPrueba} días gratis para probarlo todo. Usuarios ilimitados en todos los planes.
-            {oferta && ofertaHasta && <> Precio de lanzamiento hasta el {ofertaHasta}.</>}
+            {oferta && ofertaHasta && <> Precio de lanzamiento para quien contrate hasta el {ofertaHasta}{(catalogo.reglas.lanzamientoMeses ?? 12) > 0 ? <>: <strong>lo mantienes {catalogo.reglas.lanzamientoMeses ?? 12} meses pagando</strong></> : null}.</>}
           </p>
 
-          <h2 className="pub-subtitulo">Cuenta Negocio · por empresa, al mes</h2>
-          <div className="pub-planes">
+          <h2 className="pub-subtitulo">Nuestros servicios</h2>
+          <div className="pub-productos">
             {catalogo.planes.map((p, i) => {
               const hoy = precioHoy(p, oferta)
               return (
-                <div key={p.codigo} className={`pub-plan${p.codigo === 'pro' ? ' destacado' : ''}`}>
-                  {p.codigo === 'pro' && <span className="pub-cinta">El más elegido</span>}
-                  <h3>{p.nombre}</h3>
-                  <p className="pub-para">{etiquetaPlan(catalogo.planes, i)}</p>
-                  <div className="pub-precio">
-                    {oferta && p.precioOferta !== null && p.precioOferta < p.precioRegular && <s>{soles(p.precioRegular)}</s>}
-                    <strong>{soles(hoy)}</strong><span>al mes</span>
+                <article key={p.codigo} className={`pub-producto${p.codigo === 'pro' ? ' destacado' : ''}`}>
+                  <CapturaPlan tipo={p.codigo} cinta={p.codigo === 'pro' ? 'El más elegido' : undefined} />
+                  <div className="pub-producto-cuerpo">
+                    <h3>Plan {p.nombre}</h3>
+                    <p className="pub-para">{etiquetaPlan(catalogo.planes, i)}</p>
+                    <div className="pub-precio">
+                      {oferta && p.precioOferta !== null && p.precioOferta < p.precioRegular && <s>{soles(p.precioRegular)}</s>}
+                      <strong>{soles(hoy)}</strong><span>al mes</span>
+                    </div>
+                    <p className="pub-descripcion">{DESCRIPCION[p.codigo] ?? 'Facturación electrónica ante SUNAT.'}</p>
+                    <ul>
+                      {menusDelPlan(p.funciones).slice(0, 5).map(m => <li key={m}>{i > 0 ? '+ ' : ''}{m}</li>)}
+                      <li>{p.sucursalesMax === null ? 'Sucursales ilimitadas' : `${p.sucursalesMax} sucursal${p.sucursalesMax === 1 ? '' : 'es'}`} · usuarios ilimitados</li>
+                    </ul>
+                    <Link to={`/registro?tipo=negocio&plan=${p.codigo}`} className="pub-boton ancho">Contratar {p.nombre}</Link>
+                    <span className="pub-mini">o pruébalo gratis {catalogo.reglas.diasPrueba} días</span>
                   </div>
-                  {anual > 0 && <p className="pub-anual">o {soles(hoy * (12 - anual))} al año ({anual} meses gratis)</p>}
-                  <ul>
-                    {menusDelPlan(p.funciones).map(m => <li key={m}>{i > 0 ? '+ ' : ''}{m}</li>)}
-                    <li>{p.sucursalesMax === null ? 'Sucursales ilimitadas' : `${p.sucursalesMax} sucursal${p.sucursalesMax === 1 ? '' : 'es'}`}</li>
-                    <li>Usuarios ilimitados</li>
-                  </ul>
-                  <Link to="/registro?tipo=negocio" className={`pub-boton ancho${p.codigo === 'pro' ? '' : ' plano'}`}>Probar gratis</Link>
-                </div>
+                </article>
               )
             })}
+            {anual > 0 && medio && (
+              <article className="pub-producto">
+                <CapturaPlan tipo="anual" cinta={`${anual} meses gratis`} />
+                <div className="pub-producto-cuerpo">
+                  <h3>Plan {medio.nombre} anual</h3>
+                  <p className="pub-para">Paga el año y ahorra</p>
+                  <div className="pub-precio"><strong>{soles(precioHoy(medio, oferta) * (12 - anual))}</strong><span>al año</span></div>
+                  <p className="pub-descripcion">
+                    El plan {medio.nombre} por 12 meses pagando {12 - anual}. Un solo pago con tu factura o boleta. También hay Básico y Max anual.
+                  </p>
+                  <ul>
+                    <li>Todo lo del plan {medio.nombre}</li>
+                    <li>Ahorras {soles(precioHoy(medio, oferta) * anual)}</li>
+                    <li>Precio fijo todo el año</li>
+                  </ul>
+                  <Link to={`/registro?tipo=negocio&plan=${medio.codigo}&periodo=anual`} className="pub-boton ancho">Contratar anual</Link>
+                  <span className="pub-mini">o pruébalo gratis {catalogo.reglas.diasPrueba} días</span>
+                </div>
+              </article>
+            )}
+            {catalogo.tramos.length > 0 && (
+              <article className="pub-producto">
+                <CapturaPlan tipo="profesional" />
+                <div className="pub-producto-cuerpo">
+                  <h3>Cuenta Profesional</h3>
+                  <p className="pub-para">Contadores y estudios</p>
+                  <div className="pub-precio">
+                    {oferta && catalogo.tramos[0].precioOferta < catalogo.tramos[0].precioRegular && <s>{soles(catalogo.tramos[0].precioRegular)}</s>}
+                    <strong>{soles(oferta ? catalogo.tramos[0].precioOferta : catalogo.tramos[0].precioRegular)}</strong><span>por empresa al mes</span>
+                  </div>
+                  <p className="pub-descripcion">
+                    Todas las empresas de tus clientes en una sola cuenta, con tu equipo. Cada empresa trae todo lo del plan Básico.
+                    Mínimo {catalogo.reglas.carteraMinimo} empresas ({soles(catalogo.reglas.carteraMinimo * (oferta ? catalogo.tramos[0].precioOferta : catalogo.tramos[0].precioRegular))} al mes).
+                    {oferta && new Set(catalogo.tramos.map(t => t.precioOferta)).size === 1
+                      ? ' En la oferta, el mismo precio para todas tus empresas; después, mientras más empresas, menos pagas por cada una:'
+                      : ' Mientras más empresas, menos pagas por cada una:'}
+                  </p>
+                  <table className="pub-tramos-mini">
+                    <tbody>{catalogo.tramos.map(t => (
+                      <tr key={t.desde}>
+                        <td>{t.hasta === null ? `${t.desde} o más` : `${t.desde} a ${t.hasta}`} empresas</td>
+                        <td>{oferta && t.precioOferta < t.precioRegular && <s>{soles(t.precioRegular)}</s>} <strong>{soles(oferta ? t.precioOferta : t.precioRegular)}</strong> c/u</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                  <Link to="/registro?tipo=profesional" className="pub-boton ancho">Contratar Profesional</Link>
+                  <span className="pub-mini">o pruébala gratis {catalogo.reglas.diasPrueba} días</span>
+                </div>
+              </article>
+            )}
+          </div>
+          <div className="pub-como-compro">
+            <strong>¿Cómo contrato?</strong> 1) Pulsa «Contratar» y crea tu cuenta. 2) En «Mi plan» elige tu plan.
+            3) En «Mis pagos» deja tus datos para el comprobante y paga con tarjeta. 🔒 Pago seguro con Culqi: tu tarjeta no pasa por Reyban.
+            Se renueva cada mes y cancelas cuando quieras (ver <Link to="/devoluciones">cambios, cancelaciones y devoluciones</Link>).
+            {oferta && (catalogo.reglas.lanzamientoMeses ?? 12) > 0 && <> Si contratas durante la oferta, <strong>tu precio de lanzamiento se mantiene {catalogo.reglas.lanzamientoMeses ?? 12} meses pagando</strong>, aunque la oferta termine.</>}
           </div>
 
           <h2 className="pub-subtitulo">Cuenta Profesional (Cartera) · para contadores y estudios</h2>
@@ -207,7 +274,7 @@ export function ContactoPublico() {
           <p className="pub-bajada">¿Dudas sobre los planes, cómo empezar o un pago? Escríbenos y te respondemos el mismo día hábil.</p>
           <ul className="pub-datos">
             <li><span>Correo</span><CorreoContacto /></li>
-            {e?.whatsapp && <li><span>WhatsApp</span><a href={`https://wa.me/${e.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">{e.whatsapp}</a></li>}
+            {e?.whatsapp && <li><span>WhatsApp</span><a href={`https://wa.me/${numeroPeru(e.whatsapp)}`} target="_blank" rel="noreferrer">{e.whatsapp}</a></li>}
             <li><span>Empresa</span>{e?.razonSocial ?? 'Reyban Consulting SAC'}{e?.ruc ? ` · RUC ${e.ruc}` : ''}</li>
             <li><span>Dirección</span>{e?.direccion ?? 'Lima, Perú'}</li>
             <li><span>Horario</span>Lunes a viernes, de 9:00 a 18:00</li>
@@ -217,8 +284,9 @@ export function ContactoPublico() {
           <h3>¿Ya tienes cuenta?</h3>
           <p>Entra y revisa «Mi plan» y «Mis pagos». Si algo no cuadra con un cobro, escríbenos desde el correo de tu cuenta con el número de pago (P-000123).</p>
           <Link to="/entrar" className="pub-boton ancho">Entrar</Link>
-          <h3 className="pub-mas-arriba">¿Un reclamo?</h3>
-          <p>Escríbenos al correo con tu nombre, documento, lo que pasó y lo que pides. Te respondemos en un máximo de 15 días hábiles.</p>
+          <h3 className="pub-mas-arriba">¿Un reclamo o una queja?</h3>
+          <p>Regístralo en nuestro Libro de Reclamaciones. Te llega una copia al correo y te respondemos en un máximo de 15 días hábiles.</p>
+          <Link to="/libro-reclamaciones" className="pub-boton ancho plano">Libro de Reclamaciones</Link>
         </div>
       </div>
     </section>

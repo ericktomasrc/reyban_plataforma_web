@@ -23,6 +23,10 @@ export interface Reglas {
   rucGratisTope: number
   carteraMinimo: number
   ofertaHasta: string | null
+  /** 079: el interruptor de la oferta (vale si está encendida y no pasó la fecha). */
+  ofertaActiva?: boolean
+  /** 079: meses que conserva el precio de lanzamiento quien entra durante la oferta. */
+  lanzamientoMeses?: number
   anualMesesGratis: number
   /** 071: qué ve una empresa en su mes gratis. */
   planPrueba: CodigoPlan
@@ -76,6 +80,15 @@ export interface ResumenCuenta {
   encendidos: boolean
   enOferta: boolean
   ofertaHasta: string | null
+  /** 079: hasta cuándo esta cuenta conserva el precio de lanzamiento (null = paga el real). */
+  lanzamientoHasta?: string | null
+  /** 081: si canceló su plan, cuándo y por qué; y hasta cuándo tiene pagado. */
+  canceladoEn?: string | null
+  canceladoMotivo?: string | null
+  activoHasta?: string | null
+  pagoEstado?: string
+  /** 079: si hay oferta general hoy (enOferta también es cierto si la cuenta guarda el precio). */
+  ofertaGeneral?: boolean
   pruebaHasta: string | null
   accesoTotal: boolean
   accesoTotalMotivo: string | null
@@ -167,6 +180,10 @@ export const planesServicio = {
   anularAjuste: (id: string, motivo: string) => api.crear<Mensaje>(`/api/admin/planes/ajustes/${id}/anular`, { motivo }),
   accesoTotal: (id: string, activo: boolean, motivo: string) =>
     api.cambiar<Mensaje>(`/api/admin/planes/cuentas/${id}/acceso-total`, { activo, motivo }),
+  cancelar: (motivo: string | null) => api.crear<Mensaje & { hasta: string | null }>('/api/planes/cancelar', { motivo }),
+  reactivar: () => api.crear<Mensaje>('/api/planes/reactivar'),
+  lanzamiento: (id: string, hasta: string | null) =>
+    api.cambiar<Mensaje>(`/api/admin/planes/cuentas/${id}/lanzamiento`, { hasta }),
   planEmpresa: (empresaId: string, plan: CodigoPlan) => api.cambiar<Mensaje>(`/api/admin/planes/empresas/${empresaId}/plan`, { plan }),
   cuposCuenta: (id: string, cupos: number) => api.cambiar<Mensaje>(`/api/admin/planes/cuentas/${id}/cupos`, { cupos }),
   paginaPublica: (d: DatosPublicos) => api.cambiar<Mensaje>('/api/admin/planes/pagina-publica', d),

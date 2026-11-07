@@ -413,6 +413,7 @@ function Pagar({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise<vo
           : <Boton ancho disabled title="Primero agrega tu tarjeta">💳 Pagar {soles(m.monto)}</Boton>
       )}
       {d.puedePagar && m && !m.nada && !tarjeta && <p className="pista centro">{d.datos ? 'Agrega tu tarjeta (paso 2) para pagar.' : 'Completa los pasos 1 y 2 para pagar.'}</p>}
+      {d.lanzamientoHasta && <p className="nota-lanzamiento">🏷️ Tu precio de lanzamiento se mantiene hasta el <strong>{fecha(d.lanzamientoHasta)}</strong>.</p>}
       <p className="pista centro">🔒 Pago seguro con Culqi · Precios con IGV</p>
       {dialogo}
     </section>

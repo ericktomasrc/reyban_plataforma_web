@@ -86,7 +86,7 @@ async function llamar<T>(metodo: Metodo, ruta: string, cuerpo?: unknown): Promis
     if (respuesta.status === 409 && datos?.codigo === 'ficha_incompleta') {
       window.dispatchEvent(new CustomEvent(EVENTO_FICHA_INCOMPLETA))
     }
-    if (respuesta.status === 402 && datos?.codigo === 'plan') {
+    if (respuesta.status === 402 && (datos?.codigo === 'plan' || datos?.codigo === 'pago')) {   // 076: también «pago»
       window.dispatchEvent(new CustomEvent(EVENTO_PLAN_CAMBIO))
     }
     throw new ErrorApi(

@@ -1,5 +1,5 @@
 import { api } from '../../../nucleo/api/cliente'
-import type { AltaEmpresa, EmpresaCreada, EmpresaEnLista, ModuloDelCatalogo } from '../tipos'
+import type { AltaEmpresa, EmpresaCreada, EmpresaEnLista, ModuloDelCatalogo, PlanesDeEmpresas } from '../tipos'
 
 // =============================================================================
 // LA CAPA DE SERVICIO DEL MÓDULO DE ADMINISTRACIÓN
@@ -20,6 +20,10 @@ export const empresasServicio = {
   /** GET /api/admin/modulos — el catálogo de lo que se puede activar. */
   modulos: () =>
     api.obtener<ModuloDelCatalogo[]>('/api/admin/modulos'),
+
+  /** e215: GET /api/admin/empresas/planes — el plan de cada una y de qué plan viene cada módulo. */
+  planes: () =>
+    api.obtener<PlanesDeEmpresas>('/api/admin/empresas/planes'),
 
   /**
    * POST /api/admin/empresas — empresa + módulos + administrador, todo junto.

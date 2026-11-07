@@ -13,6 +13,7 @@ import { EquipoPlataformaPagina } from '../modulos/administracion/vistas/EquipoP
 import { MiPlanPagina } from '../modulos/planes/vistas/MiPlan'
 import { MisPagosPagina } from '../modulos/planes/vistas/MisPagos'
 import { MiEmpresaPagina } from '../modulos/miempresa/vistas/MiEmpresa'
+import { ReclamosPagina } from '../modulos/reclamos/vistas/Reclamos'
 import { PlanesCobrosPagina } from '../modulos/planes/vistas/PlanesCobros'
 import { RecuperacionesPagina } from '../modulos/administracion/vistas/Recuperaciones'
 import { ConsultasSunatPagina } from '../modulos/administracion/vistas/ConsultasSunat'
@@ -208,6 +209,7 @@ export function Rutas() {
         <Route path="/admin/planes" element={<Protegido soloSuperAdmin><PlanesCobrosPagina /></Protegido>} />
         {/* 075: Mi empresa (la de Reyban, que cobra los planes). */}
         <Route path="/admin/mi-empresa/*" element={<Protegido soloSuperAdmin><MiEmpresaPagina /></Protegido>} />
+        <Route path="/admin/reclamos" element={<Protegido soloSuperAdmin><ReclamosPagina /></Protegido>} />
         <Route path="/mi-plan" element={<MiPlanPagina />} />
         <Route path="/mi-plan/pagos" element={<MisPagosPagina />} />
         {/* 038: los correos de acceso que no salieron. */}

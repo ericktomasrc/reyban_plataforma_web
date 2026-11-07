@@ -74,6 +74,8 @@ export interface MisPagos {
   anual: MontoPago | null
   pagos: PagoDeCuenta[]
   culqi: { llavePublica: string } | null
+  /** 079: hasta cuándo conserva el precio de lanzamiento. */
+  lanzamientoHasta?: string | null
 }
 
 export interface Autenticacion3ds {
