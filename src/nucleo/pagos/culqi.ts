@@ -79,7 +79,13 @@ export async function abrirCheckout(o: OpcionesCheckout): Promise<void> {
       culqi.close()
       o.onToken(token)
     } else if (culqi.error) {
-      o.onError(culqi.error.user_message || culqi.error.merchant_message || 'Culqi no aceptó la tarjeta.')
+      // e223: el detalle técnico (código y merchant_message) va a la consola del
+      // navegador (F12 › Console), para saber por qué Culqi no dio el token. No
+      // trae el número de la tarjeta: Culqi nunca lo devuelve.
+      const e = culqi.error as { object?: string; type?: string; code?: string; user_message?: string; merchant_message?: string; param?: string }
+      console.error('[Culqi] no se creó el token:', { tipo: e.type, codigo: e.code, campo: e.param, comercio: e.merchant_message, usuario: e.user_message })
+      const detalle = [e.code, e.merchant_message].filter(Boolean).join(' · ')
+      o.onError((e.user_message || 'Culqi no aceptó la tarjeta.') + (detalle && detalle !== e.user_message ? ` (${detalle})` : ''))
     }
   }
   culqi.open()

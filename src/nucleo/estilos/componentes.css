@@ -2111,3 +2111,45 @@ code.ref { font-size: 12px; word-break: break-all; }
 .cancelar-plan h2 { font-size: 18px; margin: 0 0 var(--e2); }
 .cancelar-plan.cancelado { border: 1px solid var(--borde); background: var(--hundido); border-radius: var(--radio-grande); padding: var(--e4); }
 .cancelar-plan .campo select { max-width: 360px; }
+/* e225: Errores del sistema. */
+.errs-tarjeta { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-grande); padding: var(--e4); margin-bottom: var(--e4); }
+.errs-alerta { display: flex; justify-content: space-between; align-items: center; gap: var(--e3); flex-wrap: wrap;
+  background: var(--peligro-suave); border: 1px solid var(--peligro-borde); color: var(--peligro); border-radius: var(--radio-grande); padding: var(--e3) var(--e4); margin-bottom: var(--e4); }
+.errs-alerta button.enlace { color: var(--peligro); font-weight: 600; }
+.errs-matriz-caja { overflow-x: auto; }
+.errs-matriz { border-collapse: separate; border-spacing: 4px; width: 100%; min-width: 720px; }
+.errs-matriz thead th { font-weight: 500; color: var(--tinta-3); font-size: 11px; text-align: center; line-height: 1.3; }
+.errs-matriz thead th.hoy { color: var(--tinta); font-weight: 700; }
+.errs-matriz th.errs-proceso { text-align: left; font-size: 13px; font-weight: 600; white-space: nowrap; padding-right: var(--e2); }
+.errs-c { height: 40px; min-width: 40px; border-radius: 6px; text-align: center; font-size: 12px; padding: 0; }
+.errs-c button { width: 100%; height: 100%; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; border-radius: 6px; }
+.errs-c.rojo { background: var(--peligro); color: #fff; font-weight: 700; font-size: 13px; }
+.errs-c.ambar { background: var(--aviso-suave); color: var(--aviso); border: 1px solid var(--aviso-borde); }
+.errs-c.verde { background: var(--bien-suave); color: var(--bien); }
+.errs-c.vacio { background: var(--hundido); color: var(--tinta-3); }
+.errs-c.sel { outline: 3px solid var(--tinta); outline-offset: 1px; }
+.errs-c button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.errs-leyenda { display: flex; flex-wrap: wrap; gap: var(--e4); color: var(--tinta-2); font-size: 12px; margin-top: var(--e2); }
+.errs-leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+.errs-leyenda i.rojo { background: var(--peligro); }
+.errs-leyenda i.ambar { background: var(--aviso-suave); border: 1px solid var(--aviso-borde); }
+.errs-leyenda i.verde { background: var(--bien-suave); }
+.errs-leyenda i.vacio { background: var(--hundido); }
+.errs-cabeza { display: flex; justify-content: space-between; align-items: center; gap: var(--e3); flex-wrap: wrap; margin-bottom: var(--e3); }
+.errs-cabeza h2 { font-size: 16px; margin: 0; }
+.errs-pestanas { display: flex; gap: 6px; margin-bottom: var(--e3); }
+.errs-pestanas button { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--borde); background: var(--superficie); font: inherit; font-size: 13px; cursor: pointer; color: var(--tinta); }
+.errs-pestanas button.activa { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+.errs-grupo { border: 1px solid var(--borde-sutil); border-left: 4px solid var(--peligro); border-radius: 8px; padding: var(--e3) var(--e4); margin-bottom: var(--e3); }
+.errs-grupo.aviso { border-left-color: var(--aviso); }
+.errs-grupo-t { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--e3); }
+.errs-grupo-t strong { font-size: 14px; overflow-wrap: anywhere; }
+.errs-veces { background: var(--peligro-suave); color: var(--peligro); border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.errs-grupo.aviso .errs-veces { background: var(--aviso-suave); color: var(--aviso); }
+.errs-meta { color: var(--tinta-3); font-size: 12px; margin: 2px 0 6px; }
+.errs-significa { background: var(--acento-suave); color: var(--acento-fuerte); border-radius: 6px; padding: 6px 10px; font-size: 13px; margin: 6px 0; }
+.errs-texto { background: #16202a; color: #d9e2ea; border-radius: 6px; padding: 10px 12px; font-size: 11.5px; margin: 6px 0 8px;
+  white-space: pre-wrap; overflow-wrap: anywhere; max-height: 6.5em; overflow: hidden; }
+.errs-texto.completo { max-height: 480px; overflow: auto; }
+.errs-acciones { display: flex; gap: var(--e2); flex-wrap: wrap; }
+.errs-nota { font-size: 12px; }

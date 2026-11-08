@@ -39,6 +39,8 @@ export const Permisos = {
     MiEmpresa:             'plataforma.mi_empresa',
     // 078: Libro de Reclamaciones.
     Reclamos:              'plataforma.reclamos',
+    // e225: Errores del sistema.
+    Errores:               'plataforma.errores',
   },
 
   Usuarios: {

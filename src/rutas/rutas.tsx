@@ -14,6 +14,7 @@ import { MiPlanPagina } from '../modulos/planes/vistas/MiPlan'
 import { MisPagosPagina } from '../modulos/planes/vistas/MisPagos'
 import { MiEmpresaPagina } from '../modulos/miempresa/vistas/MiEmpresa'
 import { ReclamosPagina } from '../modulos/reclamos/vistas/Reclamos'
+import { ErroresSistemaPagina } from '../modulos/errores/vistas/ErroresSistema'
 import { PlanesCobrosPagina } from '../modulos/planes/vistas/PlanesCobros'
 import { RecuperacionesPagina } from '../modulos/administracion/vistas/Recuperaciones'
 import { ConsultasSunatPagina } from '../modulos/administracion/vistas/ConsultasSunat'
@@ -210,6 +211,8 @@ export function Rutas() {
         {/* 075: Mi empresa (la de Reyban, que cobra los planes). */}
         <Route path="/admin/mi-empresa/*" element={<Protegido soloSuperAdmin><MiEmpresaPagina /></Protegido>} />
         <Route path="/admin/reclamos" element={<Protegido soloSuperAdmin><ReclamosPagina /></Protegido>} />
+        {/* e225: errores del sistema (logs por día y proceso). */}
+        <Route path="/admin/errores" element={<Protegido soloSuperAdmin><ErroresSistemaPagina /></Protegido>} />
         <Route path="/mi-plan" element={<MiPlanPagina />} />
         <Route path="/mi-plan/pagos" element={<MisPagosPagina />} />
         {/* 038: los correos de acceso que no salieron. */}

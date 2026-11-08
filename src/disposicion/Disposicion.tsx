@@ -19,6 +19,7 @@ import { REPORTES_CARTERA, REPORTES_PLATAFORMA } from '../modulos/reportes/vista
 import { MenuDesplegable } from './MenuDesplegable'
 import { Campanita, IndicadorCertificado } from '../modulos/avisos/Campanita'
 import { useAvisos } from '../modulos/avisos/avisosServicio'
+import { erroresServicio } from '../modulos/errores/servicios/erroresServicio'
 import { PantallaPlan } from '../modulos/planes/componentes/PantallaPlan'
 import { NOMBRE_PLAN, diasQueFaltan, planQueLaTrae, rutaPermitida } from '../nucleo/planes/planes'
 
@@ -83,6 +84,16 @@ export function Disposicion() {
 
   // Al cambiar de pantalla, el menú del teléfono se cierra solo.
   useEffect(() => { setMenuAbierto(false) }, [ruta.pathname])
+
+  // e225: los errores de hoy, junto a «Errores del sistema» (se mira al cambiar de pantalla).
+  const veErrores = usuario.esSuperAdmin && puede(Permisos.Plataforma.Errores)
+  const [erroresHoy, setErroresHoy] = useState(0)
+  useEffect(() => {
+    if (!veErrores) return
+    let vivo = true
+    erroresServicio.hoy().then(r => { if (vivo) setErroresHoy(r.errores) }).catch(() => { /* el menú no se rompe por esto */ })
+    return () => { vivo = false }
+  }, [veErrores, ruta.pathname])
 
   const activo = ({ isActive }: { isActive: boolean }) => isActive ? 'activo' : undefined
 
@@ -429,6 +440,13 @@ export function Disposicion() {
               {puede(Permisos.Plataforma.EmpresasGestionar) && <NavLink to="/admin/traspasos" className={activo}><Icono>⇄</Icono>Solicitudes de traspaso</NavLink>}
               {/* 078: el Libro de Reclamaciones (la hoja la llena el cliente en la página pública). */}
               {puede(Permisos.Plataforma.Reclamos) && <NavLink to="/admin/reclamos" className={activo}><Icono>✎</Icono>Libro de Reclamaciones</NavLink>}
+              {/* e225: los errores de cada día, por proceso, con su descarga. */}
+              {veErrores && (
+                <NavLink to="/admin/errores" className={activo}>
+                  <Icono>⚠</Icono>Errores del sistema
+                  {erroresHoy > 0 && <span className="cert-numero rojo" title={`${erroresHoy} error(es) hoy`}>{erroresHoy}</span>}
+                </NavLink>
+              )}
               {/* 036: reportes de la plataforma. */}
               {puede(Permisos.Plataforma.ReportesVer) && (
                 <MenuDesplegable icono="▥" titulo="Reportes" inicio="/admin/reportes/plataforma"
@@ -533,6 +551,7 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/admin/planes')) return 'Planes y cobros'
   if (ruta.startsWith('/admin/mi-empresa')) return 'Mi empresa'
   if (ruta.startsWith('/admin/reclamos')) return 'Libro de Reclamaciones'
+  if (ruta.startsWith('/admin/errores')) return 'Errores del sistema'
   if (ruta.startsWith('/admin/empresas')) return 'Empresas'
   if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'
   if (ruta.startsWith('/admin/equipo')) return 'Equipo de la plataforma'

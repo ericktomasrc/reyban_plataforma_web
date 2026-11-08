@@ -192,6 +192,7 @@ const MENU_DE_PERMISO: Record<string, string> = {
   'plataforma.cobros_registrar':       'Planes y cobros',
   'plataforma.mi_empresa':             'Mi empresa',
   'plataforma.reclamos':               'Libro de Reclamaciones',
+  'plataforma.errores':                'Errores del sistema',
   'plataforma.reportes_ver':           'Reportes',
   'plataforma.credenciales_gestionar': 'Conexión con SUNAT (y la de cada empresa)',
   'plataforma.accesos_gestionar':      'Correos',
