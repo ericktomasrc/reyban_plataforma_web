@@ -2166,3 +2166,5 @@ code.ref { font-size: 12px; word-break: break-all; }
 .cambio-plan-filas > div { display: flex; justify-content: space-between; gap: var(--e3); padding: 6px 0; border-bottom: 1px solid var(--borde-sutil); }
 .cambio-plan-tarjeta { display: flex; align-items: center; gap: var(--e2); border: 1px solid var(--borde); border-radius: var(--radio); padding: var(--e2) var(--e3); margin: var(--e3) 0; }
 .cambio-plan-tarjeta span { margin-left: auto; color: var(--tinta-3); font-size: 12.5px; }
+/* e232: la diferencia por subir de cupo a mitad del periodo pagado. */
+.franja-cupos { margin: 0 0 var(--e3); padding: var(--e3) var(--e4); border-radius: var(--radio-grande); background: var(--acento-suave); font-size: 13.5px; }

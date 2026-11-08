@@ -198,6 +198,8 @@ export const planesServicio = {
   cambiar: (empresaId: string, plan: CodigoPlan, pagar: boolean) =>
     api.crear<Mensaje & { estado: string; accion: string }>('/api/planes/cambio', { empresaId, plan, pagar }),
   cupos: (cupos: number) => api.crear<Mensaje & { cupos: number }>('/api/planes/cupos', { cupos }),
+  // e232: lo que costaría subir de cupo hoy (null si no se cobra nada).
+  cotizarCupos: (cupos: number) => api.obtener<{ texto: string | null }>(`/api/planes/cupos/cotizar?cupos=${cupos}`),
   estudio: (empresaId: string | null) => api.crear<Mensaje>('/api/planes/estudio', { empresaId }),
 
   // La plataforma

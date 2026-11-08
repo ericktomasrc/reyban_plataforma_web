@@ -252,6 +252,12 @@ export function Disposicion() {
                 else setPasosIos(true)
               }}>Instalar la app</button>
             )}
+            {/* e232: el Libro de Reclamaciones siempre a la mano (Indecopi), en otra pestaña.
+                El super admin no: él los atiende en «Reclamos». */}
+            {!usuario.esSuperAdmin && (
+              <a href="/libro-reclamaciones" target="_blank" rel="noreferrer" role="menuitem"
+                onClick={() => setMenuNombre(false)}>Libro de Reclamaciones ↗</a>
+            )}
             <hr />
             <button type="button" role="menuitem" onClick={() => {
               // e163: se vuelve al inicio ANTES de salir, para que quien entre

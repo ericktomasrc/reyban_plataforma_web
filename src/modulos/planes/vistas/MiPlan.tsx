@@ -251,6 +251,19 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
   const [guardando, setGuardando] = useState<string>()
   const cambio = useCambioPlan(onHecho)   // 083
   const oferta = conOferta(catalogo, cuenta)   // 079
+  // e232: subir de cupo con un periodo pagado corriendo suma la diferencia
+  // por los días que quedan al próximo cobro: se dice antes de guardar.
+  const [difCupos, setDifCupos] = useState<string | null>(null)
+  useEffect(() => {
+    if (!puede || n <= (cuenta.cupos ?? 0)) { setDifCupos(null); return }
+    let vivo = true
+    const t = setTimeout(() => {
+      planesServicio.cotizarCupos(n)
+        .then(r => { if (vivo) setDifCupos(r.texto) })
+        .catch(() => { if (vivo) setDifCupos(null) })
+    }, 350)
+    return () => { vivo = false; clearTimeout(t) }
+  }, [n, puede, cuenta.cupos])
   const plan = (c: CodigoPlan) => catalogo.planes.find(p => p.codigo === c)!
 
   const base = precioCartera(catalogo.tramos, n, !oferta)
@@ -297,6 +310,7 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
           <div className="suma"><span>Al mes</span><strong>{soles(total)}</strong></div>
           <div className="secundario"><span>Al año ({catalogo.reglas.anualMesesGratis} meses gratis)</span><span>{soles(total * meses)}</span></div>
         </div>
+        {puede && difCupos && n !== cuenta.cupos && <p className="franja-cupos">{difCupos}</p>}
         {puede && (
           <Boton ocupado={guardando === 'cupos'} disabled={n === cuenta.cupos}
                  onClick={() => void hacer('cupos', () => planesServicio.cupos(n))}>Guardar {n} empresas</Boton>
