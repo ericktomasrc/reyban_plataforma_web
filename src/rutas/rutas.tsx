@@ -374,6 +374,8 @@ export function Rutas() {
         <Route path="/inventario/configuracion" element={<Protegido permiso={Permisos.Inventario.Ver} modulo={Modulos.Inventario}><ConfiguracionInventario /></Protegido>} />
 
         {/* e173: las cajas y sus arqueos. */}
+        {/* e231: el candado del punto de venta, dentro del marco (si el plan lo trae, vuelve a /pos). */}
+        <Route path="/pos/plan" element={<Navigate to="/pos" replace />} />
         <Route path="/pos/cajas" element={<Protegido permiso={Permisos.Pos.Vender} modulo={Modulos.Pos}><Cajas /></Protegido>} />
         <Route path="/pos/cajas/:id" element={<Protegido permiso={Permisos.Pos.Vender} modulo={Modulos.Pos}><VerCaja /></Protegido>} />
 

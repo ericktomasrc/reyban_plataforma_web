@@ -57,6 +57,9 @@ export function Protegido({ permiso, modulo, soloSuperAdmin, deCuenta, children 
   // módulo contratado también sale «Esto viene en el plan…», no el inicio). Dentro del marco ya lo para
   // Disposicion; esto cubre las pantallas sin marco (el punto de venta).
   if (yo.empresa && !rutaPermitida(yo.plan, ubicacion.pathname)) {
+    // e231: el punto de venta va a pantalla completa (sin menú). Su candado se
+    // muestra dentro del marco, con el menú, como las demás pantallas.
+    if (ubicacion.pathname === '/pos') return <Navigate to="/pos/plan" replace />
     return (
       <div className="marco-solo">
         <PantallaPlan minimo={planQueLaTrae(yo.plan, ubicacion.pathname) ?? 'sin'}

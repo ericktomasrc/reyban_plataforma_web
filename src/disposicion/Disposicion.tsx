@@ -558,6 +558,7 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/admin/mi-empresa')) return 'Mi empresa'
   if (ruta.startsWith('/admin/reclamos')) return 'Libro de Reclamaciones'
   if (ruta.startsWith('/admin/errores')) return 'Errores del sistema'
+  if (ruta.startsWith('/pos/plan')) return 'Punto de venta'
   if (ruta.startsWith('/admin/empresas')) return 'Empresas'
   if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'
   if (ruta.startsWith('/admin/equipo')) return 'Equipo de la plataforma'
