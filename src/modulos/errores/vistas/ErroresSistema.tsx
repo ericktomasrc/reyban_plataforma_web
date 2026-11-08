@@ -6,6 +6,7 @@ import { Cargando } from '../../../componentes/Cargando'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { erroresServicio, type ErroresDelDia, type ResumenErrores } from '../servicios/erroresServicio'
+import { marcarRevisados, revisadosHasta } from '../servicios/revisados'
 
 const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
 
@@ -41,7 +42,7 @@ export function ErroresSistemaPagina() {
   const avisos = params.get('ver') === 'avisos'
 
   const cargarResumen = useCallback(async () => {
-    try { setResumen(await erroresServicio.resumen(14)); setError(undefined) }
+    try { setResumen(await erroresServicio.resumen(14, revisadosHasta())); setError(undefined) }
     catch (e) { setError(e instanceof ErrorApi ? e.message : 'No se pudieron leer los errores.') }
   }, [])
   useEffect(() => { void cargarResumen() }, [cargarResumen])
@@ -88,10 +89,24 @@ export function ErroresSistemaPagina() {
       {resumen.ultimo && (
         <div className="errs-alerta">
           <span>
-            <strong>Hoy: {resumen.ultimo.errores} {resumen.ultimo.errores === 1 ? 'error' : 'errores'} en {nombreDe(resumen.ultimo.proceso)}</strong>
-            {' · '}último a las {resumen.ultimo.hora}: «{resumen.ultimo.titulo}»
+            <strong>
+              {resumen.revisadoA
+                ? `${resumen.nuevos} ${resumen.nuevos === 1 ? 'error nuevo' : 'errores nuevos'} desde las ${resumen.revisadoA}`
+                : `Hoy: ${resumen.erroresHoy} ${resumen.erroresHoy === 1 ? 'error' : 'errores'}`}
+            </strong>
+            {' · '}último a las {resumen.ultimo.hora} en {nombreDe(resumen.ultimo.proceso)}: «{resumen.ultimo.titulo}»
           </span>
-          <button type="button" className="enlace" onClick={() => elegir(resumen.hoy, resumen.ultimo!.proceso, false)}>Ver los de hoy →</button>
+          <span className="errs-alerta-acciones">
+            <button type="button" className="enlace" onClick={() => elegir(resumen.hoy, resumen.ultimo!.proceso, false)}>Ver →</button>
+            {/* e229: el número del menú vuelve a cero; el log no se toca. */}
+            <Boton estilo="secundario" onClick={() => { marcarRevisados(); void cargarResumen() }}>✓ Ya los revisé</Boton>
+          </span>
+        </div>
+      )}
+      {!resumen.ultimo && resumen.revisadoA && resumen.erroresHoy > 0 && (
+        <div className="errs-revisado">
+          ✓ Revisaste los errores de hoy a las {resumen.revisadoA}. No hay nuevos desde entonces.
+          {' '}<span className="secundario">(Los de antes siguen en la tabla y se pueden descargar.)</span>
         </div>
       )}
 

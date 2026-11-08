@@ -20,6 +20,7 @@ import { MenuDesplegable } from './MenuDesplegable'
 import { Campanita, IndicadorCertificado } from '../modulos/avisos/Campanita'
 import { useAvisos } from '../modulos/avisos/avisosServicio'
 import { erroresServicio } from '../modulos/errores/servicios/erroresServicio'
+import { EVENTO_ERRORES_REVISADOS, revisadosHasta } from '../modulos/errores/servicios/revisados'
 import { PantallaPlan } from '../modulos/planes/componentes/PantallaPlan'
 import { NOMBRE_PLAN, diasQueFaltan, planQueLaTrae, rutaPermitida } from '../nucleo/planes/planes'
 
@@ -91,8 +92,13 @@ export function Disposicion() {
   useEffect(() => {
     if (!veErrores) return
     let vivo = true
-    erroresServicio.hoy().then(r => { if (vivo) setErroresHoy(r.errores) }).catch(() => { /* el menú no se rompe por esto */ })
-    return () => { vivo = false }
+    // e229: solo los nuevos desde «Ya los revisé».
+    const mirar = () => erroresServicio.hoy(revisadosHasta())
+      .then(r => { if (vivo) setErroresHoy(r.nuevos) })
+      .catch(() => { /* el menú no se rompe por esto */ })
+    void mirar()
+    window.addEventListener(EVENTO_ERRORES_REVISADOS, mirar)
+    return () => { vivo = false; window.removeEventListener(EVENTO_ERRORES_REVISADOS, mirar) }
   }, [veErrores, ruta.pathname])
 
   const activo = ({ isActive }: { isActive: boolean }) => isActive ? 'activo' : undefined
@@ -444,7 +450,7 @@ export function Disposicion() {
               {veErrores && (
                 <NavLink to="/admin/errores" className={activo}>
                   <Icono>⚠</Icono>Errores del sistema
-                  {erroresHoy > 0 && <span className="cert-numero rojo" title={`${erroresHoy} error(es) hoy`}>{erroresHoy}</span>}
+                  {erroresHoy > 0 && <span className="cert-numero rojo" title={`${erroresHoy} error(es) nuevo(s) hoy`}>{erroresHoy}</span>}
                 </NavLink>
               )}
               {/* 036: reportes de la plataforma. */}
