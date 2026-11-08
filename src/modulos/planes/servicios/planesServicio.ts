@@ -54,6 +54,9 @@ export interface EmpresaDeCuenta {
   esDelEstudio: boolean
   pausada: boolean
   suspendida: boolean
+  /** 083: bajó de plan: el plan que empieza en el próximo cobro, y desde cuándo. */
+  planProgramado?: CodigoPlan | null
+  planProgramadoDesde?: string | null
 }
 export type TipoAjuste = 'cortesia' | 'meses_gratis' | 'precio_especial' | 'plan_mejor' | 'ampliar_prueba'
 export interface AjusteCuenta {
@@ -106,6 +109,36 @@ export interface ResumenCuenta {
   totalEncendido: number
   planPrueba: CodigoPlan
   mensual: { base: number; extras: number; total: number; regular: number; anual: number }
+  /** 083: diferencias por subir de plan que se suman al próximo cobro. */
+  pendientes?: number
+}
+
+/** 083: qué pasa si una empresa cambia de plan (lo calcula la base). */
+export interface CotizacionCambio {
+  accion: 'igual' | 'deshacer' | 'inmediato' | 'programado' | 'cobrar'
+  actual: CodigoPlan
+  nuevo: CodigoPlan
+  /** programado: desde cuándo; deshacer: el que estaba programado. */
+  desde?: string
+  pagadoHasta?: string
+  programado?: CodigoPlan | null
+  /** cobrar */
+  empresa?: string
+  monto?: number
+  diferenciaMensual?: number
+  dias?: number
+  diasPeriodo?: number
+  hasta?: string
+  periodo?: 'mensual' | 'anual'
+  mesesGratisAnual?: number
+  minimo?: number
+  alProximo?: boolean
+  nuevoMensual?: number
+  /** de la API */
+  tarjeta: { id: string; marca: string; ultimos4: string } | null
+  comprobante: 'factura' | 'boleta' | null
+  conTarjeta: boolean
+  sinDineroReal: boolean
 }
 
 export interface MiPlan {
@@ -159,6 +192,11 @@ export const planesServicio = {
   // La cuenta
   mio: () => api.obtener<MiPlan>('/api/planes/mio'),
   elegir: (empresaId: string, plan: CodigoPlan) => api.crear<Mensaje & { efectivo: string }>('/api/planes/elegir', { empresaId, plan }),
+  /** 083: subir (pagando la diferencia) o bajar (en el próximo cobro). */
+  cotizarCambio: (empresaId: string, plan: CodigoPlan) =>
+    api.obtener<CotizacionCambio>(`/api/planes/cambio?empresa=${empresaId}&plan=${plan}`),
+  cambiar: (empresaId: string, plan: CodigoPlan, pagar: boolean) =>
+    api.crear<Mensaje & { estado: string; accion: string }>('/api/planes/cambio', { empresaId, plan, pagar }),
   cupos: (cupos: number) => api.crear<Mensaje & { cupos: number }>('/api/planes/cupos', { cupos }),
   estudio: (empresaId: string | null) => api.crear<Mensaje>('/api/planes/estudio', { empresaId }),
 

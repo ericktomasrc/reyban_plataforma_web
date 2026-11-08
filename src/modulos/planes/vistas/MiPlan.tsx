@@ -10,6 +10,7 @@ import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { NOMBRE_PLAN, diasQueFaltan, soles } from '../../../nucleo/planes/planes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
+import { useCambioPlan } from '../componentes/CambioPlan'
 import {
   etiquetaPlan, extraHoy, menusDelPlan, planesServicio, precioCartera, precioHoy,
   type Catalogo, type CodigoPlan, type MiPlan, type PlanCatalogo, type ResumenCuenta,
@@ -39,7 +40,7 @@ export function MiPlanPagina() {
   }, [])
   useEffect(() => { void cargar() }, [cargar])
 
-  const hecho = async (m: string) => { mensaje.bien(m); await cargar(); await refrescar() }
+  const hecho = async (m: string) => { if (m) mensaje.bien(m); await cargar(); await refrescar() }
 
   if (error) return <Aviso>{error}</Aviso>
   if (!datos) return <Cargando />
@@ -115,26 +116,35 @@ function EstadoDeLaCuenta({ cuenta }: { cuenta: ResumenCuenta }) {
 function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
   catalogo: Catalogo; cuenta: ResumenCuenta | null; empresa: MiPlan['empresa']; puede: boolean; onHecho: (m: string) => Promise<void>
 }) {
-  const mensaje = useMensaje()
   const [anual, setAnual] = useState(false)
-  const [eligiendo, setEligiendo] = useState<CodigoPlan>()
-  const laEmpresa = cuenta?.empresas[0] ?? (empresa ? { id: empresa.id, plan: empresa.plan, pruebaHasta: empresa.pruebaHasta } : null)
+  // 083: subir paga la diferencia por los días que quedan; bajar empieza en el próximo cobro.
+  const cambio = useCambioPlan(onHecho)
+  const laEmpresa: { id: string; plan: CodigoPlan; pruebaHasta: string | null; planProgramado?: CodigoPlan | null; planProgramadoDesde?: string | null } | null =
+    cuenta?.empresas[0] ?? (empresa ? { id: empresa.id, plan: empresa.plan, pruebaHasta: empresa.pruebaHasta } : null)
   // 31 oct: en su mes gratis el plan elegido es «para después»; lo que usa ahora es el Max.
   const enGratis = !cuenta?.accesoTotal && diasQueFaltan(laEmpresa?.pruebaHasta ?? cuenta?.pruebaHasta) !== null
   const enOferta = conOferta(catalogo, cuenta)   // 079: también si la cuenta guarda el precio de lanzamiento
   const uso = cuenta?.empresas[0]?.uso ?? null
   const meses = 12 - catalogo.reglas.anualMesesGratis
 
-  async function elegir(p: CodigoPlan) {
-    if (!laEmpresa) return
-    setEligiendo(p)
-    try { await onHecho((await planesServicio.elegir(laEmpresa.id, p)).mensaje) }
-    catch (e) { mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo elegir el plan.') }
-    finally { setEligiendo(undefined) }
-  }
+  const orden = (c: CodigoPlan) => catalogo.planes.find(p => p.codigo === c)?.orden ?? 0
+  const subeOBaja = (c: CodigoPlan) => !laEmpresa || enGratis || !catalogo.encendidos ? 'Elegir'
+    : orden(c) > orden(laEmpresa.plan) ? 'Subir a' : 'Bajar a'
 
   return (
     <>
+      {/* 083: bajó de plan: sigue con lo pagado hasta el fin del periodo. */}
+      {laEmpresa?.planProgramado && laEmpresa.planProgramadoDesde && (
+        <div className="franja-programado">
+          <span>📅 <strong>El {fecha(laEmpresa.planProgramadoDesde)} pasas a {NOMBRE_PLAN[laEmpresa.planProgramado]}.</strong> Hasta entonces sigues con {NOMBRE_PLAN[laEmpresa.plan]}.</span>
+          {puede && <Boton estilo="secundario" ocupado={cambio.cargando === laEmpresa.id + laEmpresa.plan}
+                           onClick={() => void cambio.abrir(laEmpresa.id, laEmpresa.plan)}>Deshacer</Boton>}
+        </div>
+      )}
+      {!!cuenta?.pendientes && cuenta.pendientes > 0 && (
+        <p className="nota-cartera">Tienes {soles(cuenta.pendientes)} de diferencia por cambio de plan que se suma a tu próximo cobro.</p>
+      )}
+
       {/* 1 nov: lo que usó en su mes gratis decide qué le conviene. */}
       {enGratis && uso && (
         <div className="recomendacion-plan">
@@ -156,6 +166,7 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
         {catalogo.planes.map((p, i) => {
           const hoy = precioHoy(p, enOferta)
           const actual = laEmpresa?.plan === p.codigo
+          const programado = laEmpresa?.planProgramado === p.codigo
           const ahora = enGratis && p.codigo === (cuenta?.planPrueba ?? 'max')
           const recomendado = enGratis && uso?.recomendado === p.codigo
           return (
@@ -181,24 +192,30 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
                 {ahora && <span className="etiqueta aviso">Lo que usas ahora · mes gratis</span>}
                 {actual
                   ? <span className="etiqueta acento">{enGratis ? 'Elegido para después del mes gratis' : 'Tu plan'}</span>
-                  : puede && laEmpresa && (
-                    <Boton estilo={p.codigo === 'pro' ? 'principal' : 'secundario'} ocupado={eligiendo === p.codigo}
-                           onClick={() => void elegir(p.codigo)}>{enGratis ? `Elegir ${p.nombre} para después` : `Elegir ${p.nombre}`}</Boton>
-                  )}
+                  : programado
+                    ? <span className="etiqueta aviso">Desde el {fecha(laEmpresa!.planProgramadoDesde!)}</span>
+                    : puede && laEmpresa && (
+                      <Boton estilo={orden(p.codigo) > orden(laEmpresa.plan) ? 'principal' : 'secundario'} ocupado={cambio.cargando === laEmpresa.id + p.codigo}
+                             onClick={() => void cambio.abrir(laEmpresa.id, p.codigo)}>
+                        {enGratis ? `Elegir ${p.nombre} para después` : `${subeOBaja(p.codigo)} ${p.nombre}`}
+                      </Boton>
+                    )}
               </div>
             </div>
           )
         })}
       </div>
       {laEmpresa && (() => {
-        const elegido = catalogo.planes.find(p => p.codigo === laEmpresa.plan) ?? catalogo.planes[0]
+        // 083: si bajó de plan, lo que paga desde el próximo cobro es el plan nuevo.
+        const elegido = catalogo.planes.find(p => p.codigo === (laEmpresa.planProgramado ?? laEmpresa.plan)) ?? catalogo.planes[0]
         const mensual = precioHoy(elegido, enOferta)
         const fin = laEmpresa.pruebaHasta ?? cuenta?.pruebaHasta ?? null
         return (
           <ResumenPago
             filas={[
               ...(enGratis ? [{ texto: <>Hoy, en tu mes gratis</>, monto: soles(0) }] : []),
-              { texto: <>{enGratis ? `Desde el ${fecha(fin)}` : 'Cada mes'}: plan {elegido.nombre}</>, monto: `${soles(mensual)} al mes`, fuerte: true },
+              { texto: <>{enGratis ? `Desde el ${fecha(fin)}` : laEmpresa.planProgramadoDesde ? `Desde el ${fecha(laEmpresa.planProgramadoDesde)}, cada mes` : 'Cada mes'}: plan {elegido.nombre}</>,
+                monto: `${soles(mensual)} al mes`, fuerte: true },
               { texto: <>O el año completo ({catalogo.reglas.anualMesesGratis} meses gratis)</>, monto: soles(mensual * meses) },
             ]}
             condiciones={[
@@ -211,6 +228,11 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
               : 'Se cobra cada mes en la misma fecha; te enviamos tu comprobante al correo. Precios con IGV.'} />
         )
       })()}
+      {!enGratis && catalogo.encendidos && (
+        <p className="nota">Si subes de plan, empieza en el momento y pagas solo la diferencia por los días que quedan. Si bajas, sigues con lo
+          que pagaste hasta el final del periodo y el plan nuevo empieza en tu próximo cobro.</p>
+      )}
+      {cambio.dialogo}
     </>
   )
 }
@@ -227,6 +249,7 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
   const minimo = catalogo.reglas.carteraMinimo
   const [n, setN] = useState(Math.max(cuenta.cupos ?? cuenta.usados, minimo))
   const [guardando, setGuardando] = useState<string>()
+  const cambio = useCambioPlan(onHecho)   // 083
   const oferta = conOferta(catalogo, cuenta)   // 079
   const plan = (c: CodigoPlan) => catalogo.planes.find(p => p.codigo === c)!
 
@@ -350,11 +373,17 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
                   </td>
                   <td>
                     {puede ? (
-                      <select value={e.plan} disabled={guardando === e.id} aria-label={`Plan de ${e.nombre}`}
-                              onChange={ev => void hacer(e.id, () => planesServicio.elegir(e.id, ev.target.value as CodigoPlan))}>
+                      <select value={e.plan} disabled={!!cambio.cargando} aria-label={`Plan de ${e.nombre}`}
+                              onChange={ev => void cambio.abrir(e.id, ev.target.value as CodigoPlan)}>
                         {catalogo.planes.map(p => <option key={p.codigo} value={p.codigo}>{p.nombre}</option>)}
                       </select>
                     ) : NOMBRE_PLAN[e.plan]}
+                    {e.planProgramado && e.planProgramadoDesde && (
+                      <div className="secundario">
+                        Desde el {fecha(e.planProgramadoDesde)}: {NOMBRE_PLAN[e.planProgramado]}
+                        {puede && <> · <button type="button" className="enlace" onClick={() => void cambio.abrir(e.id, e.plan)}>Deshacer</button></>}
+                      </div>
+                    )}
                     {e.efectivo !== e.plan && <div className="secundario">Ve: {NOMBRE_PLAN[e.efectivo]}</div>}
                   </td>
                   <td>{e.esDelEstudio && e.plan === 'basico' ? 'Gratis'
@@ -374,7 +403,7 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
         </table>
         <ul className="ayuda-tabla">
           <li><strong>Plan de la empresa:</strong> cada una nace en Básico (ya incluida en tus empresas). Si la cambias a Pro o Max, se suma solo la diferencia de esa empresa.{' '}
-            Si la cambias a mitad de mes, se cobra la diferencia por los días que faltan.</li>
+            Si la subes a mitad de mes, pagas la diferencia por los días que faltan; si la bajas, el cambio empieza en tu próximo cobro.</li>
           <li><strong>Es mi estudio:</strong> marca la empresa de tu propio estudio contable (la tuya, la que factura tus honorarios). En Básico es <strong>gratis</strong> y no cuenta en tus empresas. Solo una.</li>
         </ul>
       </div>
@@ -390,6 +419,7 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
           {catalogo.reglas.rucGratisActivo && <li>Cada RUC nuevo que sumes tiene un mes gratis (una vez por RUC, hasta {catalogo.reglas.rucGratisTope} al mes).</li>}
         </ul>
       </div>
+      {cambio.dialogo}
     </div>
   )
 }

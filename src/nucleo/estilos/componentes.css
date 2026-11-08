@@ -2156,3 +2156,13 @@ code.ref { font-size: 12px; word-break: break-all; }
 /* e229: «Ya los revisé». */
 .errs-alerta-acciones { display: flex; align-items: center; gap: var(--e3); }
 .errs-revisado { background: var(--bien-suave); color: var(--bien); border-radius: var(--radio-grande); padding: var(--e3) var(--e4); margin-bottom: var(--e4); }
+/* e230 (083): subir y bajar de plan. */
+.franja-programado { display: flex; justify-content: space-between; align-items: center; gap: var(--e3); flex-wrap: wrap;
+  background: var(--aviso-suave); border: 1px solid var(--aviso-borde); color: var(--aviso); border-radius: var(--radio-grande); padding: var(--e3) var(--e4); margin-bottom: var(--e4); }
+.cambio-plan p { margin: 0 0 var(--e3); }
+.cambio-plan-monto { background: var(--acento-suave); border-radius: var(--radio-grande); padding: var(--e3) var(--e4); margin: 0 0 var(--e3); display: grid; gap: 2px; }
+.cambio-plan-monto strong { font-size: 26px; color: var(--acento-fuerte); }
+.cambio-plan-monto small { color: var(--tinta-2); font-size: 12.5px; }
+.cambio-plan-filas > div { display: flex; justify-content: space-between; gap: var(--e3); padding: 6px 0; border-bottom: 1px solid var(--borde-sutil); }
+.cambio-plan-tarjeta { display: flex; align-items: center; gap: var(--e2); border: 1px solid var(--borde); border-radius: var(--radio); padding: var(--e2) var(--e3); margin: var(--e3) 0; }
+.cambio-plan-tarjeta span { margin-left: auto; color: var(--tinta-3); font-size: 12.5px; }
