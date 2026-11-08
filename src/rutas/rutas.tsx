@@ -213,8 +213,9 @@ export function Rutas() {
         <Route path="/admin/reclamos" element={<Protegido soloSuperAdmin><ReclamosPagina /></Protegido>} />
         {/* e225: errores del sistema (logs por día y proceso). */}
         <Route path="/admin/errores" element={<Protegido soloSuperAdmin><ErroresSistemaPagina /></Protegido>} />
-        <Route path="/mi-plan" element={<MiPlanPagina />} />
-        <Route path="/mi-plan/pagos" element={<MisPagosPagina />} />
+        {/* e228: solo quien es de una cuenta; el super administrador va al inicio. */}
+        <Route path="/mi-plan" element={<Protegido deCuenta><MiPlanPagina /></Protegido>} />
+        <Route path="/mi-plan/pagos" element={<Protegido deCuenta><MisPagosPagina /></Protegido>} />
         {/* 038: los correos de acceso que no salieron. */}
         <Route
           path="/admin/correos"

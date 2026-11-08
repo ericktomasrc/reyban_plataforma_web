@@ -14,6 +14,9 @@ interface Props {
   /** Solo el super administrador. */
   soloSuperAdmin?: boolean
 
+  /** e228: solo quien es de una cuenta (Mi plan, Mis pagos). El super administrador va al inicio. */
+  deCuenta?: boolean
+
   children: ReactNode
 }
 
@@ -27,12 +30,18 @@ interface Props {
  * código con las herramientas del navegador, lo único que consigue es ver una
  * pantalla vacía llena de errores.
  */
-export function Protegido({ permiso, modulo, soloSuperAdmin, children }: Props) {
+export function Protegido({ permiso, modulo, soloSuperAdmin, deCuenta, children }: Props) {
   const { puede } = useSesion()
   const yo = useYo()
   const ubicacion = useLocation()
 
   if (soloSuperAdmin && !yo.usuario.esSuperAdmin) {
+    return <Navigate to="/" replace />
+  }
+
+  // e228: «Mi plan» y «Mis pagos» son de la cuenta. Sin cuenta (el super
+  // administrador) no hay nada que mostrar: al inicio, sin mensaje rojo.
+  if (deCuenta && !yo.cuenta) {
     return <Navigate to="/" replace />
   }
 

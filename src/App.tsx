@@ -134,6 +134,12 @@ function Puerta() {
     if (luego) setLuego(false)   // al volver a entrar, «Tus datos» se pregunta otra vez
     // 074: en facturacion.…, quien llega a la raíz sin sesión ve la vitrina.
     if (esDominioVitrina() && ruta.pathname === '/') return <MarcoPublico><InicioPublico /></MarcoPublico>
+    // e228: AL ENTRAR, SIEMPRE AL INICIO. Sin esto, quien entraba se quedaba
+    // en la última dirección del navegador (la pantalla de otro usuario, o
+    // «Mis pagos» para el super administrador). El ingreso se muestra en la
+    // raíz (o en /entrar, donde la raíz es la vitrina), y después de entrar
+    // se está en el inicio.
+    if (ruta.pathname !== '/') return <Navigate to={esDominioVitrina() ? '/entrar' : '/'} replace />
     return <Ingreso />
   }
 
