@@ -20,6 +20,7 @@ import { MenuDesplegable } from './MenuDesplegable'
 import { Campanita, IndicadorCertificado } from '../modulos/avisos/Campanita'
 import { useAvisos } from '../modulos/avisos/avisosServicio'
 import { erroresServicio } from '../modulos/errores/servicios/erroresServicio'
+import { EVENTO_RECLAMOS, reclamosAdminServicio } from '../modulos/reclamos/servicios/reclamosAdminServicio'
 import { EVENTO_ERRORES_REVISADOS, revisadosHasta } from '../modulos/errores/servicios/revisados'
 import { PantallaPlan } from '../modulos/planes/componentes/PantallaPlan'
 import { NOMBRE_PLAN, diasQueFaltan, planQueLaTrae, rutaPermitida } from '../nucleo/planes/planes'
@@ -100,6 +101,20 @@ export function Disposicion() {
     window.addEventListener(EVENTO_ERRORES_REVISADOS, mirar)
     return () => { vivo = false; window.removeEventListener(EVENTO_ERRORES_REVISADOS, mirar) }
   }, [veErrores, ruta.pathname])
+
+  // e233: las hojas del Libro de Reclamaciones sin responder, junto a su menú.
+  const veReclamos = usuario.esSuperAdmin && puede(Permisos.Plataforma.Reclamos)
+  const [hojas, setHojas] = useState({ pendientes: 0, porVencer: 0 })
+  useEffect(() => {
+    if (!veReclamos) return
+    let vivo = true
+    const mirar = () => reclamosAdminServicio.pendientes()
+      .then(r => { if (vivo) setHojas(r) })
+      .catch(() => { /* el menú no se rompe por esto */ })
+    void mirar()
+    window.addEventListener(EVENTO_RECLAMOS, mirar)
+    return () => { vivo = false; window.removeEventListener(EVENTO_RECLAMOS, mirar) }
+  }, [veReclamos, ruta.pathname])
 
   const activo = ({ isActive }: { isActive: boolean }) => isActive ? 'activo' : undefined
 
@@ -451,7 +466,16 @@ export function Disposicion() {
               )}
               {puede(Permisos.Plataforma.EmpresasGestionar) && <NavLink to="/admin/traspasos" className={activo}><Icono>⇄</Icono>Solicitudes de traspaso</NavLink>}
               {/* 078: el Libro de Reclamaciones (la hoja la llena el cliente en la página pública). */}
-              {puede(Permisos.Plataforma.Reclamos) && <NavLink to="/admin/reclamos" className={activo}><Icono>✎</Icono>Libro de Reclamaciones</NavLink>}
+              {puede(Permisos.Plataforma.Reclamos) && (
+                <NavLink to="/admin/reclamos" className={activo}>
+                  <Icono>✎</Icono>Libro de Reclamaciones
+                  {/* e233: rojo si alguna vence en 3 días o menos; si no, naranja. */}
+                  {hojas.pendientes > 0 && (
+                    <span className={'cert-numero ' + (hojas.porVencer > 0 ? 'rojo' : 'naranja')}
+                          title={`${hojas.pendientes} sin responder${hojas.porVencer > 0 ? ` · ${hojas.porVencer} vence(n) en 3 días o menos` : ''}`}>{hojas.pendientes}</span>
+                  )}
+                </NavLink>
+              )}
               {/* e225: los errores de cada día, por proceso, con su descarga. */}
               {veErrores && (
                 <NavLink to="/admin/errores" className={activo}>

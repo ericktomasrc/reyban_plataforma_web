@@ -12,4 +12,9 @@ export interface HojaAdmin {
 export const reclamosAdminServicio = {
   lista: () => api.obtener<HojaAdmin[]>('/api/admin/reclamos'),
   responder: (id: string, respuesta: string) => api.crear<{ mensaje: string }>(`/api/admin/reclamos/${id}/responder`, { respuesta }),
+  // e233: el número rojo del menú (sin responder; por vencer = 3 días o menos).
+  pendientes: () => api.obtener<{ pendientes: number; porVencer: number }>('/api/admin/reclamos/pendientes'),
 }
+
+/** e233: al responder una hoja, el número del menú se vuelve a mirar. */
+export const EVENTO_RECLAMOS = 'reyban:reclamos-cambio'

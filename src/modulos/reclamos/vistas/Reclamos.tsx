@@ -7,7 +7,7 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha, fechaYHora } from '../../../nucleo/formato/fechas'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { soles } from '../../../nucleo/planes/planes'
-import { reclamosAdminServicio, type HojaAdmin } from '../servicios/reclamosAdminServicio'
+import { EVENTO_RECLAMOS, reclamosAdminServicio, type HojaAdmin } from '../servicios/reclamosAdminServicio'
 
 /**
  * 078 — EL LIBRO DE RECLAMACIONES, del lado de la plataforma.
@@ -36,6 +36,7 @@ export function ReclamosPagina() {
     setOcupado(true)
     try {
       mensaje.bien((await reclamosAdminServicio.responder(abierta.id, texto)).mensaje)
+      window.dispatchEvent(new Event(EVENTO_RECLAMOS))   // e233
       setAbierta(undefined); setTexto('')
       await cargar()
     } catch (e) { mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo guardar la respuesta.') }
