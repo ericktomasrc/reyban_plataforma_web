@@ -561,7 +561,7 @@ function porQueVe(c: ResumenCuenta, e: ResumenCuenta['empresas'][number]): strin
 // =============================================================================
 // PRECIOS Y REGLAS — en pestañas: Planes · Tramos de la Cartera · Mes gratis y reglas
 // =============================================================================
-type VistaPrecios = 'planes' | 'tramos' | 'reglas' | 'publica'
+type VistaPrecios = 'planes' | 'tramos' | 'comprobantes' | 'reglas' | 'publica'
 
 function PreciosYReglas({ config, puede, onHecho }: { config: ConfigPlanes; puede: boolean; onHecho: () => Promise<void> }) {
   const mensaje = useMensaje()
@@ -570,6 +570,12 @@ function PreciosYReglas({ config, puede, onHecho }: { config: ConfigPlanes; pued
   const [tramos, setTramos] = useState<Tramo[]>(config.catalogo.tramos)
   const [reglas, setReglas] = useState<Reglas>(config.catalogo.reglas)
   const [ocupado, setOcupado] = useState<string>()
+  // e234 (085): el paquete extra de comprobantes.
+  const [paquete, setPaquete] = useState({
+    cantidad: config.catalogo.reglas.paqueteCantidad ?? 1000,
+    precioRegular: config.catalogo.reglas.paquetePrecioRegular ?? 15,
+    precioOferta: config.catalogo.reglas.paquetePrecioOferta ?? 10,
+  })
 
   const num = (v: string) => v === '' ? null : Number(v)
   const cambiarPlan = (i: number, campo: keyof PlanCatalogo, v: number | null) =>
@@ -586,8 +592,9 @@ function PreciosYReglas({ config, puede, onHecho }: { config: ConfigPlanes; pued
   }
   const guardarPrecios = () => guardar('precios', () => planesServicio.precios(
     planes.map(p => ({ codigo: p.codigo, precioRegular: p.precioRegular, precioOferta: p.precioOferta, sucursalesMax: p.sucursalesMax,
-                       carteraExtraRegular: p.carteraExtraRegular, carteraExtraOferta: p.carteraExtraOferta })),
-    tramos))
+                       carteraExtraRegular: p.carteraExtraRegular, carteraExtraOferta: p.carteraExtraOferta,
+                       topeRegular: p.topeRegular ?? null, topeOferta: p.topeOferta ?? null })),
+    tramos, paquete))
 
   // Ejemplo con los tramos escritos (sin guardar): cuánto paga una Cartera de 12.
   const ejemplo = 12
@@ -601,6 +608,7 @@ function PreciosYReglas({ config, puede, onHecho }: { config: ConfigPlanes; pued
       <Pestanas<VistaPrecios> etiqueta="Precios y reglas" valor={vista} onCambio={setVista} opciones={[
         { valor: 'planes', texto: 'Precios de Básico, Pro y Max' },
         { valor: 'tramos', texto: 'Precio de la Cartera' },
+        { valor: 'comprobantes', texto: 'Comprobantes al mes' },
         { valor: 'reglas', texto: 'Mes gratis y otras reglas' },
         { valor: 'publica', texto: 'Página pública' },
       ]} />
@@ -643,6 +651,44 @@ function PreciosYReglas({ config, puede, onHecho }: { config: ConfigPlanes; pued
             ))}
           </div>
           {puede && <div className="acciones-bloque"><Boton ocupado={ocupado === 'precios'} onClick={() => void guardarPrecios()}>Guardar precios</Boton></div>}
+        </div>
+      )}
+
+      {vista === 'comprobantes' && (
+        <div className="bloque">
+          <p className="secundario">
+            Cuántas <strong>facturas y boletas</strong> puede emitir cada empresa (cada RUC) al mes, según su plan. Avisamos al 80 %, 90 % y
+            95 % (campanita y correo) y, al llegar, se pausan las facturas y boletas nuevas hasta el 1 del mes que viene o hasta que compre un
+            paquete. Las notas de crédito y las anulaciones no cuentan ni se frenan. Quien entró en la oferta conserva el tope de lanzamiento
+            igual que el precio. Con los planes apagados no hay tope.
+          </p>
+          <table className="tabla compacta tabla-topes">
+            <thead><tr><th>Plan</th><th>Tope normal (va tachado)</th><th>Tope de lanzamiento</th></tr></thead>
+            <tbody>
+              {planes.map((p, i) => (
+                <tr key={p.codigo}>
+                  <td><strong>{p.nombre}</strong></td>
+                  <td><span className="con-unidad"><input type="number" min={100} step={100} disabled={!puede} value={p.topeRegular ?? ''}
+                        onChange={e => cambiarPlan(i, 'topeRegular', num(e.target.value))} /><em>al mes</em></span></td>
+                  <td><span className="con-unidad"><input type="number" min={100} step={100} disabled={!puede} value={p.topeOferta ?? ''}
+                        onChange={e => cambiarPlan(i, 'topeOferta', num(e.target.value))} /><em>al mes</em></span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <h3 className="subtitulo-topes">Paquete extra</h3>
+          <p className="pista">Lo compra el cliente con su tarjeta cuando se acerca o llega al tope. Se activa al instante, se usa solo pasado
+            el tope del mes y lo que no use pasa al mes siguiente (no vence).</p>
+          <div className="fila-paquete">
+            <label className="campo-regla"><span className="rotulo">Trae</span>
+              <span className="con-unidad"><input type="number" min={1} step={100} disabled={!puede} value={paquete.cantidad}
+                onChange={e => setPaquete(x => ({ ...x, cantidad: Number(e.target.value) }))} /><em>comprobantes</em></span></label>
+            <CampoPrecio etiqueta="Precio normal (va tachado)" pista="mínimo S/ 3" valor={paquete.precioRegular} disabled={!puede}
+                         onCambio={v => setPaquete(x => ({ ...x, precioRegular: v ?? 0 }))} />
+            <CampoPrecio etiqueta="Precio de lanzamiento (el que paga)" pista="mínimo S/ 3" valor={paquete.precioOferta} disabled={!puede}
+                         onCambio={v => setPaquete(x => ({ ...x, precioOferta: v ?? 0 }))} />
+          </div>
+          {puede && <div className="acciones-bloque"><Boton ocupado={ocupado === 'precios'} onClick={() => void guardarPrecios()}>Guardar</Boton></div>}
         </div>
       )}
 

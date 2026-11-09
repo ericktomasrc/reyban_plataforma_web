@@ -26,6 +26,9 @@ export const EVENTO_FICHA_INCOMPLETA = 'reyban:ficha-incompleta'
 /** 1 nov: la API dijo «esto ya no viene en tu plan» (402): se vuelve a leer /api/yo al momento. */
 export const EVENTO_PLAN_CAMBIO = 'reyban:plan-cambio'
 
+/** 085: la API dijo «llegaste a tu tope de comprobantes» (402 «tope»): la cabecera abre el aviso con el paquete. */
+export const EVENTO_TOPE = 'reyban:tope-comprobantes'
+
 // =============================================================================
 // 046 — LA SUCURSAL ELEGIDA ARRIBA («Sucursal: Todas ▾»)
 //
@@ -88,6 +91,9 @@ async function llamar<T>(metodo: Metodo, ruta: string, cuerpo?: unknown): Promis
     }
     if (respuesta.status === 402 && (datos?.codigo === 'plan' || datos?.codigo === 'pago')) {   // 076: también «pago»
       window.dispatchEvent(new CustomEvent(EVENTO_PLAN_CAMBIO))
+    }
+    if (respuesta.status === 402 && datos?.codigo === 'tope') {   // 085
+      window.dispatchEvent(new CustomEvent(EVENTO_TOPE, { detail: datos.tope }))
     }
     throw new ErrorApi(
       respuesta.status,

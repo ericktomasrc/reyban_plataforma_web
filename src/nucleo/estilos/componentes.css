@@ -2168,3 +2168,28 @@ code.ref { font-size: 12px; word-break: break-all; }
 .cambio-plan-tarjeta span { margin-left: auto; color: var(--tinta-3); font-size: 12.5px; }
 /* e232: la diferencia por subir de cupo a mitad del periodo pagado. */
 .franja-cupos { margin: 0 0 var(--e3); padding: var(--e3) var(--e4); border-radius: var(--radio-grande); background: var(--acento-suave); font-size: 13.5px; }
+/* e234 (085): el tope de comprobantes del mes (Inicio, aviso de bloqueo, precios, Empresas). */
+.tope-tarjeta { margin-bottom: var(--e4); }
+.tope-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--e3); flex-wrap: wrap; }
+.tope-cabeza h2 { margin: 0; }
+.tope-cabeza h2::first-letter { text-transform: uppercase; }
+.tope-numero { font-family: var(--mono, ui-monospace, monospace); font-size: 26px; font-weight: 700; color: var(--acento); white-space: nowrap; }
+.tope-numero span { font-size: 15px; color: var(--texto-suave, #6b7b87); font-weight: 400; }
+.tope-barra { height: 12px; background: var(--hundido); border-radius: 8px; overflow: hidden; margin: var(--e3) 0 var(--e2); }
+.tope-barra i { display: block; height: 100%; border-radius: 8px; background: var(--acento); }
+.tope-barra i.ambar { background: var(--aviso); }
+.tope-barra i.rojo { background: var(--peligro); }
+.tope-pie { display: flex; justify-content: space-between; gap: var(--e3); flex-wrap: wrap; font-size: 13px; }
+.tope-alerta { display: flex; justify-content: space-between; align-items: center; gap: var(--e3); flex-wrap: wrap; margin-top: var(--e3);
+  padding: var(--e3) var(--e4); border-radius: var(--radio-grande); font-size: 14px; line-height: 1.5; }
+.tope-alerta.ambar { background: #fbf1dc; color: #6e4806; }
+.tope-alerta.rojo { background: #fbe5e3; color: #8f241b; }
+.tope-acciones { display: flex; align-items: center; gap: var(--e3); }
+.tope-opcion { border: 1px solid var(--borde); border-radius: var(--radio-grande); padding: var(--e3) var(--e4); margin-bottom: var(--e2); }
+.tope-tachado { margin-left: 6px; color: var(--texto-suave, #8d9aa4); font-weight: 400; font-size: .85em; }
+.tope-plan { font-weight: 500; }
+.tabla-topes input { width: 110px; }
+.subtitulo-topes { margin: var(--e5, 24px) 0 var(--e2); }
+.fila-paquete { display: flex; gap: var(--e4); flex-wrap: wrap; align-items: flex-end; }
+.uso-mes.ambar { color: #8a5a09; }
+.uso-mes.rojo { color: var(--peligro); }

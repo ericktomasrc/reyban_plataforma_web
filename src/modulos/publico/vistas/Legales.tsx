@@ -53,6 +53,7 @@ export function TerminosPublico() {
         <li>Si un cobro falla, lo reintentamos y te avisamos. Si no se regulariza en el plazo de gracia, podrás entrar y ver todo, pero no emitir hasta pagar. No se borra nada.</li>
         <li><strong>Precio de lanzamiento:</strong> si contratas mientras hay una oferta, conservas ese precio durante los meses que indica la página de precios (12 meses pagados, salvo que diga otra cosa), aunque la oferta termine. Después pasa al precio vigente.</li>
         <li>Si cambiamos los precios, te avisaremos con al menos 30 días de anticipación; el cambio rige desde tu siguiente periodo.</li>
+        <li><strong>Comprobantes al mes (uso justo):</strong> cada empresa (cada RUC) puede emitir hasta el número de facturas y boletas al mes que indica su plan en la página de <Link to="/precios">precios</Link> (si contratas con precio de lanzamiento, conservas también ese tope). Te avisamos por correo y en la plataforma al 80 %, 90 % y 95 %. Al llegar al tope, las facturas y boletas nuevas quedan en pausa hasta el primer día del mes siguiente, salvo que compres un paquete extra o subas de plan. Las notas de crédito, las anulaciones y lo ya enviado a SUNAT siguen funcionando. Los paquetes extra se pagan por adelantado, se usan solo después del tope del mes y no vencen.</li>
       </ul>
 
       <h2>7. Cancelación y devoluciones</h2>

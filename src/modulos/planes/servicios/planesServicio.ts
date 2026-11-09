@@ -13,6 +13,9 @@ export interface PlanCatalogo {
   sucursalesMax: number | null
   carteraExtraRegular: number
   carteraExtraOferta: number | null
+  /** 085: comprobantes al mes por empresa (normal y de lanzamiento). */
+  topeRegular?: number | null
+  topeOferta?: number | null
   funciones: { menu: string; nombre: string }[]
 }
 export interface Tramo { desde: number; hasta: number | null; precioOferta: number; precioRegular: number }
@@ -30,7 +33,32 @@ export interface Reglas {
   anualMesesGratis: number
   /** 071: qué ve una empresa en su mes gratis. */
   planPrueba: CodigoPlan
+  /** 085: el paquete extra de comprobantes. */
+  paqueteCantidad?: number
+  paquetePrecioRegular?: number
+  paquetePrecioOferta?: number
 }
+
+/** 085: el tope de comprobantes del mes de una empresa. */
+export interface TopeComprobantes {
+  aplica: boolean
+  empresa?: string
+  emitidos?: number
+  tope?: number
+  topeNormal?: number
+  oferta?: boolean
+  saldo?: number
+  disponible?: number
+  porcentaje?: number
+  bloqueado?: boolean
+  reinicia?: string
+  paquete?: { cantidad: number; precio: number; precioNormal: number }
+  puedeComprar?: boolean
+  tarjeta?: { marca: string; ultimos4: string } | null
+  conTarjeta?: boolean
+  sinDineroReal?: boolean
+}
+export interface UsoComprobantes { emitidos: number; tope: number; saldo: number; porcentaje: number; bloqueado: boolean; paquetes: number }
 export interface Catalogo {
   encendidos: boolean
   enOferta: boolean
@@ -201,13 +229,20 @@ export const planesServicio = {
   // e232: lo que costaría subir de cupo hoy (null si no se cobra nada).
   cotizarCupos: (cupos: number) => api.obtener<{ texto: string | null }>(`/api/planes/cupos/cotizar?cupos=${cupos}`),
   estudio: (empresaId: string | null) => api.crear<Mensaje>('/api/planes/estudio', { empresaId }),
+  /** 085: el tope de comprobantes del mes y comprar un paquete extra. */
+  comprobantes: (empresaId?: string) =>
+    api.obtener<TopeComprobantes>(`/api/planes/comprobantes${empresaId ? `?empresa=${empresaId}` : ''}`),
+  comprarPaquete: (empresaId?: string) =>
+    api.crear<Mensaje & { estado: string; error?: string }>('/api/planes/comprobantes/paquete', { empresaId: empresaId ?? null }),
+  usoComprobantes: () => api.obtener<Record<string, UsoComprobantes>>('/api/admin/planes/comprobantes'),
 
   // La plataforma
   config: () => api.obtener<ConfigPlanes>('/api/admin/planes/config'),
   interruptor: (encendidos: boolean) => api.cambiar<Mensaje & { encendidos: boolean }>('/api/admin/planes/interruptor', { encendidos }),
   reglas: (r: Reglas) => api.cambiar<Mensaje>('/api/admin/planes/reglas', r),
-  precios: (planes: Omit<PlanCatalogo, 'nombre' | 'orden' | 'paraQuien' | 'funciones'>[], tramos: Tramo[]) =>
-    api.cambiar<Mensaje>('/api/admin/planes/precios', { planes, tramos }),
+  precios: (planes: Omit<PlanCatalogo, 'nombre' | 'orden' | 'paraQuien' | 'funciones'>[], tramos: Tramo[],
+            paquete?: { cantidad: number; precioRegular: number; precioOferta: number }) =>
+    api.cambiar<Mensaje>('/api/admin/planes/precios', { planes, tramos, paquete }),
   armador: () => api.obtener<Armador>('/api/admin/planes/armador'),
   afectados: (cambios: { codigo: string; plan: CodigoPlan | null }[]) =>
     api.crear<Afectados>('/api/admin/planes/armador/afectados', { cambios }),

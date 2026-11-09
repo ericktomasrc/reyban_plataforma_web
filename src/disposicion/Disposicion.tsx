@@ -23,6 +23,7 @@ import { erroresServicio } from '../modulos/errores/servicios/erroresServicio'
 import { EVENTO_RECLAMOS, reclamosAdminServicio } from '../modulos/reclamos/servicios/reclamosAdminServicio'
 import { EVENTO_ERRORES_REVISADOS, revisadosHasta } from '../modulos/errores/servicios/revisados'
 import { PantallaPlan } from '../modulos/planes/componentes/PantallaPlan'
+import { AvisoTopeGlobal } from '../modulos/planes/componentes/TopeComprobantes'
 import { NOMBRE_PLAN, diasQueFaltan, planQueLaTrae, rutaPermitida } from '../nucleo/planes/planes'
 
 /**
@@ -305,6 +306,8 @@ export function Disposicion() {
           onGuardado={m => { setPidiendoFicha(false); mensaje.bien(m + ' Ya puedes seguir.') }}
         />
       )}
+      {/* e234 (085): la API frenó una emisión por el tope del mes: paquete o subir de plan. */}
+      {!usuario.esSuperAdmin && <AvisoTopeGlobal />}
 
       {/* e171: en iPhone y iPad no hay botón de instalar: se agrega desde Safari. */}
       <Dialogo titulo="Instalar Reyban en tu iPhone" abierto={pasosIos} onCerrar={() => setPasosIos(false)}

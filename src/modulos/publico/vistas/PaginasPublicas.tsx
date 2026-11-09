@@ -3,6 +3,7 @@ import { soles } from '../../../nucleo/planes/planes'
 import { etiquetaPlan, extraHoy, menusDelPlan, precioHoy } from '../../planes/servicios/planesServicio'
 import { CorreoContacto, numeroPeru, useVitrina } from './Vitrina'
 import { CapturaPlan } from '../componentes/CapturaPlan'
+import { textoTope } from '../../planes/componentes/TopeComprobantes'
 
 // =============================================================================
 // INICIO
@@ -146,6 +147,7 @@ export function PreciosPublico() {
                     <ul>
                       {menusDelPlan(p.funciones).slice(0, 5).map(m => <li key={m}>{i > 0 ? '+ ' : ''}{m}</li>)}
                       <li>{p.sucursalesMax === null ? 'Sucursales ilimitadas' : `${p.sucursalesMax} sucursal${p.sucursalesMax === 1 ? '' : 'es'}`} · usuarios ilimitados</li>
+                      {p.topeRegular && <li>{textoTope(p, oferta)}</li>}
                     </ul>
                     <Link to={`/registro?tipo=negocio&plan=${p.codigo}`} className="pub-boton ancho">Contratar {p.nombre}</Link>
                     <span className="pub-mini">o pruébalo gratis {catalogo.reglas.diasPrueba} días</span>

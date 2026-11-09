@@ -21,6 +21,7 @@ import { Permisos } from '../../../nucleo/autorizacion/permisos'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import type { EmpresaEnLista, PlanesDeEmpresas } from '../tipos'
 import { NOMBRE_PLAN } from '../../../nucleo/planes/planes'
+import { planesServicio, type UsoComprobantes } from '../../planes/servicios/planesServicio'
 
 /**
  * La pantalla del super administrador: sus clientes.
@@ -39,6 +40,8 @@ export function ListaEmpresas() {
   const empresas = useCargar<EmpresaEnLista[]>(() => empresasServicio.listar())
   const catalogo = useCargar(() => empresasServicio.modulos())
   const planes = useCargar(() => empresasServicio.planes())   // e215
+  // e234 (085): comprobantes del mes de cada empresa con tope (vacío con los planes apagados).
+  const uso = useCargar<Record<string, UsoComprobantes>>(() => planesServicio.usoComprobantes())
 
   const [creando, setCreando] = useState(false)
   const [editandoModulos, setEditandoModulos] = useState<EmpresaEnLista>()
@@ -112,6 +115,7 @@ export function ListaEmpresas() {
                 <th>Empresa</th>
                 <th>RUC</th>
                 <th className="centro">Usuarios</th>
+                <th>Comprobantes este mes</th>
                 <th>Módulos</th>
                 <th>Estado</th>
                 <th aria-label="Acciones" />
@@ -144,6 +148,8 @@ export function ListaEmpresas() {
                     </td>
 
                     <td className="centro">{e.usuarios}</td>
+
+                    <td><UsoDelMes u={uso.datos?.[e.id]} /></td>
 
                     <td>
                       <PlanDeEmpresa info={planes.datos} id={e.id} />
@@ -427,4 +433,20 @@ export function PlanDeEmpresa({ info, id }: { info?: PlanesDeEmpresas; id: strin
     : p.prueba ? [`Max · mes gratis`, 'max']
     : [NOMBRE_PLAN[p.efectivo] ?? p.efectivo, p.efectivo]
   return <div className={'plan-chico ' + clase}>{texto}</div>
+}
+
+/** e234 (085): «4,120 / 6,000», en ámbar desde el 80 % y en rojo al llegar. */
+function UsoDelMes({ u }: { u?: UsoComprobantes }) {
+  if (!u) return <span className="vacio">sin tope</span>
+  const n = (x: number) => x.toLocaleString('en-US')
+  const tono = u.bloqueado ? 'rojo' : u.porcentaje >= 80 ? 'ambar' : ''
+  return (
+    <>
+      <strong className={'uso-mes ' + tono}>{n(u.emitidos)} / {n(u.tope)}</strong>
+      {u.bloqueado && <span className="secundario"> · en pausa</span>}
+      {(u.saldo > 0 || u.paquetes > 0) && (
+        <div className="secundario">{u.paquetes} paquete{u.paquetes === 1 ? '' : 's'} · le quedan {n(u.saldo)}</div>
+      )}
+    </>
+  )
 }

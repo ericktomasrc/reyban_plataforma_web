@@ -19,6 +19,7 @@ import { inventarioServicio, type AlertaInventario } from '../../inventario/serv
 import { documentosServicio } from '../../facturacion/servicios/facturacionServicio'
 import type { DocumentoEnLista } from '../../facturacion/tipos'
 import { Paginacion } from '../../../componentes/Paginacion'
+import { TarjetaTope } from '../../planes/componentes/TopeComprobantes'
 
 /**
  * EL INICIO.
@@ -174,6 +175,8 @@ function Tablero() {
           )}
 
           <Avisos datos={datos} configura={configura} />
+          {/* e234 (085): cuántos comprobantes lleva este mes y su tope. */}
+          <TarjetaTope />
           {puede('inventario.ver') && <AvisoInventario />}
 
           <div className="inicio-cuerpo">

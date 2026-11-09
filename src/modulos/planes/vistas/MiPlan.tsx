@@ -11,6 +11,7 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { NOMBRE_PLAN, diasQueFaltan, soles } from '../../../nucleo/planes/planes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import { useCambioPlan } from '../componentes/CambioPlan'
+import { textoTope } from '../componentes/TopeComprobantes'
 import {
   etiquetaPlan, extraHoy, menusDelPlan, planesServicio, precioCartera, precioHoy,
   type Catalogo, type CodigoPlan, type MiPlan, type PlanCatalogo, type ResumenCuenta,
@@ -187,6 +188,7 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
                 {Menus(p).map(m => <li key={m} className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{m}</li>)}
                 <li className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{p.sucursalesMax === null ? 'Sucursales ilimitadas' : p.sucursalesMax === 1 ? '1 sucursal' : `Hasta ${p.sucursalesMax} sucursales`}</li>
                 {i === 0 && <li>Usuarios ilimitados</li>}
+                {p.topeRegular && <li className="tope-plan">{textoTope(p, enOferta)}</li>}
               </ul>
               <div className="pie-tarjeta-plan">
                 {ahora && <span className="etiqueta aviso">Lo que usas ahora · mes gratis</span>}
@@ -360,6 +362,7 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
               <ul className="lista-plan">
                 {Menus(p).map(m => <li key={m} className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{m}</li>)}
                 <li className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{p.sucursalesMax === null ? 'Sucursales ilimitadas' : p.sucursalesMax === 1 ? '1 sucursal' : `Hasta ${p.sucursalesMax} sucursales`}</li>
+                {p.topeRegular && <li className="tope-plan">{textoTope(p, oferta)} por empresa</li>}
               </ul>
             </div>
           ))}
