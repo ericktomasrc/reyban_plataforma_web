@@ -598,6 +598,9 @@ function PasoCertificado({ estado, atras, alTerminar }: {
       {/* 18 oct: sin casilla. Un certificado de otro RUC sale aquí, en rojo. */}
       {error && <Aviso>{error}</Aviso>}
 
+      {/* e236: la guía para sacar el certificado (gratis en SUNAT, o comprado). */}
+      {!cargado && <GuiaCertificado />}
+
       {beta && (
         <div className="aviso ojo fila-aviso">
           <span>¿Todavía no tienes certificado? En <strong>beta</strong> puedes probar con uno de prueba.</span>
@@ -1163,5 +1166,33 @@ function PasoListo({ estado, atras, irA, recargar }: {
 
       <p className="nota">Todo esto lo puedes cambiar después volviendo a este asistente.</p>
     </>
+  )
+}
+
+/**
+ * e236 — CÓMO SACAR EL CERTIFICADO DIGITAL. Lo más común en una empresa con
+ * renta de 3ra categoría: el Certificado Digital Tributario (CDT), gratis en
+ * SUNAT. Si no califica, uno comprado a una entidad acreditada por INDECOPI.
+ */
+function GuiaCertificado() {
+  return (
+    <details className="guia-certificado">
+      <summary>¿No tienes certificado digital? Así lo sacas (puede ser gratis)</summary>
+      <div className="guia-certificado-cuerpo">
+        <h4>Opción 1 · Gratis en SUNAT (Certificado Digital Tributario)</h4>
+        <p className="secundario">Para empresas con RUC activo y renta de 3ra categoría, que todavía no tengan uno vigente. SUNAT revisa si cumples.</p>
+        <ol>
+          <li>Entra a <strong>SUNAT Operaciones en Línea</strong> con tu Clave SOL.</li>
+          <li>Ve a <strong>Empresas › Comprobantes de pago › Certificado Digital Tributario - CDT › Solicitar Certificado Digital Tributario</strong>.</li>
+          <li>Lee los términos, marca la casilla y pulsa <strong>Enviar solicitud</strong>.</li>
+          <li>Abre tu <strong>Buzón SOL</strong>: llega el mensaje «Emisión de Certificado Digital Tributario».</li>
+          <li>Entra al enlace del mensaje, crea una <strong>contraseña</strong> (8 letras o números como mínimo) y pulsa <strong>Descargar certificado</strong>. Se baja el archivo <strong>certificado.p12</strong>.</li>
+          <li>Súbelo aquí arriba con esa contraseña. Guárdala bien: la necesitarás si lo vuelves a subir.</li>
+        </ol>
+        <h4>Opción 2 · Comprado</h4>
+        <p>Si no calificas para el gratuito, cómpralo a una entidad de certificación acreditada por INDECOPI (dura 1 a 3 años). Te entregan un archivo <strong>.pfx</strong> o <strong>.p12</strong> con su contraseña: súbelo aquí igual.</p>
+        <p className="secundario">El certificado firma tus comprobantes. Lo guardamos cifrado y nunca lo compartimos. Te avisamos antes de que venza.</p>
+      </div>
+    </details>
   )
 }

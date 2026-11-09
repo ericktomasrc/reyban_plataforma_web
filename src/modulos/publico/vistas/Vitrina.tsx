@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { vitrinaServicio, type Vitrina } from '../servicios/vitrinaServicio'
+import { BotonAyuda } from '../componentes/BotonAyuda'
 
 /**
  * 074 — LA PÁGINA PÚBLICA (facturacion.reybanconsulting.com).
@@ -51,6 +52,7 @@ export function MarcoPublico({ children }: { children?: ReactNode }) {
         </header>
 
         <main className="pub-principal">{children ?? <Outlet />}</main>
+        <BotonAyuda />   {/* e236 */}
 
         <footer className="pub-pie">
           <div className="pub-ancho pub-pie-rejilla">

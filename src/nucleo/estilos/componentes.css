@@ -2193,3 +2193,19 @@ code.ref { font-size: 12px; word-break: break-all; }
 .fila-paquete { display: flex; gap: var(--e4); flex-wrap: wrap; align-items: flex-end; }
 .uso-mes.ambar { color: #8a5a09; }
 .uso-mes.rojo { color: var(--peligro); }
+/* e236: la guía del certificado digital (asistente, paso 2). */
+.guia-certificado { margin: var(--e4) 0; border: 1px solid var(--borde); border-radius: var(--radio-grande); background: var(--superficie, #fff); }
+.guia-certificado > summary { cursor: pointer; padding: var(--e3) var(--e4); font-weight: 600; color: var(--acento); }
+.guia-certificado-cuerpo { padding: 0 var(--e4) var(--e3); font-size: 14px; line-height: 1.55; }
+.guia-certificado-cuerpo h4 { margin: var(--e3) 0 var(--e1, 4px); }
+.guia-certificado-cuerpo ol { padding-left: 20px; margin: var(--e2) 0; }
+.guia-certificado-cuerpo li { margin: 4px 0; }
+
+/* e236: «¿Ayuda? Escríbenos por WhatsApp», flotante abajo a la derecha. */
+.boton-ayuda { position: fixed; right: 20px; bottom: 20px; z-index: 40; display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px; border-radius: 999px; background: #1f8a4c; color: #fff; font-weight: 600; font-size: 14px;
+  text-decoration: none; box-shadow: 0 6px 20px rgba(0, 0, 0, .18); }
+.boton-ayuda:hover { background: #18723e; color: #fff; }
+.boton-ayuda-icono { font-size: 18px; line-height: 1; }
+@media (max-width: 640px) { .boton-ayuda { right: 14px; bottom: 14px; padding: 12px; } .boton-ayuda-texto { display: none; } }
+@media print { .boton-ayuda { display: none; } }
