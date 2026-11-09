@@ -561,6 +561,8 @@ export interface DocumentoCompleto {
 
   /** Falso en cuanto se entregó al servicio. A partir de ahí no hay vuelta atrás. */
   sePuedeEditar: boolean
+  /** 087: no se sabe si el servicio lo recibió: solo se reintenta tal cual. */
+  envioDudoso?: boolean
 
   cliente: {
     id: string

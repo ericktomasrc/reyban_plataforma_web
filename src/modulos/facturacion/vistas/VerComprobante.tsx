@@ -285,7 +285,11 @@ export function VerComprobante() {
 
             {d.estado === 'error' && d.sePuedeEditar && (
               <div className="acciones-linea">
-                {esNota ? (
+                {/* 087: si no se sabe si llegó, se reintenta tal cual (sin pasar por el editor). */}
+                {d.envioDudoso && !esNota && (
+                  <p className="secundario">No se pudo confirmar si llegó al servicio. Reintenta sin cambios: si ya se emitió, se recupera el mismo comprobante.</p>
+                )}
+                {esNota || d.envioDudoso ? (
                   <Boton onClick={() => void reintentarNota()} ocupado={ocupado} textoOcupado="Enviando…">
                     Reintentar
                   </Boton>
