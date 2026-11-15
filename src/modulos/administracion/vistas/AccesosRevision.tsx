@@ -11,6 +11,41 @@ import { revisionServicio, type AccesoRevision } from '../servicios/revisionServ
 const dia = (iso: string) => new Date(iso).toLocaleDateString('es-PE', { timeZone: 'America/Lima', day: 'numeric', month: 'short', year: 'numeric' })
 const diaHora = (iso: string) => new Date(iso).toLocaleString('es-PE', { timeZone: 'America/Lima', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
+/**
+ * e241: una contraseña segura al azar, generada en el navegador con
+ * crypto.getRandomValues: 3 grupos de 5 (p. ej. «Kq7mR-x3PtZ-9vHcw»), sin
+ * letras que se confunden (0/O, 1/l/I), para dictarla o copiarla a un ticket.
+ */
+const LETRAS = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+function generarClave() {
+  const grupo = () => {
+    const azar = new Uint32Array(5)
+    crypto.getRandomValues(azar)
+    return Array.from(azar, n => LETRAS[n % LETRAS.length]).join('')
+  }
+  return `${grupo()}-${grupo()}-${grupo()}`
+}
+
+/** La contraseña a la vista, con «Generar otra» y «Copiar». */
+function CampoClave({ valor, onCambiar }: { valor: string; onCambiar: (v: string) => void }) {
+  const mensaje = useMensaje()
+  async function copiar() {
+    try { await navigator.clipboard.writeText(valor); mensaje.bien('Contraseña copiada.') }
+    catch { mensaje.error('No se pudo copiar: selecciónala y cópiala a mano.') }
+  }
+  return (
+    <div className="campo">
+      <span className="etiqueta">Contraseña</span>
+      <div className="clave-visible">
+        <input className="sin-mayusculas" value={valor} readOnly aria-label="Contraseña generada" onFocus={e => e.target.select()} />
+        <Boton estilo="secundario" onClick={() => onCambiar(generarClave())}>Generar otra</Boton>
+        <Boton estilo="secundario" onClick={() => void copiar()}>Copiar</Boton>
+      </div>
+      <span className="pista">Segura y al azar. Cópiala antes de guardar: después, por seguridad, ya no se puede volver a ver.</span>
+    </div>
+  )
+}
+
 /** «Culqi Perú» → «culqi-peru-revision» (lo puede cambiar). */
 function usuarioSugerido(para: string) {
   const base = para.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -31,6 +66,7 @@ export function AccesosRevisionPagina() {
   const [error, setError] = useState<string>()
   const [creando, setCreando] = useState(false)
   const [clave, setClave] = useState<{ usuario: string; clave: string; nuevo: boolean }>()
+  const [cambiandoClave, setCambiandoClave] = useState<AccesoRevision>()
 
   const cargar = useCallback(async () => {
     try { setLista(await revisionServicio.leer()); setError(undefined) }
@@ -44,16 +80,9 @@ export function AccesosRevisionPagina() {
       mensaje: 'Ya no podrá entrar y se cierran sus sesiones abiertas. Lo que hizo se conserva, y lo puedes volver a encender con «Alargar».',
       confirmar: 'Apagar', tono: 'peligro',
     }))) return
-    if (que === 'clave' && !(await pedir({
-      titulo: `¿Contraseña nueva para ${a.usuario}?`,
-      mensaje: 'La anterior deja de servir y se cierran sus sesiones abiertas. La nueva se muestra una sola vez.',
-      confirmar: 'Generar contraseña nueva',
-    }))) return
+    if (que === 'clave') { setCambiandoClave(a); return }
     try {
-      if (que === 'clave') {
-        const r = await revisionServicio.clave(a.id)
-        setClave({ usuario: a.usuario, clave: r.clave, nuevo: false })
-      } else {
+      {
         const r = que === 'apagar' ? await revisionServicio.apagar(a.id)
           : que === 'alargar' ? await revisionServicio.alargar(a.id, 15)
           : await revisionServicio.prueba(a.id, que === 'dar')
@@ -146,6 +175,10 @@ export function AccesosRevisionPagina() {
         <DialogoNuevo onCerrar={() => setCreando(false)}
                       onHecho={r => { setCreando(false); setClave({ ...r, nuevo: true }); void cargar() }} />
       )}
+      {cambiandoClave && (
+        <DialogoNuevaClave acceso={cambiandoClave} onCerrar={() => setCambiandoClave(undefined)}
+                           onHecho={c => { setCambiandoClave(undefined); setClave({ usuario: cambiandoClave.usuario, clave: c, nuevo: false }); void cargar() }} />
+      )}
       {clave && <DialogoClave {...clave} onCerrar={() => setClave(undefined)} />}
       {confirmacion}
     </>
@@ -160,6 +193,7 @@ function DialogoNuevo({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: (r
   const [tipo, setTipo] = useState<'negocio' | 'profesional'>('negocio')
   const [dias, setDias] = useState(15)
   const [enPrueba, setEnPrueba] = useState(false)
+  const [clave, setClave] = useState(generarClave)
   const [guardando, setGuardando] = useState(false)
 
   const usuarioFinal = usuarioTocado ? usuario : usuarioSugerido(para)
@@ -167,7 +201,7 @@ function DialogoNuevo({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: (r
   async function crear() {
     setGuardando(true)
     try {
-      const r = await revisionServicio.crear({ usuario: usuarioFinal.trim(), para: para.trim(), tipo, dias, enPrueba })
+      const r = await revisionServicio.crear({ usuario: usuarioFinal.trim(), para: para.trim(), tipo, dias, enPrueba, clave })
       onHecho({ usuario: r.usuario, clave: r.clave })
     } catch (e) {
       mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo crear el acceso.')
@@ -190,6 +224,8 @@ function DialogoNuevo({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: (r
         <input className="sin-mayusculas" value={usuarioFinal} maxLength={30} placeholder="culqi-revision"
                onChange={e => { setUsuarioTocado(true); setUsuario(e.target.value.toLowerCase()) }} />
         <span className="pista">Entra con esto en el campo «Correo». Minúsculas, números, punto o guion; sin espacios.</span></label>
+
+      <CampoClave valor={clave} onCambiar={setClave} />
 
       <fieldset className="grupo-permisos">
         <legend>Tipo de cuenta</legend>
@@ -217,6 +253,33 @@ function DialogoNuevo({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: (r
   )
 }
 
+function DialogoNuevaClave({ acceso, onCerrar, onHecho }: { acceso: AccesoRevision; onCerrar: () => void; onHecho: (clave: string) => void }) {
+  const mensaje = useMensaje()
+  const [clave, setClave] = useState(generarClave)
+  const [guardando, setGuardando] = useState(false)
+
+  async function guardar() {
+    setGuardando(true)
+    try {
+      const r = await revisionServicio.clave(acceso.id, clave)
+      onHecho(r.clave)
+    } catch (e) {
+      mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo cambiar la contraseña.')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <Dialogo titulo={`Contraseña nueva para ${acceso.usuario}`} abierto onCerrar={onCerrar}
+             acciones={<><Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
+               <Boton ocupado={guardando} onClick={() => void guardar()}>Guardar contraseña</Boton></>}>
+      <p className="secundario">Al guardar, la contraseña anterior deja de servir y se cierran sus sesiones abiertas.</p>
+      <CampoClave valor={clave} onCambiar={setClave} />
+    </Dialogo>
+  )
+}
+
 function DialogoClave({ usuario, clave, nuevo, onCerrar }: { usuario: string; clave: string; nuevo: boolean; onCerrar: () => void }) {
   const mensaje = useMensaje()
   const direccion = `${window.location.origin}/entrar`
@@ -230,7 +293,7 @@ function DialogoClave({ usuario, clave, nuevo, onCerrar }: { usuario: string; cl
   return (
     <Dialogo titulo={nuevo ? 'Acceso creado' : 'Contraseña nueva'} abierto onCerrar={onCerrar}
              acciones={<><Boton estilo="secundario" onClick={() => void copiar()}>Copiar</Boton><Boton onClick={onCerrar}>Ya lo guardé</Boton></>}>
-      <Aviso tono="ojo">Esta contraseña se muestra <strong>una sola vez</strong>. Cópiala ahora; si la pierdes, genera otra.</Aviso>
+      <Aviso tono="ojo">Guarda estos datos ahora: por seguridad, la contraseña <strong>ya no se puede volver a ver</strong>. Si la pierdes, usa «Contraseña nueva».</Aviso>
       <pre className="clave-revision">{texto}</pre>
       {nuevo && (
         <>

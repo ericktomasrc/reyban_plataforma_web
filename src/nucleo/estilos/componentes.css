@@ -2214,4 +2214,7 @@ code.ref { font-size: 12px; word-break: break-all; }
 /* 089: accesos de revisión. */
 .clave-revision { background: var(--hundido); border-radius: var(--radio); padding: var(--e3); font-size: 14px; white-space: pre-wrap; word-break: break-all; user-select: all; margin: var(--e3) 0; }
 .pasos-revision { padding-left: 20px; display: grid; gap: var(--e1); margin: 0; }
-.tabla-revision td { vertical-align: top; }
+.tabla-revision td { vertical-align: top; }/* e241: la contraseña de un acceso de revisión, a la vista. */
+.clave-visible { display: flex; gap: var(--e2); align-items: stretch; }
+.clave-visible input { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+@media (max-width: 560px) { .clave-visible { flex-wrap: wrap; } .clave-visible input { flex-basis: 100%; } }

@@ -19,10 +19,10 @@ export interface AccesoRevision {
 
 export const revisionServicio = {
   leer: () => api.obtener<AccesoRevision[]>('/api/admin/revision'),
-  crear: (d: { usuario: string; para: string; tipo: 'negocio' | 'profesional'; dias: number; enPrueba: boolean }) =>
+  crear: (d: { usuario: string; para: string; tipo: 'negocio' | 'profesional'; dias: number; enPrueba: boolean; clave: string }) =>
     api.crear<{ id: string; usuario: string; clave: string }>('/api/admin/revision', d),
   apagar: (id: string) => api.crear<{ mensaje: string }>(`/api/admin/revision/${id}/apagar`),
   alargar: (id: string, dias: number) => api.crear<{ mensaje: string }>(`/api/admin/revision/${id}/alargar`, { dias }),
-  clave: (id: string) => api.crear<{ clave: string }>(`/api/admin/revision/${id}/clave`),
+  clave: (id: string, clave: string) => api.crear<{ clave: string }>(`/api/admin/revision/${id}/clave`, { clave }),
   prueba: (id: string, activa: boolean) => api.crear<{ mensaje: string }>(`/api/admin/revision/${id}/prueba`, { activa }),
 }
