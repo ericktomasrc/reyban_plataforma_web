@@ -171,6 +171,9 @@ export interface Yo {
   /** Nula salvo mientras se está viendo la cuenta de otro. */
   suplantacion: Suplantacion | null
 
+  /** 089: es un acceso de revisión (Culqi, un banco…). Nulo para todos los demás. */
+  revision?: { para: string; hasta: string; activa: boolean } | null
+
   /**
    * Los nombres de sus roles, para enseñarlos en la cabecera.
    *

@@ -80,7 +80,13 @@ export function Ingreso() {
 
             <Campo
               etiqueta="Correo"
-              type="email"
+              // 089: texto y no «email»: un acceso de revisión entra con un
+              // usuario sin @ (el navegador lo rechazaría). Igual abre el
+              // teclado de correo en el celular.
+              type="text"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
               autoComplete="username"
               required
               autoFocus

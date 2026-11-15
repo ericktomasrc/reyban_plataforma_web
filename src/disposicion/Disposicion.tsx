@@ -50,7 +50,7 @@ import { NOMBRE_PLAN, diasQueFaltan, planQueLaTrae, rutaPermitida } from '../nuc
  */
 export function Disposicion() {
   const { salir, puede } = useSesion()
-  const { usuario, empresa, cuenta, menu, roles, alcance, ficha, plan, suplantacion } = useYo()
+  const { usuario, empresa, cuenta, menu, roles, alcance, ficha, plan, suplantacion, revision } = useYo()
   const ruta = useLocation()
   const navegar = useNavigate()
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -180,6 +180,14 @@ export function Disposicion() {
         conexion.modo === 'real'
           ? <div className="franja-sunat real" role="status">● QA · SUNAT REAL — solo emiten las empresas marcadas. Lo emitido vale ante SUNAT.</div>
           : <div className="franja-sunat beta" role="status">⚠ MODO PRUEBA · SUNAT beta — los comprobantes no tienen valor ante SUNAT.</div>
+      )}
+
+      {/* 089: ACCESO DE REVISIÓN (Culqi, un banco…): que se sepa que todo es de prueba. */}
+      {revision && (
+        <div className="franja-planes revision" role="status">
+          Acceso de revisión para {revision.para}: los comprobantes y los pagos son de prueba.
+          Disponible hasta el {new Date(revision.hasta).toLocaleDateString('es-PE', { timeZone: 'America/Lima', day: 'numeric', month: 'long' })}.
+        </div>
       )}
 
       {/* 069: los planes apagados (lo ve el super administrador) y el mes gratis. */}
@@ -463,6 +471,8 @@ export function Disposicion() {
               <NavLink to="/admin/empresas" className={activo}><Icono>▦</Icono>Empresas</NavLink>
               {/* 067: cada entrada, con su permiso (el dueño los tiene todos). */}
               {puede(Permisos.Plataforma.CuentasGestionar) && <NavLink to="/admin/cuentas" className={activo}><Icono>◎</Icono>Cuentas</NavLink>}
+              {/* 089: usuario y contraseña para que Culqi (o un banco) pruebe como un cliente. */}
+              {puede(Permisos.Plataforma.CuentasGestionar) && <NavLink to="/admin/revision" className={activo}><Icono>⚑</Icono>Accesos de revisión</NavLink>}
               {/* 069: planes y cobros. */}
               {puede(Permisos.Plataforma.PlanesVer) && <NavLink to="/admin/planes" className={activo}><Icono>◈</Icono>Planes y cobros</NavLink>}
               {/* 075: la empresa de Reyban que cobra los planes (no confundir con «Empresas», los clientes). */}
@@ -597,6 +607,7 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/pos/plan')) return 'Punto de venta'
   if (ruta.startsWith('/admin/empresas')) return 'Empresas'
   if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'
+  if (ruta.startsWith('/admin/revision')) return 'Accesos de revisión'
   if (ruta.startsWith('/admin/equipo')) return 'Equipo de la plataforma'
   if (ruta.startsWith('/admin/traspasos')) return 'Solicitudes de traspaso'
   if (ruta.startsWith('/admin/conexion-sunat')) return 'Conexión con SUNAT'

@@ -1456,6 +1456,8 @@ label.casilla-stock em { font-style: normal; font-size: 13px; color: var(--tinta
 /* 076: el pago del plan (reintento / gracia / no emite). */
 .franja-planes.pago { font-weight: 500; background: var(--peligro-suave); color: var(--peligro); border-bottom-color: var(--peligro-borde); }
 .franja-planes.pago.reintento, .franja-planes.pago.gracia { background: var(--aviso-suave); color: var(--aviso); border-bottom-color: var(--aviso-borde); }
+/* 089: acceso de revisión. */
+.franja-planes.revision { font-weight: 500; background: #e8eef8; color: #1f467f; border-bottom-color: #cfdcf0; }
 .franja-planes.pago a { color: inherit; font-weight: 600; margin-left: var(--e1); }
 .comprobantes-cobros td:nth-child(1), .comprobantes-cobros td:nth-child(3), .comprobantes-cobros td:nth-child(4) strong { white-space: nowrap; }
 .franja-plan { margin: 0 0 var(--e4); padding: 10px 14px; border-radius: var(--radio); background: var(--acento-suave); color: var(--acento-fuerte); font-size: 14px; }
@@ -2209,3 +2211,7 @@ code.ref { font-size: 12px; word-break: break-all; }
 .boton-ayuda-icono { font-size: 18px; line-height: 1; }
 @media (max-width: 640px) { .boton-ayuda { right: 14px; bottom: 14px; padding: 12px; } .boton-ayuda-texto { display: none; } }
 @media print { .boton-ayuda { display: none; } }
+/* 089: accesos de revisión. */
+.clave-revision { background: var(--hundido); border-radius: var(--radio); padding: var(--e3); font-size: 14px; white-space: pre-wrap; word-break: break-all; user-select: all; margin: var(--e3) 0; }
+.pasos-revision { padding-left: 20px; display: grid; gap: var(--e1); margin: 0; }
+.tabla-revision td { vertical-align: top; }
