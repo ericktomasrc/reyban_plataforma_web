@@ -1241,3 +1241,14 @@ button, input, select, textarea {
 /* Dentro de una empresa la cabecera va llena: el nivel (Dueño…) se ve en el menú del nombre. */
 .marco-negocio .cabecera.en-empresa .quien .rol:not(.cuenta) { display: none; }
 .marco-negocio .cabecera.en-empresa .mes-gratis-cabecera { min-width: 0; max-width: 300px; }
+
+/* e266: los menús que se abren desde la cabecera verde (avisos, empresas,
+   sucursal, mi cuenta) son blancos: su texto vuelve al color normal (antes
+   heredaba el blanco de la cabecera y no se leía). */
+.cabecera .campanita-panel, .cabecera .selector-menu, .cabecera .menu-quien,
+.cabecera .selector-sucursal-menu, .cabecera [role="listbox"], .cabecera [role="menu"] { color: var(--tinta); }
+.cabecera .campanita-panel .campanita-cabeza, .cabecera .campanita-panel .campanita-cabeza strong,
+.cabecera .campanita-panel .campanita-texto strong { color: var(--tinta); }
+.cabecera .campanita-panel .campanita-texto > span { color: var(--tinta-2); }
+.cabecera .campanita-panel .campanita-texto small, .cabecera .campanita-panel .campanita-vacia { color: var(--tinta-3); }
+.cabecera .campanita-panel li.leido .campanita-texto strong { color: var(--tinta-2); }

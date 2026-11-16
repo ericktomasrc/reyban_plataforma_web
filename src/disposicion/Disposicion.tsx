@@ -124,8 +124,9 @@ export function Disposicion() {
   // LA CARTERA (fase 3): la gente de una Cuenta Profesional.
   const cartera = !usuario.esSuperAdmin && cuenta?.tipo === 'profesional' && !!cuenta.nivel
   // e264: la Cuenta Profesional usa el mismo diseño que la Cuenta Negocio (en su
-  // estudio y dentro de cada empresa). Solo aspecto: el menú y los permisos no cambian.
-  const vistaNegocio = !usuario.esSuperAdmin && (cuenta?.tipo === 'negocio' ? !!empresa : cartera)
+  // estudio y dentro de cada empresa). e266: también el super administrador.
+  // Solo aspecto: el menú y los permisos no cambian.
+  const vistaNegocio = usuario.esSuperAdmin || (cuenta?.tipo === 'negocio' ? !!empresa : cartera)
 
   // Configuración de la empresa (el asistente): quien la puede configurar,
   // sea de registro o dada de alta por el super administrador (17 oct).
