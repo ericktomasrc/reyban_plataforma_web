@@ -22,12 +22,13 @@ const trazos: Record<string, ReactNode> = {
   'truck': <><path d="M3 6h11v11H3zM14 10h4l3 4v3h-7M7 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm11 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></>,
   'shopping-cart': <><path d="M3 4h2l3 12h11l3-9H6M10 21h.01M18 21h.01"/></>,
   'settings': <><circle cx="12" cy="12" r="3"/><path d="M10 2h4l1 3 3 1 3-1 2 4-2 2v3l2 2-2 4-3-1-3 1-1 3h-4l-1-3-3-1-3 1-2-4 2-2v-3L1 9l2-4 3 1 3-1z"/></>,
+  'wallet': <><path d="M4 7h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12v3"/><path d="M16 13.5h.01"/></>,
   'circle': <><circle cx="12" cy="12" r="7"/></>
 }
 export function IconoMenu({ nombre }: { nombre: string }) {
   return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{trazos[nombre] ?? trazos.circle}</svg>
 }
 export function iconoDeSimbolo(simbolo: string) {
-  const equivalencias: Record<string, string> = {"⌂": "house", "▦": "building", "◎": "users", "⚑": "flag", "◈": "layers", "◆": "building", "⇄": "arrow-left-right", "✎": "book-open", "⚠": "triangle-alert", "▥": "chart", "⇆": "refresh", "✉": "mail", "⚿": "key", "⌕": "search", "◑": "users", "◷": "clock", "▤": "file-text", "☺": "users", "◫": "package", "⇣": "download", "⌖": "map-pin", "⛟": "truck", "▣": "shopping-cart", "◍": "users", "⚙": "settings", "•": "circle", "▨": "building"}
+  const equivalencias: Record<string, string> = {"⌂": "house", "▦": "building", "◎": "users", "⚑": "flag", "◈": "layers", "◆": "building", "⇄": "arrow-left-right", "✎": "book-open", "⚠": "triangle-alert", "▥": "chart", "⇆": "refresh", "✉": "mail", "⚿": "key", "⌕": "search", "◑": "users", "◷": "clock", "▤": "file-text", "☺": "users", "◫": "package", "⇣": "download", "⌖": "map-pin", "⛟": "truck", "▣": "shopping-cart", "◍": "users", "⚙": "settings", "•": "circle", "▨": "building", "¤": "wallet"}
   return equivalencias[simbolo] ?? 'circle'
 }

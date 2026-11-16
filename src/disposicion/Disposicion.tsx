@@ -397,6 +397,14 @@ export function Disposicion() {
                   <NavLink to="/facturacion/productos" className={activo}><Icono>◫</Icono>Productos</NavLink>
                   {/* e178 (059) */}
                   {puede(Permisos.Compras.Ver) && visible('/compras') && <NavLink to="/compras" className={activo}><Icono>⇣</Icono>Compras y gastos<Candado plan={candadoDe('/compras')} /></NavLink>}
+                  {/* e267 (090): lo que te deben y lo que debes. */}
+                  {puede(Permisos.Deudas.Ver) && (visible('/cobros/por-cobrar') || visible('/cobros/por-pagar')) && (
+                    <MenuDesplegable icono="¤" titulo="Cobros y pagos" inicio="/cobros/por-cobrar" prefijos={['/cobros']}
+                      grupos={[{ titulo: '', items: conCandado([
+                        { ruta: '/cobros/por-cobrar', nombre: 'Por cobrar' },
+                        { ruta: '/cobros/por-pagar', nombre: 'Por pagar' },
+                      ]) }]} />
+                  )}
                   {/* 044: los locales del mismo RUC. */}
                   {puede(Permisos.Facturacion.SucursalesGestionar) && (
                     <NavLink to="/facturacion/sucursales" className={activo}><Icono>⌖</Icono>Sucursales</NavLink>
@@ -580,6 +588,8 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/facturacion/clientes')) return 'Clientes'
   if (ruta.startsWith('/facturacion/productos')) return 'Productos'
   if (ruta.startsWith('/compras')) return 'Compras y gastos'
+  if (ruta.startsWith('/cobros/por-pagar')) return 'Por pagar'
+  if (ruta.startsWith('/cobros')) return 'Por cobrar'
   if (ruta.startsWith('/facturacion/sucursales')) return 'Sucursales'
   if (ruta.startsWith('/guias/nueva')) return 'Nueva guía'
   if (ruta.startsWith('/guias/transportista')) return 'Guía del transportista'

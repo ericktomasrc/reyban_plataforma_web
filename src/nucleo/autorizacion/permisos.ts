@@ -79,6 +79,12 @@ export const Permisos = {
     Registrar: 'compras.registrar',
   },
 
+  // e267 (090): cobros y pagos (por cobrar y por pagar).
+  Deudas: {
+    Ver:       'deudas.ver',
+    Registrar: 'deudas.registrar',
+  },
+
   // 052: inventario por sucursal.
   Inventario: {
     Ver:        'inventario.ver',

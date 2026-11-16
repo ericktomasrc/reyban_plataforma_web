@@ -147,7 +147,15 @@ export function Compras() {
                         <td><span className="lst-igv">{NOMBRE_CATEGORIA[c.categoria] ?? c.categoria}</span></td>
                         <td className="derecha mono">{dinero(c.base + c.noGravado)}</td>
                         <td className="derecha mono">{dinero(c.igv)}</td>
-                        <td className="derecha lst-precio">{c.moneda === 'USD' ? 'US$' : 'S/'} {dinero(c.total)}</td>
+                        <td className="derecha lst-precio">{c.moneda === 'USD' ? 'US$' : 'S/'} {dinero(c.total)}
+                          {c.formaPago === 'credito' && !c.anuladaEn && (
+                            <div onClick={e => e.stopPropagation()}>
+                              <Link className={c.saldo ? 'compra-credito debe' : 'compra-credito'} to="/cobros/por-pagar">
+                                {c.saldo ? `al crédito · debes ${dinero(c.saldo)}` : 'al crédito · pagada'}
+                              </Link>
+                            </div>
+                          )}
+                        </td>
                         <td className="derecha" onClick={e => e.stopPropagation()}>
                           {c.anuladaEn
                             ? <span className="secundario" title={c.anuladaMotivo ?? ''}>Anulada · {c.anuladaMotivo}</span>
@@ -204,6 +212,9 @@ function DialogoCompra({ compra, clase: claseInicial, onCerrar, onHecho }: {
   const [aMano, setAMano] = useState(!!compra && Math.abs(Math.round((compra.total / 1.18) * 100) / 100 - compra.base) > 0.01)
   const [categoria, setCategoria] = useState(compra?.categoria ?? (claseInicial === 'gasto' ? 'servicios' : 'mercaderia'))
   const [descripcion, setDescripcion] = useState(compra?.descripcion ?? '')
+  // e267 (090): al contado o al crédito (entra en Cobros y pagos › Por pagar).
+  const [formaPago, setFormaPago] = useState<'contado' | 'credito'>(compra?.formaPago ?? 'contado')
+  const [vence, setVence] = useState(compra?.vence ?? '')
   const [consultado, setConsultado] = useState<string>()
   const [ocupado, setOcupado] = useState(false)
   const [fallo, setFallo] = useState<string>()
@@ -243,6 +254,7 @@ function DialogoCompra({ compra, clase: claseInicial, onCerrar, onHecho }: {
       total: tot,
       ...(gravado ? { base: baseCalc, igv: igvCalc, noGravado: Math.max(0, Math.round((tot - baseCalc - igvCalc) * 100) / 100) } : { base: 0, igv: 0, noGravado: tot }),
       descripcion: descripcion.trim() || null,
+      formaPago, vence: formaPago === 'credito' ? vence : null,
     }
     try {
       const r = compra ? await comprasServicio.editar(compra.id, d) : await comprasServicio.crear(d)
@@ -253,7 +265,7 @@ function DialogoCompra({ compra, clase: claseInicial, onCerrar, onHecho }: {
   }
 
   const listo = tot > 0 && fechaE && (!conComprobante || (doc.trim() && nombre.trim() && serie.trim() && numero.trim()))
-    && (moneda === 'PEN' || n(tc) > 0)
+    && (moneda === 'PEN' || n(tc) > 0) && (formaPago === 'contado' || (!!vence && vence >= fechaE))
 
   return (
     <Dialogo titulo={compra ? 'Corregir' : clase === 'gasto' ? 'Anotar un gasto' : 'Anotar una compra'} abierto onCerrar={onCerrar} ancho="grande"
@@ -346,6 +358,33 @@ function DialogoCompra({ compra, clase: claseInicial, onCerrar, onHecho }: {
         )
       )}
 
+        </div>
+      </section>
+
+      <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Pago</b><small>Al crédito queda en «Por pagar» hasta que la pagues.</small></div>
+        <div className="dlg-sec-c">
+          <div className="pareja">
+            <div className="campo"><span className="etiqueta">Forma de pago</span>
+              <div className="cmp-chips compra-pago" role="group" aria-label="Forma de pago">
+                {([['contado', 'Al contado'], ['credito', 'Al crédito']] as const).map(([v, t]) => (
+                  <button key={v} type="button" className={formaPago === v ? 'cmp-chip elegido' : 'cmp-chip'} aria-pressed={formaPago === v}
+                          onClick={() => {
+                            setFormaPago(v)
+                            if (v === 'credito' && !vence && fechaE) {
+                              const f = new Date(fechaE + 'T12:00:00'); f.setDate(f.getDate() + 30); setVence(f.toISOString().slice(0, 10))
+                            }
+                          }}>{t}</button>
+                ))}
+              </div>
+            </div>
+            {formaPago === 'credito' && (
+              <label className="campo"><span className="etiqueta">Fecha de pago</span>
+                <input type="date" value={vence} min={fechaE} onChange={e => setVence(e.target.value)} />
+                {compra?.saldo != null && compra.saldo < compra.total && <span className="pista">Ya pagaste {dinero(compra.total - compra.saldo)}; faltan {dinero(compra.saldo)}.</span>}
+              </label>
+            )}
+          </div>
         </div>
       </section>
 

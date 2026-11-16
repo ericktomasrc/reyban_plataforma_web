@@ -1,0 +1,56 @@
+/* =============================================================================
+   e267 (090) — COBROS Y PAGOS. Sobria, con las clases de Comprobantes
+   (comprobantes-lista.css). Solo lo propio, bajo .ddu-pagina y sus diálogos.
+   ========================================================================== */
+.ddu-pagina { font-size: 13px; }
+.ddu-pagina .encabezado-pagina { align-items: flex-end; gap: 16px; margin-bottom: 14px; }
+.ddu-pagina .encabezado-pagina .titulo-pagina { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+.ddu-pagina .bajada-pagina { margin: 4px 0 0; font-size: 13px; color: var(--tinta-2); }
+.ddu-pagina .bajada-pagina a { color: var(--acento); font-weight: 600; text-decoration: none; }
+.ddu-pagina .cmp-mes-dato strong { font-size: 19px; }
+.ddu-pagina .tabla td { vertical-align: middle; }
+.ddu-pagina .tabla .boton { min-height: 30px; height: 30px; padding: 0 12px; font-size: 12.5px; white-space: nowrap; }
+.ddu-nota { font-size: 12px; color: var(--tinta-3); margin-top: 10px; }
+
+/* Estado: un punto y el texto, sin caja. */
+.ddu-estado { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.ddu-estado::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.ddu-estado.mal { color: var(--peligro); }
+.ddu-estado.ojo { color: var(--aviso); }
+.ddu-estado.gris { color: var(--tinta-3); }
+.ddu-estado.bien { color: var(--bien); }
+
+/* Cuánto lleva pagado. */
+.ddu-barra { width: 90px; height: 4px; margin: 5px 0 0 auto; border-radius: 3px; background: var(--hundido, #eef1f4); overflow: hidden; }
+.ddu-barra i { display: block; height: 100%; background: var(--acento); }
+
+/* Diálogos. */
+.ddu-sub { margin: 0 0 12px; font-size: 12.5px; color: var(--tinta-2); }
+.ddu-sub a { color: var(--acento); font-weight: 600; text-decoration: none; }
+.ddu-resumen { display: flex; justify-content: space-between; gap: 12px; padding: 9px 14px; margin: 0 0 12px; border-radius: 10px;
+  background: #fafbfc; border: 1px solid var(--borde-sutil, #e6ebef); font-size: 12.5px; color: var(--tinta-2); }
+.ddu-resumen strong { color: var(--tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ddu-queda { background: var(--acento-suave, #e8f1f0); border-color: #cfe3dc; }
+.ddu-monto { font-size: 16px !important; font-weight: 600; }
+.ddu-medios { padding: 0; border: 0; margin: 2px 0 0; flex-wrap: wrap; }
+.ddu-historial { border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 10px; overflow: hidden; margin-top: 4px; }
+.ddu-historial-t { padding: 7px 12px; font-size: 11.5px; font-weight: 600; color: var(--tinta-3); background: #fafbfc; border-bottom: 1px solid var(--borde-sutil, #e6ebef); }
+.ddu-historial > div:not(.ddu-historial-t) { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; font-size: 12px; color: var(--tinta-2); border-bottom: 1px solid var(--borde-sutil, #e6ebef); }
+.ddu-historial > div:last-child { border-bottom: 0; }
+.ddu-historial strong { color: var(--tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ddu-cifras { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ddu-bloque { margin-top: 14px; }
+.ddu-bloque-t { font-size: 13px; font-weight: 650; margin-bottom: 8px; }
+.ddu-mini { border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 10px; overflow: hidden; }
+.ddu-mini th { font-size: 11px; }
+.ddu-mini td { font-size: 12.5px; }
+.ddu-mini tr.ddu-toca td { background: #f6faf9; }
+.ddu-mini .etiqueta { margin-left: 8px; font-size: 10.5px; padding: 1px 7px; border-radius: 999px; }
+.ddu-mini tr.apagada td { color: var(--tinta-3); }
+.ddu-anular { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+  background: #fdf6e8; border: 1px solid #f0dcb0; font-size: 12.5px; }
+.ddu-anular input { flex: 1 1 220px; min-height: 34px; }
+.ddu-anular .boton { min-height: 32px; font-size: 12.5px; }
+@media (max-width: 760px) { .ddu-cifras { grid-template-columns: 1fr; } }
+.ddu-pagina .tabla td.mono { white-space: nowrap; font-size: 12px; }
+.ddu-pagina .tabla td:last-child { width: 1%; padding-left: 4px; }

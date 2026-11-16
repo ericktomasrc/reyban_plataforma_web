@@ -41,6 +41,7 @@ const GRUPOS: { titulo: string; menu: string; modulo?: string; incluye: (codigo:
   { titulo: 'Inventario', menu: 'Inventario: stock, ingresos, traslados, ajustes y conteos', modulo: 'inventario', incluye: c => c.startsWith('inventario.') },
   { titulo: 'Punto de venta', menu: 'Punto de venta: vender, caja y arqueos', modulo: 'pos', incluye: c => c.startsWith('pos.') },
   { titulo: 'Compras y gastos', menu: 'Compras y gastos', incluye: c => c.startsWith('compras.') },   // e178
+  { titulo: 'Cobros y pagos', menu: 'Cobros y pagos', incluye: c => c.startsWith('deudas.') },       // e267
   { titulo: 'Reportes · Mi negocio', menu: 'Reportes', incluye: c => MI_NEGOCIO.includes(c) },
   { titulo: 'Reportes · SUNAT y contabilidad', menu: 'Reportes', incluye: c => c.startsWith('reportes.') && !MI_NEGOCIO.includes(c) },
   { titulo: 'Personal y seguridad', menu: 'Personal · Auditoría', incluye: c => c.startsWith('usuarios.') },

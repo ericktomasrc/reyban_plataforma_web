@@ -54,6 +54,7 @@ import { CompararPeriodosPagina } from '../modulos/reportes/vistas/CompararPerio
 import { ReportePosPagina } from '../modulos/reportes/vistas/ReportesPos'
 import { ReporteComprasPagina } from '../modulos/reportes/vistas/ReportesCompras'
 import { Compras } from '../modulos/compras/Compras'
+import { Deudas } from '../modulos/deudas/Deudas'
 import { ReporteMargenPagina, ReporteResultadosPagina, ReporteValorizadoPagina } from '../modulos/reportes/vistas/ReportesGanancias'
 import {
   ReporteAnuladosPagina, ReporteDescargaPagina, ReporteIgvPagina, ReportePersonasNotasPagina, ReporteProblemasPagina,
@@ -410,6 +411,11 @@ export function Rutas() {
           <Protegido permiso={Permisos.Compras.Ver} modulo={Modulos.Facturacion}><Compras /></Protegido>} />
         <Route path="/reportes/compras" element={
           <Protegido permiso={Permisos.Compras.Ver} modulo={Modulos.Facturacion}><ReporteComprasPagina /></Protegido>} />
+        {/* e267 (090): cobros y pagos. */}
+        <Route path="/cobros/por-cobrar" element={
+          <Protegido permiso={Permisos.Deudas.Ver} modulo={Modulos.Facturacion}><Deudas key="cobrar" lado="cobrar" /></Protegido>} />
+        <Route path="/cobros/por-pagar" element={
+          <Protegido permiso={Permisos.Deudas.Ver} modulo={Modulos.Facturacion}><Deudas key="pagar" lado="pagar" /></Protegido>} />
         {/* e178: los reportes del punto de venta. */}
         <Route path="/reportes/pos" element={
           <Protegido permiso={Permisos.Pos.CajasVer} modulo={Modulos.Pos}><ReportePosPagina /></Protegido>} />

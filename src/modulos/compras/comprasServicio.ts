@@ -28,6 +28,10 @@ export interface Compra {
   proveedorId?: string | null
   anuladaEn: string | null
   anuladaMotivo: string | null
+  /** e267 (090): al crédito entra en «Por pagar»; `saldo` = lo que falta pagar. */
+  formaPago?: 'contado' | 'credito'
+  vence?: string | null
+  saldo?: number | null
   creadoEn: string
   registro: string
 }
@@ -58,6 +62,9 @@ export interface PeticionCompra {
   total: number
   categoria: string
   descripcion?: string | null
+  /** e267 (090) */
+  formaPago?: 'contado' | 'credito'
+  vence?: string | null
 }
 
 export const TIPOS_COMPROBANTE: [string, string][] = [

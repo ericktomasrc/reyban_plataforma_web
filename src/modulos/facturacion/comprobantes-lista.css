@@ -177,3 +177,9 @@
 .lista-comprobantes.lst td:nth-child(5) .secundario { max-width: 160px; }
 .lista-comprobantes.lst td:nth-child(6) { white-space: nowrap; }
 .lista-comprobantes.lst td:nth-child(6) .detalle { white-space: normal; max-width: 180px; }
+
+/* e267 (090): compras al crédito (Compras y gastos). */
+.compra-pago { padding: 0; border: 0; margin: 2px 0 0; }
+.compra-credito { display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 600; color: var(--tinta-3); text-decoration: none; white-space: nowrap; }
+.compra-credito.debe { color: var(--aviso); }
+.compra-credito:hover { text-decoration: underline; }
