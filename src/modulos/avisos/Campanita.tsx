@@ -40,7 +40,7 @@ export function Campanita({ datos, onMarcar }: { datos?: Avisos; onMarcar: (clav
     <div className="campanita" ref={ref}>
       <button type="button" className="campanita-boton" aria-haspopup="dialog" aria-expanded={abierta}
               aria-label={n ? `Avisos: ${n} sin leer` : 'Avisos'} onClick={() => setAbierta(a => !a)}>
-        <span aria-hidden="true">🔔</span>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 9h18c0-1-3-2-3-9Z"/><path d="M10 21h4"/></svg>
         {n > 0 && <span className={`campanita-cuenta ${datos?.nivel ?? 'info'}`}>{n > 99 ? '99+' : n}</span>}
       </button>
 

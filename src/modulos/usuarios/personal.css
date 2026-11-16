@@ -1,0 +1,119 @@
+/* =============================================================================
+   Diseño 16 nov — PERSONAL SOBRIO (Personal de la empresa, Roles y permisos,
+   Cargos). Solo aspecto: mismos filtros, mismas acciones, mismos diálogos.
+   Todo bajo .per-pagina (la raíz de cada pantalla).
+   ========================================================================== */
+.per-pagina { font-size: 13px; }
+.per-pagina .encabezado-pagina { align-items: flex-end; gap: 16px; margin-bottom: 14px; }
+.per-pagina .encabezado-pagina .titulo-pagina { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+.per-pagina .bajada-pagina { margin: 4px 0 0; font-size: 13px; color: var(--tinta-2); max-width: 760px; }
+.per-pagina .bajada-pagina a { color: var(--acento); font-weight: 600; text-decoration: none; }
+.per-pagina .bajada-pagina a:hover { text-decoration: underline; }
+.per-pagina .enlace-volver { font-size: 12.5px; }
+.per-pagina .encabezado-pagina .boton { min-height: 36px; padding: 0 16px; font-size: 13px; }
+
+/* Activos / Invitaciones / Desactivados: pastillas discretas. */
+.per-pagina .segmentado.pestanas-tabla { background: transparent; padding: 0; gap: 6px; border: 0; margin: 0 0 12px; box-shadow: none; }
+.per-pagina .segmentado.pestanas-tabla button { border-radius: 999px; border: 1px solid var(--borde); background: var(--superficie);
+  font-size: 12.5px; padding: 5px 12px; min-height: 0; height: 30px; color: var(--tinta-2); box-shadow: none; }
+.per-pagina .segmentado.pestanas-tabla button.elegido { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.per-pagina .pestana-cuenta { background: var(--hundido, #eef1f4); color: var(--tinta-2); font-size: 11px; font-weight: 600;
+  min-width: 18px; height: 18px; line-height: 18px; padding: 0 5px; border-radius: 999px; margin-left: 6px; }
+.per-pagina .segmentado.pestanas-tabla button.elegido .pestana-cuenta { background: rgba(255, 255, 255, .18); color: #fff; }
+.per-pagina .pestana-cuenta.aviso { background: #fbefd9; color: #8a5a00; border: 0; padding: 0 5px; margin-bottom: 0; display: inline-block; font-size: 11px; }
+
+/* Filtros y lista en una sola caja (la barra queda pegada a la tabla). */
+.per-pagina .filtros-lista { background: var(--superficie); border: 1px solid var(--borde-sutil, #e6ebef); border-bottom: 0;
+  border-radius: 12px 12px 0 0; padding: 12px 14px; margin: 0; gap: 8px; align-items: center; flex-wrap: wrap; }
+.per-pagina .filtros-lista + .bloque.sin-relleno,
+.per-pagina .filtros-lista + .lista-roles { border-top-left-radius: 0; border-top-right-radius: 0; margin-top: 0; }
+.per-pagina .filtros-lista label { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; font-size: 12px; color: var(--tinta-3); margin: 0; }
+.per-pagina .filtros-lista label > span { margin: 0; font-size: 12px; font-weight: 500; color: var(--tinta-3); }
+.per-pagina .filtros-lista input, .per-pagina .filtros-lista select { min-height: 34px; height: 34px; font-size: 12.5px; border-radius: 8px; border-color: var(--borde); }
+.per-pagina .filtros-lista select { max-width: 200px; }
+.per-pagina .filtros-lista .buscar { flex: 1 1 240px; }
+.per-pagina .filtros-lista .buscar > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.per-pagina .filtros-lista .buscar input { width: 100%; }
+
+/* Las pastillas de sucursal, dentro de la caja. */
+.per-pagina .per-filtros .filtros-personal { flex-basis: 100%; gap: 6px; margin: 0 0 4px; }
+.per-pagina .filtros-personal button { font-size: 12px; padding: 0 11px; height: 28px; color: var(--tinta-2); }
+.per-pagina .filtros-personal button:hover { border-color: var(--acento); color: var(--acento); }
+.per-pagina .filtros-personal button.elegido { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.per-pagina .filtros-personal button.ojo { background: #fdf6e8; color: #8a5a00; border-color: #f0dcb0; }
+.per-pagina .filtros-personal button.ojo.elegido { background: #8a5a00; border-color: #8a5a00; color: #fff; }
+
+/* Tablas. */
+.per-pagina .bloque { border-color: var(--borde-sutil, #e6ebef); border-radius: 12px; }
+.per-pagina .tabla th { font-size: 11px; letter-spacing: .04em; color: var(--tinta-3); }
+.per-pagina .tabla td { font-size: 12.5px; vertical-align: middle; }
+.per-pagina .tabla .principal { font-weight: 600; font-size: 13px; }
+.per-pagina .tabla .secundario { font-size: 11.5px; color: var(--tinta-3); }
+.per-pagina .tabla tr.apagada td { opacity: .6; }
+.per-pagina .estado { font-size: 12px; font-weight: 600; }
+.per-pagina .recuperando { font-size: 11.5px; font-weight: 500; line-height: 1.4; max-width: 240px; }
+.per-pagina .ficha-incompleta { font-size: 11.5px; font-weight: 600; }
+.per-pagina .marca-yo { font-size: 10.5px; padding: 0 6px; margin-left: 6px; vertical-align: 1px; }
+.per-pagina .vacio { color: var(--tinta-3); font-style: normal; }
+
+/* La persona: un círculo con sus iniciales. */
+.per-persona { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.per-ini { flex: none; width: 30px; height: 30px; border-radius: 50%; display: inline-grid; place-items: center;
+  background: #e8f1f0; color: var(--pos-fuerte, #0a4f4c); font-size: 11px; font-weight: 650; letter-spacing: .02em; }
+tr.apagada .per-ini { background: var(--hundido, #eef1f4); color: var(--tinta-3); }
+
+/* Acciones de la fila: botones bajos. */
+.per-pagina .acciones-bandeja .boton { min-height: 30px; height: 30px; padding: 0 12px; font-size: 12.5px; }
+.per-pagina .menu-fila .boton { padding: 0 10px; }
+.per-pagina .menu-fila-lista button { font-size: 12.5px; }
+.per-pagina .acciones-texto .enlace { font-size: 12.5px; font-weight: 600; text-decoration: none; color: var(--acento); }
+.per-pagina .acciones-texto .enlace:hover { text-decoration: underline; }
+.per-pagina .acciones-texto .enlace:disabled { color: var(--tinta-3); }
+.per-pagina .enlace-apagado { font-size: 12.5px; }
+
+/* Alcance: una línea, no un bloque. */
+.per-leyenda { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 14px 0 0; font-size: 12px; color: var(--tinta-3); }
+.per-leyenda strong { color: var(--tinta-2); font-weight: 600; margin-right: 4px; }
+.per-leyenda > span:first-child { color: var(--tinta-2); }
+
+/* Roles: una lista en una caja, con filas (no tarjetas sueltas). */
+.per-pagina .lista-roles { gap: 0; background: var(--superficie); border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
+.per-pagina .rol-tarjeta { border: 0; border-radius: 0; border-bottom: 1px solid var(--borde-sutil, #e6ebef); padding: 12px 16px; background: transparent; }
+.per-pagina .rol-tarjeta:last-child { border-bottom: 0; }
+.per-pagina .rol-tarjeta.apagado { opacity: 1; background: #fafbfc; }
+.per-pagina .rol-tarjeta.apagado .rol-texto { opacity: .6; }
+.per-pagina .rol-nombre strong { font-size: 13.5px; font-weight: 650; }
+.per-pagina .rol-nombre .etiqueta { font-size: 10.5px; padding: 1px 7px; border-radius: 999px; }
+.per-pagina .rol-texto .secundario { font-size: 12px; color: var(--tinta-3); }
+.per-pagina .rol-texto .secundario:first-of-type { color: var(--tinta-2); }
+.per-pagina .rol-texto .secundario strong { font-weight: 600; color: var(--tinta-2); }
+.per-pagina .rol-acciones { gap: 6px; }
+.per-pagina .rol-acciones .boton { min-height: 30px; height: 30px; padding: 0 12px; font-size: 12.5px; }
+.per-pagina .rol-acciones > .secundario { font-size: 12px; color: var(--tinta-3); }
+.per-nota { font-size: 12px; color: var(--tinta-3); max-width: 880px; margin-top: 10px; }
+
+/* Diálogos (la ficha, el rol, el cargo): títulos de sección en minúscula, campos bajos. */
+.per-pagina .dialogo h2, .per-pagina .dialogo .dialogo-titulo { font-size: 16px; }
+.per-pagina .dialogo .campo .etiqueta, .per-pagina .dialogo .rotulo { font-size: 12px; font-weight: 600; color: var(--tinta-2); }
+.per-pagina .dialogo input:not([type="checkbox"]):not([type="radio"]), .per-pagina .dialogo select { min-height: 36px; height: 36px; font-size: 13px; }
+.per-pagina .dialogo .pista, .per-pagina .dialogo .nota { font-size: 12px; }
+.per-pagina .ficha-seccion h3 { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 650; color: var(--tinta);
+  padding-bottom: 8px; border-bottom: 1px solid var(--borde-sutil, #e6ebef); }
+.per-pagina .ficha-seccion.acceso { background: #f7faf9; border: 1px solid var(--borde-sutil, #e6ebef); padding: 14px 16px; }
+.per-pagina .ficha-seccion.acceso h3 { color: var(--tinta); }
+.per-pagina .nota-ley { font-size: 11.5px; color: var(--tinta-3); }
+.per-pagina .grupos-permisos { gap: 10px; }
+.per-pagina .grupo-permisos { border-color: var(--borde-sutil, #e6ebef); border-radius: 10px; padding: 8px 14px 10px; }
+.per-pagina .grupo-permisos legend { font-size: 12.5px; font-weight: 650; color: var(--tinta); }
+.per-pagina .grupo-permisos-cabecera { font-size: 11.5px; }
+.per-pagina .grupo-permisos-cabecera .secundario { color: var(--tinta-3); }
+.per-pagina .grupo-permisos-todos button.enlace { font-size: 11.5px; text-decoration: none; font-weight: 600; }
+.per-pagina .permiso-casilla { font-size: 13px; padding: 3px 0; }
+.per-pagina .permiso-casilla .etiqueta { font-size: 10.5px; padding: 0 6px; border-radius: 999px; }
+.per-pagina .dialogo .aviso { font-size: 12.5px; padding: 9px 12px; }
+
+@media (max-width: 700px) {
+  .per-pagina .filtros-lista select { max-width: none; flex: 1 1 140px; }
+  .per-pagina .filtros-lista label { flex: 1 1 140px; }
+  .per-pagina .rol-acciones { width: 100%; }
+}

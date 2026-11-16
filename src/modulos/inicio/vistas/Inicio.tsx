@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
@@ -20,6 +20,7 @@ import { documentosServicio } from '../../facturacion/servicios/facturacionServi
 import type { DocumentoEnLista } from '../../facturacion/tipos'
 import { Paginacion } from '../../../componentes/Paginacion'
 import { TarjetaTope } from '../../planes/componentes/TopeComprobantes'
+import '../bienvenida.css'
 
 /**
  * EL INICIO.
@@ -116,10 +117,10 @@ function Tablero() {
   const mes = datos ? nombreMes(datos.desde) : nombreMes(null)
 
   return (
-    <>
+    <div className={cuenta ? 'tablero-negocio' : undefined}>
       <div className="cabecera-bandeja">
         <div>
-          <h1 className="titulo-pagina titulo-serif">{saludo()}, {usuario.nombre.split(' ')[0]}</h1>
+          <h1 className="titulo-pagina titulo-serif">{saludo()}, <span className="nombre-saludo">{usuario.nombre.split(' ')[0]}</span></h1>
           <p className="bajada-pagina">
             <strong>{empresa!.nombre}</strong>
             {datos?.ambiente === 'produccion' && <> emite en <strong>producción</strong></>}
@@ -148,6 +149,7 @@ function Tablero() {
         <>
           <div className="resumen-bandeja resumen-inicio con-filtros">
             <div className="destacado">
+              <IconoIndicador tipo="venta" />
               <span>Vendido en {mes}</span>
               <strong className="mono">S/ {soles(datos.vendido)}</strong>
               <span>
@@ -162,6 +164,7 @@ function Tablero() {
                 <button key={t.clave} type="button" aria-pressed={filtro === t.clave}
                         className={`tarjeta-filtro ${t.tono(n)}${filtro === t.clave ? ' elegida' : ''}`}
                         onClick={() => setFiltro(t.clave)}>
+                  <IconoIndicador tipo={t.clave} />
                   <span>{t.titulo}</span>
                   <strong>{n}</strong>
                   <span>{t.pie(n, datos)}</span>
@@ -184,7 +187,7 @@ function Tablero() {
               {datos.ultimos.length === 0
                 ? (
                   <>
-                    <div className="cabecera-bloque"><h2>Comprobantes</h2></div>
+                    <div className="cabecera-bloque"><h2>{cuenta && <IconoSeccion tipo="comprobantes" />}Comprobantes</h2></div>
                     <Vacio>Todavía no has emitido ningún comprobante.{emite && <> <Link to="/facturacion/comprobantes/nuevo">Emite el primero</Link>.</>}</Vacio>
                   </>
                 )
@@ -221,7 +224,7 @@ function Tablero() {
           {convierte && <p className="nota"><Link to="/perfil#convertir">¿Facturas para más empresas?</Link></p>}
         </section>
       )}
-    </>
+    </div>
   )
 }
 
@@ -356,6 +359,19 @@ const TARJETAS: {
     pie: n => n > 0 ? 'con baja o anulación' : 'ninguno este mes' },
 ]
 
+
+function IconoIndicador({ tipo }: { tipo: 'venta' | Filtro }) {
+  const rutas: Record<string, ReactNode> = {
+    venta: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-13 5h8m-5-3v6"/></>,
+    todos: <><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></>,
+    aceptados: <><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></>,
+    encamino: <><path d="m21 3-8 18-3.7-7.3L2 10zM9.3 13.7 21 3"/></>,
+    rechazados: <><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/></>,
+    anulados: <><path d="M4 7h16M10 4h4M6 7l1 14h10l1-14M10 11v6m4-6v6"/></>,
+  }
+  return <svg className="negocio-indicador-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{rutas[tipo]}</svg>
+}
+
 const POR_PAGINA = 10
 
 function GrillaDelMes({ filtro, desde, mes, refresco }: { filtro: Filtro; desde: string; mes: string; refresco: Resumen }) {
@@ -390,7 +406,7 @@ function GrillaDelMes({ filtro, desde, mes, refresco }: { filtro: Filtro; desde:
   return (
     <>
       <div className="cabecera-bloque grilla-inicio-cabecera">
-        <h2>{filtro === 'todos' ? `Comprobantes de ${mes}` : `${t.titulo}${filtro === 'encamino' ? '' : ` en ${mes}`}`}</h2>
+        <h2><IconoSeccion tipo="comprobantes" />{filtro === 'todos' ? `Comprobantes de ${mes}` : `${t.titulo}${filtro === 'encamino' ? '' : ` en ${mes}`}`}</h2>
         <input className="buscar-inicio" value={q} onChange={e => setQ(e.target.value)}
                placeholder="Buscar RUC, razón social o número…" title="Ej.: 20512345678, HAMUTAY, F001-6" aria-label="Buscar comprobantes" />
         <Link to="/facturacion/comprobantes">Ver todos →</Link>
@@ -440,6 +456,19 @@ function GrillaDelMes({ filtro, desde, mes, refresco }: { filtro: Filtro; desde:
   )
 }
 
+/** Iconografía decorativa: no altera navegación ni acciones. */
+function IconoSeccion({ tipo }: { tipo: 'comprobantes' | 'empresa' }) {
+  return (
+    <span className="negocio-icono-seccion" aria-hidden="true">
+      {tipo === 'empresa' ? (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 21v-5h6v5M8 7h2m4 0h2M8 11h2m4 0h2"/></svg>
+      ) : (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3h8l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 12h6M9 16h6"/></svg>
+      )}
+    </span>
+  )
+}
+
 function TuEmpresa({ datos, configura }: { datos: Resumen; configura: boolean }) {
   const { empresa } = useYo()
   const { puede } = useSesion()
@@ -447,7 +476,7 @@ function TuEmpresa({ datos, configura }: { datos: Resumen; configura: boolean })
 
   return (
     <section className="bloque tu-empresa">
-      <h2>Tu empresa</h2>
+      <h2><IconoSeccion tipo="empresa" />Tu empresa</h2>
       <dl className="datos-cortos">
         <div><dt>RUC</dt><dd className="mono">{empresa!.ruc ?? '—'}</dd></div>
         <div>
@@ -484,11 +513,19 @@ function InicioPlataforma() {
   const { usuario, permisos } = useYo()
 
   return (
-    <>
-      <h1 className="titulo-pagina">Hola, {usuario.nombre.split(' ')[0]}</h1>
+    <div className="inicio-admin">
+      <header className="inicio-admin-hero">
 
-      <section className="bloque">
-        <h2>Tu cuenta</h2>
+        <div>
+          
+          <h1 className="titulo-pagina">Hola, {usuario.nombre.split(' ')[0]}</h1>
+          <p>Bienvenido a tu plataforma de gestión empresarial.</p>
+        </div>
+      </header>
+
+      <div className="inicio-admin-grid">
+      <section className="bloque inicio-admin-cuenta">
+        <div className="inicio-admin-titulo"><span className="inicio-admin-icono" aria-hidden="true">♙</span><div><h2>Tu cuenta</h2><p className="inicio-admin-subtitulo">Información de tu cuenta en la plataforma.</p></div></div>
         <dl className="datos">
           <div className="fila"><dt>Nombre</dt><dd>{usuario.nombre}</dd></div>
           <div className="fila"><dt>Correo</dt><dd>{usuario.correo}</dd></div>
@@ -498,8 +535,16 @@ function InicioPlataforma() {
         </dl>
       </section>
 
-      <section className="bloque">
-        <h2>Tus permisos</h2>
+      <section className="bloque inicio-admin-acciones">
+        <div className="inicio-admin-titulo"><span className="inicio-admin-icono" aria-hidden="true">↗</span><div><h2>Accesos rápidos</h2><p className="inicio-admin-subtitulo">Acceso directo a los módulos existentes.</p></div></div>
+        <div className="inicio-admin-acciones-enlaces">
+          <Link to="/admin/empresas">Ver empresas <span aria-hidden="true">→</span></Link>
+          <Link to="/admin/cuentas">Ver cuentas <span aria-hidden="true">→</span></Link>
+        </div>
+      </section>
+
+      <section className="bloque inicio-admin-permisos">
+        <div className="inicio-admin-titulo"><span className="inicio-admin-icono" aria-hidden="true">✓</span><h2>Tus permisos</h2></div>
         {permisos.length > 0 ? (
           <div className="etiquetas">
             {permisos.map(p => <span key={p} className="etiqueta">{p}</span>)}
@@ -512,12 +557,12 @@ function InicioPlataforma() {
         )}
       </section>
 
-      <BloqueConsultas />
-
-      <p className="nota">
+      <div className="inicio-admin-consultas"><BloqueConsultas /></div>
+      </div>
+      <p className="nota inicio-admin-nota">
         Las empresas y las cuentas están en el menú de la izquierda, en «Plataforma».
       </p>
-    </>
+    </div>
   )
 }
 
@@ -583,63 +628,65 @@ function InicioCartera({ nombre, colaborador }: { nombre: string; colaborador: b
  * «lista para emitir».
  */
 function Bienvenida({ nombre, profesional }: { nombre: string; profesional: boolean }) {
+  // Diseño 16 nov: los mismos pasos (y nombres) que el asistente de Configuración.
   const pasos: [string, string][] = [
-    ['Agregar la empresa', 'RUC, dirección fiscal y correo del titular'],
-    ['Certificado digital', ''],
-    ['Series', ''],
-    ['Correo de respuesta y marca', ''],
-    ['Usuario SOL y afiliación a SUNAT', 'para producción'],
+    ['Tu empresa', 'escribes el RUC y traemos tus datos de SUNAT'],
+    ['Firma digital', 'tu certificado, o uno de prueba para empezar'],
+    ['Numeración', 'F001 para facturas, B001 para boletas'],
+    ['Envío a clientes', 'el correo con el PDF y el XML, y tu marca'],
+    ['SUNAT', 'solo para emitir de verdad; en prueba puedes saltarlo'],
   ]
 
   return (
-    <>
-      <div className="bienvenida-cabecera">
-        <h1 className="titulo-pagina titulo-serif">Hola, {nombre.split(' ')[0]}. Tu cuenta está lista.</h1>
-        <p className="bajada-pagina">
-          Todavía no tienes empresas. Agrega la primera y te guiamos hasta emitir.
-        </p>
+    <div className="bnv-pagina">
+      <div className="encabezado-pagina">
+        <div>
+          <h1 className="titulo-pagina">Hola, {nombre.split(' ')[0]}. Tu cuenta está lista.</h1>
+          <p className="bajada-pagina">
+            {profesional
+              ? 'Todavía no tienes empresas. Agrega la primera y te guiamos hasta emitir.'
+              : 'Agrega tu empresa y te guiamos hasta emitir.'}
+          </p>
+        </div>
       </div>
 
-      <div className="bienvenida">
-        <section className="bloque">
+      <div className="bnv-cuerpo">
+        <section className="bloque bnv-pasos">
           <h2>Para emitir tu primer comprobante</h2>
 
-          <ol className="lista-pasos">
-            <li className="hecho">Crear tu cuenta</li>
+          <ol>
+            <li className="hecho"><i aria-hidden="true">✓</i><span><strong>Crear tu cuenta</strong></span></li>
             {pasos.map(([titulo, detalle], i) => (
               <li key={titulo} className={i === 0 ? 'actual' : undefined}>
-                <span>
-                  {i === 0 ? <strong>{titulo}</strong> : titulo}
-                  {detalle && <span className="detalle-paso"> ({detalle})</span>}
-                </span>
+                <i aria-hidden="true">{i + 1}</i>
+                <span><strong>{titulo}</strong><small>{detalle}</small></span>
               </li>
             ))}
           </ol>
 
-          <Link to="/configurar" className="boton">
-            {profesional ? 'Agregar mi primera empresa' : 'Agregar mi empresa'}
-          </Link>
-          <p className="nota">Seis pasos. Puedes salir y volver: lo que guardes se queda.</p>
+          <div className="bnv-pie">
+            <Link to="/configurar" className="boton">
+              {profesional ? 'Agregar mi primera empresa' : 'Agregar mi empresa'}
+            </Link>
+            <span>Unos minutos. Puedes salir y volver: lo que guardes se queda.</span>
+          </div>
         </section>
 
-        <aside className="bienvenida-lado">
-          <section className="bloque">
-            <h2>¿Necesitas ayuda?</h2>
-            {/* La guía en PDF y los videos llegan en la fase 5. */}
-            <ul className="lista-ayuda">
-              <li>Guía paso a paso (PDF) <span className="etiqueta">muy pronto</span></li>
-              <li>Videos cortos <span className="etiqueta">muy pronto</span></li>
-            </ul>
-          </section>
-
-          <div className="aviso bien">
-            Puedes probar en <strong>beta</strong> sin certificado real. Para
-            SUNAT real necesitarás el certificado digital y el usuario SOL de
-            cada empresa.
-          </div>
+        <aside className="bnv-ayuda">
+          <h3>Qué vas a necesitar</h3>
+          <ul>
+            <li>El <strong>RUC</strong> de la empresa.</li>
+            <li>El <strong>correo del dueño</strong> de la empresa.</li>
+            <li>Tu certificado digital (.pfx). <span>Si aún no lo tienes, pruebas con uno de prueba.</span></li>
+            <li>Tu usuario SOL secundario. <span>Solo para emitir de verdad.</span></li>
+          </ul>
+          <p className="bnv-nota">
+            En modo prueba (beta) tus comprobantes no tienen valor ante SUNAT: sirven para conocer el sistema.
+          </p>
+          <p className="bnv-nota">¿Te trabaste? Usa <strong>¿Ayuda? Escríbenos</strong>, abajo a la derecha.</p>
         </aside>
       </div>
-    </>
+    </div>
   )
 }
 

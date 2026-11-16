@@ -14,6 +14,7 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { SelectorUbigeo, buscarUbigeo, legible } from '../../../nucleo/ubigeo/SelectorUbigeo'
 import { sucursalesServicio } from '../servicios/facturacionServicio'
 import type { LocalSunat, Sucursal } from '../servicios/facturacionServicio'
+import '../comprobantes-lista.css'
 
 const NOMBRE_TIPO: Record<string, string> = { '01': 'Factura', '03': 'Boleta', '07': 'N. crédito', '08': 'N. débito', '09': 'Guía', '31': 'Guía transp.' }
 
@@ -129,10 +130,10 @@ export function Sucursales() {
 
   return (
     <>
-      <div className="cabecera-bandeja">
+      <div className="encabezado-pagina cmp-encab">
         <div>
-          <h1 className="titulo-pagina">Sucursales</h1>
-          <p className="bajada-pagina">Los locales de tu empresa registrados en tu ficha RUC. Todos emiten con el mismo RUC.</p>
+          <h1 className="titulo-pagina">Sucursales{sucursales.length > 0 && <span className="lst-cuenta">{sucursales.length} en total</span>}</h1>
+          <p className="bajada-pagina">Los locales de tu empresa en tu ficha RUC. Todos emiten con el mismo RUC.</p>
         </div>
         {gestiona && <Boton onClick={() => setEditando('nueva')}>Nueva sucursal</Boton>}
       </div>
@@ -142,21 +143,23 @@ export function Sucursales() {
         <Aviso tono="ojo">No se pudo consultar las series al servicio de facturación: pueden faltar en la lista.</Aviso>
       )}
 
-      {lista.datos && sucursales.length > 3 && (
-        <div className="filtros-lista">
-          <label className="buscar"><span>Buscar</span>
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Código, nombre o dirección" /></label>
-          <label><span>Estado</span>
+      {/* Diseño 15 nov: filtros (si hay más de 3) y tabla en una sola caja. */}
+      {lista.datos && (
+        <div className="lst-caja">
+      {sucursales.length > 3 && (
+        <div className="lst-filtros">
+          <label className="lst-buscar"><span className="solo-lector">Buscar</span>
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por código, nombre o dirección" /></label>
+          <label><span className="solo-lector">Estado</span>
             <select value={estadoF} onChange={e => setEstadoF(e.target.value)}>
               <option value="todos">Todas</option><option value="activas">Activas</option><option value="inactivas">Desactivadas</option>
             </select></label>
         </div>
       )}
 
-      {lista.datos && (
-        <div className="bloque sin-relleno">
+        <div className="bloque sin-relleno lst-tabla">
           <div className="tabla-envoltura">
-            <table className="tabla">
+            <table className="tabla lst suc">
               <thead>
                 <tr>
                   <th>Código SUNAT</th><th>Sucursal</th><th>Dirección</th><th>Series</th>
@@ -166,8 +169,8 @@ export function Sucursales() {
               <tbody>
                 {visibles.map(s => (
                   <tr key={s.id} className={s.activo ? undefined : 'apagada'}>
-                    <td className="mono">{s.codigo}</td>
-                    <td>
+                    <td><span className="lst-tipo ruc mono">{s.codigo}</span></td>
+                    <td className="lst-nombre">
                       <div className="principal">{s.nombre}</div>
                       <div className="secundario">
                         {s.esPrincipal ? 'Domicilio fiscal'
@@ -176,8 +179,8 @@ export function Sucursales() {
                           : `Local anexo · ${s.documentos} comprobante${s.documentos === 1 ? '' : 's'}`}
                       </div>
                     </td>
-                    <td>
-                      {s.direccion ?? <span className="vacio">Sin dirección</span>}
+                    <td className="lst-nombre">
+                      <div title={s.direccion ?? undefined}>{s.direccion ?? <span className="vacio">Sin dirección</span>}</div>
                       {s.lugar && <div className="secundario">{s.lugar}</div>}
                     </td>
                     <td>
@@ -191,7 +194,7 @@ export function Sucursales() {
                       <Link to="/usuarios">{s.usuarios} {s.usuarios === 1 ? 'persona' : 'personas'}</Link>
                     </td>
                     {gestiona && (
-                      <td className="acciones-texto">
+                      <td className="acciones-texto suc-acciones">
                         <button type="button" className="enlace" onClick={() => setEditando(s)} disabled={ocupada !== null}>Editar</button>
                         {s.activo && (
                           <>
@@ -224,6 +227,7 @@ export function Sucursales() {
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       )}
       <Paginacion {...paginacion} />
@@ -365,6 +369,7 @@ function DialogoSucursal({ sucursal, usadas, onCerrar, onListo }: {
       titulo={nueva ? 'Nueva sucursal' : `Editar «${sucursal!.nombre}»`}
       abierto
       onCerrar={onCerrar}
+      ancho="grande"
       acciones={
         <>
           <Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
@@ -374,7 +379,12 @@ function DialogoSucursal({ sucursal, usadas, onCerrar, onListo }: {
         </>
       }
     >
+      {/* Diseño 15 nov: en secciones. Mismos campos y reglas. */}
+      <div className="dlg-secciones">
       {nueva && (
+        <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Local en SUNAT</b><small>Elige uno del padrón y se llena la dirección.</small></div>
+        <div className="dlg-sec-c">
         <div className="locales-sunat">
           <strong>Locales de tu RUC según SUNAT</strong>
           {locales === null ? (
@@ -402,8 +412,13 @@ function DialogoSucursal({ sucursal, usadas, onCerrar, onListo }: {
             </>
           )}
         </div>
+        </div>
+        </section>
       )}
 
+      <section className="dlg-sec">
+      <div className="dlg-sec-t"><b>Datos</b><small>Cómo la llamas y su código en tu ficha RUC.</small></div>
+      <div className="dlg-sec-c">
       <div className="pareja">
         <Campo etiqueta="Nombre de la sucursal" obligatorio value={nombre} maxLength={80}
                onChange={e => setNombre(e.target.value)} placeholder="Tienda Norte"
@@ -417,6 +432,12 @@ function DialogoSucursal({ sucursal, usadas, onCerrar, onListo }: {
                  : 'Está en tu ficha RUC (SUNAT SOL › Consulta RUC › Establecimientos anexos).'} />
       </div>
 
+      </div>
+      </section>
+
+      <section className="dlg-sec">
+      <div className="dlg-sec-t"><b>Dirección</b><small>Sale en el PDF y el ticket de esta sucursal.</small></div>
+      <div className="dlg-sec-c">
       <Campo etiqueta="Dirección" obligatorio value={direccion} maxLength={200}
              onChange={e => { setDireccion(e.target.value); setElegido(null) }}
              mal={error?.campo === 'direccion'} pista="Sale en el PDF y el ticket de los comprobantes de esta sucursal." />
@@ -424,8 +445,13 @@ function DialogoSucursal({ sucursal, usadas, onCerrar, onListo }: {
       <SelectorUbigeo ubigeo={ubigeo} onCambio={v => { setUbigeo(v.ubigeo); setElegido(null) }}
                       error={error?.campo === 'ubigeo' ? error.texto : undefined} />
       {ubigeo && lugarDe(ubigeo) && <p className="pista">{lugarDe(ubigeo)} ({ubigeo})</p>}
+      </div>
+      </section>
 
       {nueva && (
+        <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Series</b><small>Se crean al guardar, en 0.</small></div>
+        <div className="dlg-sec-c">
         <div className="series-sucursal">
           <strong>Series de esta sucursal</strong>
           <span className="secundario">Se crean al guardar, en 0. Cada serie pertenece a una sola sucursal.</span>
@@ -449,7 +475,10 @@ function DialogoSucursal({ sucursal, usadas, onCerrar, onListo }: {
             <span className="secundario">Si no marcas notas propias, las notas de esta sucursal usan las de la empresa (FC01 / FD01…).</span>
           )}
         </div>
+        </div>
+        </section>
       )}
+      </div>
 
       {error && <Aviso>{error.texto}</Aviso>}
       {confirmacion}

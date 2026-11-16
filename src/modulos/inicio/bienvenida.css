@@ -1,0 +1,40 @@
+/* =============================================================================
+   Diseño 16 nov — LA BIENVENIDA (cuenta sin empresa). Sobria, con los mismos
+   pasos que el asistente de Configuración. Todo bajo .bnv-pagina.
+   ========================================================================== */
+.bnv-pagina { font-size: 13px; }
+.bnv-pagina .encabezado-pagina { margin-bottom: 16px; }
+.bnv-pagina .titulo-pagina { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+.bnv-pagina .bajada-pagina { margin: 4px 0 0; font-size: 13px; color: var(--tinta-2); }
+
+.bnv-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.bnv-pasos { margin: 0; padding: 22px 26px; border-color: var(--borde-sutil, #e6ebef); border-radius: 12px; box-shadow: none; }
+.bnv-pasos h2 { margin: 0 0 14px; font-size: 16px; font-weight: 650; }
+.bnv-pasos ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.bnv-pasos li { display: flex; align-items: flex-start; gap: 12px; padding: 9px 0; position: relative; }
+.bnv-pasos li:not(:last-child)::after { content: ""; position: absolute; left: 11px; top: 33px; bottom: -7px; width: 1px; background: var(--borde-sutil, #e6ebef); }
+.bnv-pasos li i { flex: none; width: 23px; height: 23px; border-radius: 50%; border: 1.5px solid #cdd6dd; background: #fff;
+  display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 650; color: var(--tinta-3); position: relative; z-index: 1; }
+.bnv-pasos li span { display: grid; gap: 1px; }
+.bnv-pasos li strong { font-size: 13px; font-weight: 600; color: var(--tinta-2); }
+.bnv-pasos li small { font-size: 12px; color: var(--tinta-3); }
+.bnv-pasos li.hecho i { background: var(--acento); border-color: var(--acento); color: #fff; }
+.bnv-pasos li.hecho strong { color: var(--tinta-2); }
+.bnv-pasos li.actual i { border-color: var(--acento); color: var(--acento); box-shadow: 0 0 0 3px var(--acento-suave); }
+.bnv-pasos li.actual strong { color: var(--tinta); font-weight: 650; }
+.bnv-pie { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde-sutil, #e6ebef); }
+.bnv-pie .boton { min-height: 38px; padding: 0 18px; font-size: 13px; }
+.bnv-pie span { font-size: 12px; color: var(--tinta-3); }
+
+.bnv-ayuda { background: var(--superficie); border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 12px; padding: 16px 18px;
+  font-size: 12.5px; color: var(--tinta-2); line-height: 1.5; }
+.bnv-ayuda h3 { margin: 0 0 10px; font-size: 13px; font-weight: 650; color: var(--tinta); }
+.bnv-ayuda ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.bnv-ayuda li { position: relative; padding-left: 13px; }
+.bnv-ayuda li::before { content: ""; position: absolute; left: 0; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--acento); }
+.bnv-ayuda li span { color: var(--tinta-3); }
+.bnv-ayuda strong { color: var(--tinta); font-weight: 600; }
+.bnv-nota { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--borde-sutil, #e6ebef); font-size: 12px; color: var(--tinta-3); }
+.bnv-nota + .bnv-nota { border-top: 0; padding-top: 0; margin-top: 6px; }
+
+@media (max-width: 1000px) { .bnv-cuerpo { grid-template-columns: 1fr; } }

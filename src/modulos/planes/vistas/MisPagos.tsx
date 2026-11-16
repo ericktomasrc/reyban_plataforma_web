@@ -14,6 +14,8 @@ import {
   NOMBRE_ESTADO_COBRO, NOMBRE_ESTADO_PAGO, NOMBRE_MEDIO, TARJETAS_SIMULADAS, cobrosServicio,
   type Autenticacion3ds, type DatosPago, type MisPagos, type Periodo,
 } from '../servicios/cobrosServicio'
+import '../../facturacion/comprobantes-lista.css'
+import '../planes.css'
 
 /**
  * 073 — MIS PAGOS.
@@ -42,11 +44,11 @@ export function MisPagosPagina() {
   const hecho = async (m: string) => { if (m) mensaje.bien(m); await cargar() }
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="pln-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Mis pagos</h1>
-          <p className="secundario">Tu tarjeta, los datos de tu comprobante y todo lo que has pagado. <Link to="/mi-plan">← Volver a Mi plan</Link></p>
+          <p className="bajada-pagina">Tu tarjeta, los datos de tu comprobante y todo lo que has pagado. <Link to="/mi-plan">← Volver a Mi plan</Link></p>
         </div>
       </div>
 
@@ -72,16 +74,16 @@ export function MisPagosPagina() {
       </div>
 
       <Historial d={d} />
-    </>
+    </div>
   )
 }
 
 // =============================================================================
 function BandaModo({ d }: { d: MisPagos }) {
   if (d.modo === 'simulado')
-    return <div className="banda-modo simulado">🧪 <strong>Modo SIMULADO:</strong> los pagos son de prueba y no se mueve dinero. Usa las tarjetas de prueba de la lista.</div>
+    return <div className="banda-modo simulado"><strong>Modo SIMULADO:</strong> los pagos son de prueba y no se mueve dinero. Usa las tarjetas de prueba de la lista.</div>
   if (d.modo === 'prueba')
-    return <div className="banda-modo prueba">🟡 <strong>Culqi en modo PRUEBA:</strong> usa las tarjetas de prueba de Culqi. No se mueve dinero real.</div>
+    return <div className="banda-modo prueba"><strong>Culqi en modo PRUEBA:</strong> usa las tarjetas de prueba de Culqi. No se mueve dinero real.</div>
   if (d.modo === 'apagado')
     return <div className="banda-modo apagado">Los pagos con tarjeta todavía no están disponibles.{d.medios.transferencia ? ' Puedes pagar por transferencia (más abajo).' : ''}</div>
   return null
@@ -278,7 +280,7 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
   return (
     <section className="bloque paso-pago">
       <h2><span className={`numero-paso${d.tarjetas.length ? ' hecho' : !d.datos ? ' bloqueado' : ''}`}>{d.tarjetas.length ? '✓' : '2'}</span> Tu tarjeta</h2>
-      {!d.datos ? <p className="paso-bloqueado">🔒 Primero guarda los datos de tu comprobante (paso 1). Así sabemos a nombre de quién va la factura o boleta.</p> : <>
+      {!d.datos ? <p className="paso-bloqueado">Primero guarda los datos de tu comprobante (paso 1). Así sabemos a nombre de quién va la factura o boleta.</p> : <>
       {d.tarjetas.length === 0
         ? <p className="secundario">Todavía no tienes una tarjeta guardada.</p>
         : (
@@ -295,7 +297,7 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
           </ul>
         )}
       {d.puedePagar && <Boton estilo={d.tarjetas.length ? 'secundario' : 'principal'} ocupado={ocupado === 'agregar'} onClick={() => void agregar()}>{d.tarjetas.length ? '+ Agregar otra tarjeta' : '+ Agregar mi tarjeta'}</Boton>}
-      <p className="nota seguridad">🔒 {d.modo === 'simulado'
+      <p className="nota seguridad">{d.modo === 'simulado'
         ? 'Modo simulado: solo sirven las tarjetas de prueba y el número no sale de tu navegador.'
         : 'Tu tarjeta la escribes en el formulario seguro de Culqi y la guarda Culqi, no Reyban. Nosotros solo vemos la marca y los 4 últimos números.'}</p>
       </>}
@@ -326,7 +328,7 @@ function TarjetaSimulada({ abierta, onCerrar, onToken }: { abierta: boolean; onC
   return (
     <Dialogo titulo="Agregar tarjeta (simulada)" abierto={abierta} onCerrar={onCerrar}
              acciones={<><Boton estilo="plano" onClick={onCerrar}>Cancelar</Boton><Boton onClick={guardar}>Guardar tarjeta</Boton></>}>
-      <p className="secundario">🧪 Modo simulado. Elige una tarjeta de prueba (cualquier fecha futura y cualquier código):</p>
+      <p className="secundario">Modo simulado. Elige una tarjeta de prueba (cualquier fecha futura y cualquier código):</p>
       <ul className="tarjetas-prueba">
         {TARJETAS_SIMULADAS.map(t => (
           <li key={t.numero}>
@@ -408,13 +410,13 @@ function Pagar({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise<vo
         tarjeta
           ? <>
               <p className="se-cobra">Se cobra a tu <strong>{tarjeta.marca} •••• {tarjeta.ultimos4}</strong></p>
-              <Boton ancho ocupado={ocupado} onClick={() => void pagar()}>💳 Pagar {soles(m.monto)}</Boton>
+              <Boton ancho ocupado={ocupado} onClick={() => void pagar()}>Pagar {soles(m.monto)}</Boton>
             </>
-          : <Boton ancho disabled title="Primero agrega tu tarjeta">💳 Pagar {soles(m.monto)}</Boton>
+          : <Boton ancho disabled title="Primero agrega tu tarjeta">Pagar {soles(m.monto)}</Boton>
       )}
       {d.puedePagar && m && !m.nada && !tarjeta && <p className="pista centro">{d.datos ? 'Agrega tu tarjeta (paso 2) para pagar.' : 'Completa los pasos 1 y 2 para pagar.'}</p>}
-      {d.lanzamientoHasta && <p className="nota-lanzamiento">🏷️ Tu precio de lanzamiento se mantiene hasta el <strong>{fecha(d.lanzamientoHasta)}</strong>.</p>}
-      <p className="pista centro">🔒 Pago seguro con Culqi · Precios con IGV</p>
+      {d.lanzamientoHasta && <p className="nota-lanzamiento">Tu precio de lanzamiento se mantiene hasta el <strong>{fecha(d.lanzamientoHasta)}</strong>.</p>}
+      <p className="pista centro">Pago seguro con Culqi · Precios con IGV</p>
       {dialogo}
     </section>
   )

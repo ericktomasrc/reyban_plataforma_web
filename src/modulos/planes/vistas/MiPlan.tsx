@@ -12,6 +12,8 @@ import { NOMBRE_PLAN, diasQueFaltan, soles } from '../../../nucleo/planes/planes
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import { useCambioPlan } from '../componentes/CambioPlan'
 import { textoTope } from '../componentes/TopeComprobantes'
+import '../../facturacion/comprobantes-lista.css'
+import '../planes.css'
 import {
   etiquetaPlan, extraHoy, menusDelPlan, planesServicio, precioCartera, precioHoy,
   type Catalogo, type CodigoPlan, type MiPlan, type PlanCatalogo, type ResumenCuenta,
@@ -49,11 +51,11 @@ export function MiPlanPagina() {
   const { catalogo, cuenta } = datos
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="pln-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">{cuenta?.tipo === 'profesional' ? 'Plan Cartera' : 'Elige tu plan'}</h1>
-          <p className="secundario">
+          <p className="bajada-pagina">
             {cuenta?.tipo === 'profesional'
               ? 'Tú decides cuántas empresas trabajas. Cada una trae el Plan Básico, y subes a Pro o Max solo las que lo necesitan.'
               : 'Usuarios ilimitados en todos los planes. Cambias de plan cuando quieras.'}
@@ -74,7 +76,7 @@ export function MiPlanPagina() {
         : <ElegirPlan catalogo={catalogo} cuenta={cuenta} empresa={datos.empresa} puede={datos.puedeCambiar} onHecho={hecho} />}
 
       {cuenta && !cuenta.accesoTotal && <CancelarPlan cuenta={cuenta} puede={datos.puedeCambiar} onHecho={hecho} />}
-    </>
+    </div>
   )
 }
 
@@ -87,7 +89,6 @@ function EstadoDeLaCuenta({ cuenta }: { cuenta: ResumenCuenta }) {
     const despues = cuenta.tipo === 'negocio' ? NOMBRE_PLAN[cuenta.empresas[0]?.plan ?? 'basico'] : null
     return (
       <div className="tarjeta-gratis">
-        <span className="regalo-gratis" aria-hidden="true">🎁</span>
         <div>
           <span className="rotulo">Tu plan ahora</span>
           <h2>Mes gratis</h2>
@@ -137,7 +138,7 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
       {/* 083: bajó de plan: sigue con lo pagado hasta el fin del periodo. */}
       {laEmpresa?.planProgramado && laEmpresa.planProgramadoDesde && (
         <div className="franja-programado">
-          <span>📅 <strong>El {fecha(laEmpresa.planProgramadoDesde)} pasas a {NOMBRE_PLAN[laEmpresa.planProgramado]}.</strong> Hasta entonces sigues con {NOMBRE_PLAN[laEmpresa.plan]}.</span>
+          <span><strong>El {fecha(laEmpresa.planProgramadoDesde)} pasas a {NOMBRE_PLAN[laEmpresa.planProgramado]}.</strong> Hasta entonces sigues con {NOMBRE_PLAN[laEmpresa.plan]}.</span>
           {puede && <Boton estilo="secundario" ocupado={cambio.cargando === laEmpresa.id + laEmpresa.plan}
                            onClick={() => void cambio.abrir(laEmpresa.id, laEmpresa.plan)}>Deshacer</Boton>}
         </div>
@@ -185,8 +186,8 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
               </div>
               {enOferta && hoy < p.precioRegular && <p className="nota oferta-plan">{TextoLanzamiento(catalogo, cuenta)}</p>}
               <ul className="lista-plan">
-                {Menus(p).map(m => <li key={m} className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{m}</li>)}
-                <li className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{p.sucursalesMax === null ? 'Sucursales ilimitadas' : p.sucursalesMax === 1 ? '1 sucursal' : `Hasta ${p.sucursalesMax} sucursales`}</li>
+                {Menus(p).map(m => <li key={m} className={i > 0 ? 'nuevo-plan' : undefined}>{m}</li>)}
+                <li className={i > 0 ? 'nuevo-plan' : undefined}>{p.sucursalesMax === null ? 'Sucursales ilimitadas' : p.sucursalesMax === 1 ? '1 sucursal' : `Hasta ${p.sucursalesMax} sucursales`}</li>
                 {i === 0 && <li>Usuarios ilimitados</li>}
                 {p.topeRegular && <li className="tope-plan">{textoTope(p, enOferta)}</li>}
               </ul>
@@ -482,8 +483,8 @@ function ResumenPago({ filas, condiciones, boton, nota }: {
       </ul>
       {/* 073: el pago se hace en «Mis pagos» (tarjeta, datos del comprobante e historial). */}
       {listo
-        ? <Link className="boton" to="/mi-plan/pagos">💳 {boton}</Link>
-        : <button type="button" className="boton" disabled title="Falta lo marcado con ✗">💳 {boton}</button>}
+        ? <Link className="boton" to="/mi-plan/pagos">{boton}</Link>
+        : <button type="button" className="boton" disabled title="Falta lo marcado con ✗">{boton}</button>}
       {nota && <p className="nota">{nota}</p>}
     </div>
   )

@@ -25,7 +25,7 @@ export function BotonAyuda({ empresa }: { empresa?: string | null }) {
   return (
     <a className="boton-ayuda" href={`https://wa.me/${numeroPeru(numero)}?text=${encodeURIComponent(texto)}`}
        target="_blank" rel="noreferrer" aria-label="¿Ayuda? Escríbenos por WhatsApp">
-      <span aria-hidden="true" className="boton-ayuda-icono">💬</span>
+      <span aria-hidden="true" className="boton-ayuda-icono"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 11.5a8 8 0 0 1-8 8 8.5 8.5 0 0 1-3.6-.8L4 20l1.3-4.4A8.5 8.5 0 0 1 4.5 12a8 8 0 0 1 8-8 8 8 0 0 1 7.5 7.5Z"/><path d="M9 12h.01M12.5 12h.01M16 12h.01"/></svg></span>
       <span className="boton-ayuda-texto">¿Ayuda? Escríbenos</span>
     </a>
   )

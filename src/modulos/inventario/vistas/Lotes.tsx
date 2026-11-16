@@ -7,6 +7,7 @@ import { InventarioApagado } from '../componentes/InventarioApagado'
 import { useEstadoInventario } from '../componentes/usoInventario'
 import { cantidad, inventarioServicio, type PaginaLotes } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 const fecha = (f: string) => new Date(f + 'T12:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -42,11 +43,11 @@ export function Lotes() {
   )
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="inv-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Lotes y vencimientos</h1>
-          <p className="secundario">
+          <p className="bajada-pagina">
             De los productos que «Manejan lotes» (se marca en el producto). La compra entra a su lote; al vender, sale
             primero lo que vence antes, sin que tengas que elegir.
           </p>
@@ -58,16 +59,14 @@ export function Lotes() {
       )}
       {error && <Aviso>{error}</Aviso>}
 
-      <div className="filtros-guias">
-        <div className="chips">
+      <div className="filtros-lista">
+        <div className="inv-chips chips">
           {chip(0, 'Vencidos')}
           {chip(30, 'Vencen en 30 días')}
           {chip(90, 'En 90 días')}
           {chip(null, 'Todos con stock')}
         </div>
-      </div>
-      <div className="filtros-lista">
-        <label className="campo">
+        <label className="campo inv-buscar">
           <span className="solo-lector">Buscar</span>
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Producto, código o lote…" />
         </label>
@@ -101,6 +100,6 @@ export function Lotes() {
           </table>
         )}
       </div>
-    </>
+    </div>
   )
 }

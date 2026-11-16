@@ -11,6 +11,7 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import { cantidad, inventarioServicio, PREFIJO_OPERACION, type Operacion } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 const numero = (s: string) => { const n = Number(s.replace(',', '.')); return Number.isFinite(n) ? n : NaN }
 
@@ -91,14 +92,17 @@ export function VerOperacion() {
   }
 
   return (
-    <>
+    <div className="inv-pagina">
       <Link to={volver.a} className="enlace-volver">← {volver.texto}</Link>
-      <div className="encabezado-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">
             {PREFIJO_OPERACION[o.tipo]} <span className={`mono${o.estado === 'anulada' ? ' tachado' : ''}`}>{o.codigo}</span>
+            {' '}<span className={`inv-estado inv-titulo-estado ${o.estado === 'anulada' ? 'inv-mal' : o.estado === 'abierto' ? 'inv-bajo' : o.estado === 'cerrado' ? '' : 'inv-bien'}`}>
+              {o.estado === 'registrada' ? 'Registrado' : o.estado === 'anulada' ? 'Anulado' : o.estado === 'abierto' ? 'Abierto' : 'Cerrado'}
+            </span>
           </h1>
-          <p className="secundario">
+          <p className="bajada-pagina">
             {fecha(o.fecha)} · {o.sucursal}{o.usuario && <> · {o.usuario}</>}
             {o.tipo === 'ajuste' && o.motivoNombre && <> · {o.motivoNombre}</>}
           </p>
@@ -112,13 +116,26 @@ export function VerOperacion() {
         <Aviso tono="ojo">Anulado{o.anuladaEn && <> el {new Date(o.anuladaEn).toLocaleDateString('es-PE')}</>}: {o.anuladaMotivo}. Se hizo el movimiento contrario; queda en el kardex.</Aviso>
       )}
 
-      {(o.proveedor || o.documentoProveedor || o.nota) && (
-        <div className="bloque">
-          {o.proveedor && <p className="parrafo"><strong>{o.proveedor.razonSocial}</strong> · <span className="mono">{o.proveedor.numeroDocumento}</span></p>}
-          {o.documentoProveedor && <p className="parrafo">Su factura: <span className="mono">{o.documentoProveedor}</span></p>}
-          {o.nota && <p className="parrafo">{o.nota}</p>}
-        </div>
-      )}
+      {/* Diseño 16 nov: lo principal en una franja (antes, una tarjeta grande con el proveedor). */}
+      <div className={`cmp-mes estatico${o.tipo === 'ingreso' ? '' : ' tres'}`}>
+        {o.tipo === 'ingreso' && (
+          <div className="cmp-mes-dato inv-prov">
+            <span>Proveedor{o.documentoProveedor && <> · su factura {o.documentoProveedor}</>}</span>
+            <strong title={o.proveedor?.razonSocial}>{o.proveedor?.razonSocial ?? 'Sin proveedor'}</strong>
+            <small>{o.proveedor ? `${o.proveedor.tipoDocumento === '6' ? 'RUC' : 'Doc.'} ${o.proveedor.numeroDocumento}` : '—'}</small>
+          </div>
+        )}
+        <div className="cmp-mes-dato"><span>Productos</span><strong>{o.lineas.length}</strong><small>líneas</small></div>
+        <div className="cmp-mes-dato"><span>Unidades</span><strong>{cantidad(o.lineas.reduce((n, l) => n + l.cantidad, 0))}</strong><small>{o.tipo === 'conteo' ? 'diferencia total' : 'en total'}</small></div>
+        {o.tipo === 'ingreso' ? (
+          <div className="cmp-mes-dato"><span>Costo anotado</span>
+            <strong>{o.lineas.every(l => l.costoUnitario !== null) ? `${o.moneda === 'USD' ? 'US$' : 'S/'} ${o.lineas.reduce((n, l) => n + l.cantidad * (l.costoUnitario ?? 0), 0).toFixed(2)}` : '—'}</strong>
+            <small>cantidad × costo unitario</small></div>
+        ) : (
+          <div className="cmp-mes-dato"><span>Sucursal</span><strong className="inv-texto-cifra">{o.sucursal}</strong><small>{fecha(o.fecha)}</small></div>
+        )}
+      </div>
+      {o.nota && <p className="inv-nota-op"><b>Nota:</b> {o.nota}</p>}
 
       <div className="bloque sin-relleno">
         <table className="tabla inv-lineas">
@@ -131,7 +148,7 @@ export function VerOperacion() {
                 <><th className="num">Había</th><th className="num">Cargado</th></>
               ) : (
                 <><th className="num">{o.tipo === 'ingreso' ? 'Llegó' : 'Entra (+) / sale (−)'}</th>
-                  {o.tipo === 'ingreso' && <th className="num">Costo unit.</th>}</>
+                  {o.tipo === 'ingreso' && <><th className="num">Costo unit.</th><th className="num">Subtotal</th></>}</>
               )}
               <th className="num">Hay ahora</th>
             </tr>
@@ -174,7 +191,10 @@ export function VerOperacion() {
                   ) : (
                     <>
                       <td className="num mono">{o.tipo === 'ajuste' && l.cantidad > 0 ? '+' : ''}{cantidad(l.cantidad)}</td>
-                      {o.tipo === 'ingreso' && <td className="num mono">{l.costoUnitario !== null ? l.costoUnitario.toFixed(2) : '—'}</td>}
+                      {o.tipo === 'ingreso' && <>
+                        <td className="num mono">{l.costoUnitario !== null ? l.costoUnitario.toFixed(2) : '—'}</td>
+                        <td className="num mono">{l.costoUnitario !== null ? (l.cantidad * l.costoUnitario).toFixed(2) : '—'}</td>
+                      </>}
                     </>
                   )}
                   <td className="num mono">{cantidad(l.fisicoAhora)}</td>
@@ -215,6 +235,6 @@ export function VerOperacion() {
           <input value={motivo} maxLength={250} onChange={e => setMotivo(e.target.value)} placeholder="Ej.: se registró dos veces" autoFocus />
         </label>
       </Dialogo>
-    </>
+    </div>
   )
 }

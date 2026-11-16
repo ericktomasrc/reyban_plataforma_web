@@ -256,6 +256,10 @@
   border-bottom: 1px solid var(--borde);
 }
 .franja-ficha.exigida { background: var(--peligro-suave, #fdecec); }
+/* Diseño 16 nov: la franja «Completa tus datos», fina y en ámbar (no en rojo). */
+.franja-ficha { font-size: 13px; padding: 6px 16px; gap: 14px; }
+.franja-ficha.exigida { background: #fdf6e8; color: #6b4a00; border-bottom-color: #f0dcb0; }
+.franja-ficha .boton { min-height: 30px; height: 30px; padding: 0 12px; font-size: 12.5px; }
 
 /* 038: el logo ocupa lo mismo que el menú de la izquierda y lleva su misma
    raya; «Trabajando en» empieza justo después, alineado y sin montarse. */

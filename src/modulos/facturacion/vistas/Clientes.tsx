@@ -11,6 +11,8 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { DialogoCliente } from '../componentes/DialogoCliente'
 import { clientesServicio, productosServicio } from '../servicios/facturacionServicio'
 import type { CatalogosSunat, ClienteEnLista } from '../tipos'
+import { whatsappLegible } from '../componentes/PanelWhatsapp'
+import '../comprobantes-lista.css'
 
 /** Catálogo 06, solo para mostrar. */
 const TIPOS: Record<string, string> = {
@@ -158,10 +160,13 @@ export function Clientes() {
 
   return (
     <>
-      <div className="encabezado-pagina">
+      <div className="encabezado-pagina cmp-encab">
         {/* Sin pestañas desde el 12 de octubre: Comprobantes, Clientes y
             Productos están en el menú de la izquierda. */}
-        <h1 className="titulo-pagina">Clientes</h1>
+        <div>
+          <h1 className="titulo-pagina">Clientes{total > 0 && <span className="lst-cuenta">{total} en total</span>}</h1>
+          <p className="bajada-pagina">Las personas y empresas a las que les facturas.</p>
+        </div>
 
         <Si puede={Permisos.Facturacion.ClientesGestionar}>
           <Boton onClick={() => setCreando(true)} disabled={!catalogos}>
@@ -170,10 +175,6 @@ export function Clientes() {
         </Si>
       </div>
 
-      <p className="bajada-pagina">
-        A quién le facturas. Se guardan aquí, en tu plataforma — el servicio de
-        facturación no los conoce: recibe el comprobante ya armado.
-      </p>
 
       {errorCarga && <Aviso>{errorCarga}</Aviso>}
 
@@ -184,27 +185,28 @@ export function Clientes() {
         </Aviso>
       )}
 
-      <div className="filtros">
-        <label className="ancho">
-          <span>Buscar</span>
+      {/* Diseño 15 nov: filtros y tabla en una sola caja; filtros en una fila. */}
+      <div className="lst-caja">
+      <div className="lst-filtros">
+        <label className="lst-buscar">
+          <span className="solo-lector">Buscar</span>
           <input
             value={q}
             onChange={e => { setQ(e.target.value); setPagina(1) }}
-            placeholder="RUC, DNI, razón social o nombre comercial"
+            placeholder="Buscar por RUC, DNI, razón social o nombre comercial"
             autoFocus
           />
         </label>
 
-        {/* 24 oct: filtros y orden */}
+        {/* 24 oct: filtros y orden. 15 nov: el documento, en botones. */}
+        <div className="lst-seg" role="group" aria-label="Documento">
+          {([['', 'Todos'], ['6', 'RUC'], ['1', 'DNI'], ['4', 'C.E.'], ['7', 'Pasaporte'], ['0', 'Sin doc.']] as const).map(([c, n]) => (
+            <button key={c || 'todos'} type="button" aria-pressed={tipoDoc === c} className={tipoDoc === c ? 'elegido' : undefined}
+                    onClick={() => { setTipoDoc(c); setPagina(1) }}>{n}</button>
+          ))}
+        </div>
         <label>
-          <span>Documento</span>
-          <select value={tipoDoc} onChange={e => { setTipoDoc(e.target.value); setPagina(1) }}>
-            <option value="">Todos</option>
-            {Object.entries(TIPOS).map(([c, n]) => <option key={c} value={c}>{n}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>Estado</span>
+          <span className="solo-lector">Estado</span>
           <select value={estado} onChange={e => { setEstado(e.target.value); setPagina(1) }}>
             <option value="activos">Activos</option>
             <option value="inactivos">Desactivados</option>
@@ -212,7 +214,7 @@ export function Clientes() {
           </select>
         </label>
         <label>
-          <span>Orden</span>
+          <span className="solo-lector">Orden</span>
           <select value={orden} onChange={e => { setOrden(e.target.value); setPagina(1) }}>
             <option value="recientes">Más recientes</option>
             <option value="az">A–Z</option>
@@ -220,17 +222,17 @@ export function Clientes() {
         </label>
       </div>
 
-      <div className="bloque sin-relleno">
+      <div className="bloque sin-relleno lst-tabla">
         {cargando && !clientes ? (
           <div className="relleno"><Cargando /></div>
         ) : clientes && clientes.length > 0 ? (
-          <table className="tabla">
+          <table className="tabla lst">
             <thead>
               <tr>
                 <th>Cliente</th>
                 <th>Documento</th>
-                <th>IGV habitual</th>
                 <th>Contacto</th>
+                <th>IGV habitual</th>
                 <th aria-label="Acciones" />
               </tr>
             </thead>
@@ -238,16 +240,26 @@ export function Clientes() {
             <tbody>
               {clientes.map(c => (
                 <tr key={c.id} className={c.activo ? undefined : 'apagada'}>
-                  <td>
-                    <div className="principal">{c.razonSocial}</div>
-                    {c.nombreComercial && (
-                      <div className="secundario">{c.nombreComercial}</div>
+                  <td className="lst-nombre">
+                    <div className="principal" title={c.razonSocial}>
+                      {c.razonSocial}
+                      {!c.activo && <span className="lst-inactivo">Inactivo</span>}
+                    </div>
+                    {(c.nombreComercial || c.direccion) && (
+                      <div className="secundario" title={c.nombreComercial ?? c.direccion ?? undefined}>{c.nombreComercial ?? c.direccion}</div>
                     )}
                   </td>
 
-                  <td>
-                    <span className="etiqueta">{TIPOS[c.tipoDocumento] ?? c.tipoDocumento}</span>{' '}
+                  <td className="lst-doc">
+                    <span className={c.tipoDocumento === '6' ? 'lst-tipo ruc' : 'lst-tipo'}>{TIPOS[c.tipoDocumento] ?? c.tipoDocumento}</span>{' '}
                     <span className="mono">{c.numeroDocumento}</span>
+                  </td>
+
+                  <td className="lst-contacto">
+                    {c.correo && <div title={c.correo}>{c.correo}</div>}
+                    {c.whatsapp && <div>WhatsApp {whatsappLegible(c.whatsapp)}</div>}
+                    {!c.whatsapp && c.telefono && <div>{c.telefono}</div>}
+                    {!c.correo && !c.whatsapp && !c.telefono && <span className="vacio">Sin contacto</span>}
                   </td>
 
                   {/* SE ENSEÑA EN LA TABLA a propósito: es el campo que evita
@@ -259,16 +271,11 @@ export function Clientes() {
                         {nombreAfectacion(c.afectacionHabitual)}
                       </span>
                     ) : (
-                      <span className="vacio">La del producto</span>
+                      <span className="vacio" title="Se usa la del producto">—</span>
                     )}
                   </td>
 
-                  <td className="secundario">
-                    {c.correo ?? <span className="vacio">Sin correo</span>}
-                    {c.telefono && <div>{c.telefono}</div>}
-                  </td>
-
-                  <td className="acciones">
+                  <td className="acciones lst-acciones">
                     <Si puede={Permisos.Facturacion.ClientesGestionar}>
                       {c.activo ? (
                         <>
@@ -295,6 +302,8 @@ export function Clientes() {
             </Vacio>
           </div>
         )}
+      </div>
+
       </div>
 
       <Paginacion total={total} pagina={pagina} porPagina={porPagina}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { IconoMenu, iconoDeSimbolo } from './IconoMenu'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { EVENTO_FICHA_INCOMPLETA } from '../nucleo/api/cliente'
 import { fecha } from '../nucleo/formato/fechas'
@@ -122,6 +123,9 @@ export function Disposicion() {
 
   // LA CARTERA (fase 3): la gente de una Cuenta Profesional.
   const cartera = !usuario.esSuperAdmin && cuenta?.tipo === 'profesional' && !!cuenta.nivel
+  // e264: la Cuenta Profesional usa el mismo diseño que la Cuenta Negocio (en su
+  // estudio y dentro de cada empresa). Solo aspecto: el menú y los permisos no cambian.
+  const vistaNegocio = !usuario.esSuperAdmin && (cuenta?.tipo === 'negocio' ? !!empresa : cartera)
 
   // Configuración de la empresa (el asistente): quien la puede configurar,
   // sea de registro o dada de alta por el super administrador (17 oct).
@@ -169,7 +173,7 @@ export function Disposicion() {
     && !ruta.pathname.startsWith('/admin')
 
   return (
-    <div className={'marco' + (menuAbierto ? ' menu-abierto' : '')}>
+    <div className={'marco' + (menuAbierto ? ' menu-abierto' : '') + (vistaNegocio ? ' marco-negocio' : '')}>
       {/* ANTES DE LA CABECERA Y FUERA DE ELLA, empujando la página hacia abajo.
           Una barra que flota encima se lee como un aviso que se va a ir solo, y
           esto no se va hasta que se pulsa. */}
@@ -194,12 +198,7 @@ export function Disposicion() {
       {usuario.esSuperAdmin && !suplantacion && plan && !plan.encendidos && (
         <div className="franja-planes" role="status">⚙ PLANES APAGADOS · todas las cuentas ven todos los menús y no se cobra nada</div>
       )}
-      {!usuario.esSuperAdmin && empresa && diasGratis !== null && !enEstudio && (
-        <div className="franja-planes gratis" role="status">
-          Mes gratis: te quedan {diasGratis} día{diasGratis === 1 ? '' : 's'} con todo lo del Max.
-          {cambiaPlan && <> <Link to="/mi-plan">Elige tu plan</Link></>}
-        </div>
-      )}
+      {/* e255: «Mes gratis» ya no es una franja: va en la cabecera, al lado de la sucursal. */}
 
       {/* 076: EL PAGO DEL PLAN. Sin enlace para quien no puede pagar: se le dice a quién avisar. */}
       {!usuario.esSuperAdmin && empresa && !enEstudio && plan?.pago && plan.pago !== 'al_dia' && (
@@ -218,12 +217,21 @@ export function Disposicion() {
         <button type="button" className="boton-menu" aria-label="Abrir el menú"
                 aria-expanded={menuAbierto} onClick={() => setMenuAbierto(a => !a)}>☰</button>
 
-        <span className="logo">Reyban · Facturación</span>
+        <span className="logo reyban-logo-marca"><img src="/reyban-logo.png" alt="Reyban Facturación" /></span>
 
         {cartera && <SelectorEmpresa estudio={enEstudio} avisos={avisos.datos} />}
 
         {/* 046: la sucursal elegida (si la empresa tiene más de una). e191: no en el estudio. */}
         {empresa && !enEstudio && <SelectorSucursal />}
+
+        {/* e255: el mes gratis, en la misma línea (antes, una franja encima). */}
+        {!usuario.esSuperAdmin && empresa && diasGratis !== null && !enEstudio && (
+          <span className="mes-gratis-cabecera" role="status" title={`Mes gratis: te quedan ${diasGratis} día${diasGratis === 1 ? '' : 's'} con todo lo del Max.`}>
+            <svg className="icono-mes-gratis" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M2 6h20v4H2zM12 6v15M12 6C8 6 6 5 6 3.5 6 2.5 7 2 8 2c2 0 4 4 4 4Zm0 0c4 0 6-1 6-2.5C18 2.5 17 2 16 2c-2 0-4 4-4 4Z"/></svg>
+            <span className="mes-gratis-texto">Mes gratis: te quedan <b>{diasGratis} día{diasGratis === 1 ? '' : 's'}</b><span className="mes-gratis-largo"> con todo lo del Max</span>.</span>
+            {cambiaPlan && <Link to="/mi-plan">Elige tu plan</Link>}
+          </span>
+        )}
 
         <span className="hueco" />
 
@@ -235,8 +243,9 @@ export function Disposicion() {
         <div className="quien-envoltura" ref={nombreRef}>
         <button type="button" className="quien" aria-haspopup="menu" aria-expanded={menuNombre}
                 onClick={() => setMenuNombre(a => !a)}>
+          {vistaNegocio && <span className="avatar-inicial" aria-hidden="true">{usuario.nombre.trim().charAt(0).toLocaleUpperCase('es')}</span>}
           <div className="nombre">
-            {usuario.nombre}
+            {vistaNegocio ? usuario.nombre.trim().split(/\s+/)[0] : usuario.nombre}
 
             {/* La cuenta de quien se registró (016) va siempre; al lado, en la
                 cartera su nivel (Dueño, Colaborador…), fuera de ella su rol. */}
@@ -376,9 +385,9 @@ export function Disposicion() {
                     <MenuDesplegable icono="▤" titulo="Comprobantes" inicio="/facturacion/comprobantes"
                       prefijos={['/facturacion/comprobantes', '/facturacion/notas']}
                       grupos={[{ titulo: '', items: conCandado([
-                        { ruta: '/facturacion/comprobantes', nombre: 'Comprobantes emitidos' },
-                        { ruta: '/facturacion/notas/nueva-credito', nombre: 'Nueva nota de crédito' },
-                        { ruta: '/facturacion/notas/nueva-debito', nombre: 'Nueva nota de débito' },
+                        { ruta: '/facturacion/comprobantes', nombre: 'Comprobantes emitidos', excepto: ['/nota-credito', '/nota-debito'] },
+                        { ruta: '/facturacion/notas/nueva-credito', nombre: 'Nueva nota de crédito', tambien: ['/nota-credito'] },
+                        { ruta: '/facturacion/notas/nueva-debito', nombre: 'Nueva nota de débito', tambien: ['/nota-debito'] },
                       ]) }]} />
                   ) : (
                     <NavLink to="/facturacion/comprobantes" className={activo}><Icono>▤</Icono>Comprobantes</NavLink>
@@ -554,13 +563,15 @@ export function Disposicion() {
 }
 
 function Icono({ children }: { children: string }) {
-  return <span className="icono-lateral" aria-hidden="true">{children}</span>
+  return <span className="icono-lateral" aria-hidden="true">{<IconoMenu nombre={iconoDeSimbolo(children)} />}</span>
 }
 
 /** «Dónde estás», para la línea de arriba del contenido. */
 function nombreDePagina(ruta: string): string | null {
   if (ruta === '/') return 'Inicio'
   if (ruta.startsWith('/facturacion/comprobantes/nuevo')) return 'Nuevo comprobante'
+  if (ruta.startsWith('/facturacion/comprobantes/') && ruta.endsWith('/nota-credito')) return 'Nota de crédito'
+  if (ruta.startsWith('/facturacion/comprobantes/') && ruta.endsWith('/nota-debito')) return 'Nota de débito'
   if (ruta.startsWith('/facturacion/comprobantes/')) return 'Comprobante'
   if (ruta.startsWith('/facturacion/comprobantes')) return 'Comprobantes'
   if (ruta.startsWith('/facturacion/notas/nueva-credito')) return 'Nueva nota de crédito'

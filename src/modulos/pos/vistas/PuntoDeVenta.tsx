@@ -16,7 +16,7 @@ import { enPresentacion, type ClienteEnLista, type ProductoEnLista } from '../..
 import { cantidad as fmtCantidad, inventarioServicio, type Disponible } from '../../inventario/servicios/inventarioServicio'
 import {
   MEDIOS, nombreMedio, posServicio,
-  type Cobrado, type DetalleCaja, type EstadoPos, type MedioPago, type SesionCaja,
+  type CajaDeSucursal, type Cobrado, type DetalleCaja, type EstadoPos, type MedioPago, type SesionCaja,
 } from '../servicios/posServicio'
 import { importesGravada } from '../../facturacion/importesLinea'
 import { ElegirSeries } from '../../inventario/componentes/ElegirSeries'
@@ -83,6 +83,24 @@ function totalesDe(lineas: LineaVenta[]) {
   return { gravado: r2(gravado), otros: r2(otros), igv: r2(igv), total: r2(gravado + otros + igv) }
 }
 
+// 16 nov: ayudas solo de vista (iniciales y un tono suave por categoría).
+const inicialesDe = (s: string) => s.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+const tonoDe = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 5 }
+const docDe = (t: string) => t === '6' ? 'RUC' : t === '1' ? 'DNI' : t === '0' ? 'Sin documento' : 'Doc.'
+const RUTAS_ICONO: Record<string, string> = {
+  mas: 'M12 5v14M5 12h14', lista: 'M4 6h16M4 12h16M4 18h10', candado: 'M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3',
+  lupa: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5', salir: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
+  efectivo: 'M3 6h18v12H3zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z', yape: 'M7 3h10v18H7zM11 17h2',
+  tarjeta: 'M3 5h18v14H3zM3 10h18', transferencia: 'M3 20h18M12 4l9 5H3zM6 10v7M10 10v7M14 10v7M18 10v7', mixto: 'M8 7h8M8 12h8M8 17h5',
+}
+function Ico({ n }: { n: string }) {
+  return (
+    <svg className="pos-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={RUTAS_ICONO[n]} />
+    </svg>
+  )
+}
+
 const CLAVE_IMPRIMIR = 'reyban.pos.imprimir'
 const leer = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
 const guardar = (k: string, v: string) => { try { localStorage.setItem(k, v) } catch { /* sin almacenamiento */ } }
@@ -135,17 +153,25 @@ export function PuntoDeVenta() {
 // =============================================================================
 
 function MarcoPos({ sesion, acciones, children }: { sesion?: SesionCaja; acciones?: React.ReactNode; children: React.ReactNode }) {
-  const { usuario } = useYo()
+  const { usuario, empresa } = useYo()
+  // 16 nov: barra verde oscuro de la marca (solo el POS).
   return (
     <div className="pos">
       <header className="pos-barra">
-        <strong className="pos-marca">Reyban · Punto de venta</strong>
-        {sesion && <span className="pos-chip">{sesion.sucursal}</span>}
-        {sesion && <span className="pos-chip ok">● {sesion.caja} abierta · {hora(sesion.abiertaEn)}</span>}
+        <div className="pos-marca">
+          <span className="pos-logo" aria-hidden="true">R</span>
+          <span>Punto de venta{empresa && <small>{empresa.nombre}</small>}</span>
+        </div>
+        {sesion && (
+          <>
+            <span className="pos-sep" aria-hidden="true" />
+            <span className="pos-estado"><span className="pos-punto" aria-hidden="true" /><b>{sesion.caja}</b> abierta desde {hora(sesion.abiertaEn)} · {sesion.sucursal}</span>
+          </>
+        )}
         <div className="pos-der">
           {acciones}
-          <span className="pos-chip">{usuario.nombre}</span>
-          <Link to="/" className="boton secundario">Salir del POS</Link>
+          <span className="pos-yo"><span className="pos-av" aria-hidden="true">{inicialesDe(usuario.nombre)}</span>{usuario.nombre}</span>
+          <Link to="/" className="pos-gh"><Ico n="salir" />Salir del POS</Link>
         </div>
       </header>
       <main className="pos-cuerpo">{children}</main>
@@ -159,15 +185,19 @@ function MarcoPos({ sesion, acciones, children }: { sesion?: SesionCaja; accione
 // =============================================================================
 
 function AbrirCaja({ estado, onAbierta }: { estado: EstadoPos; onAbierta: () => void }) {
-  const { alcance } = useYo()
+  const { alcance, usuario } = useYo()
+  const [saludo] = useState(() => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches' })
   const sucursales = estado.sucursales
-  const inicial = sucursales.find(s => s.id === alcance?.defecto) ?? sucursales[0]
+  // e255: primero la sucursal elegida arriba («Sucursal: TIENDA 2»), luego la de siempre.
+  const inicial = sucursales.find(s => s.id === alcance?.vista) ?? sucursales.find(s => s.id === alcance?.defecto) ?? sucursales[0]
   const [sucursalId, setSucursalId] = useState(inicial?.id ?? '')
   const sucursal = sucursales.find(s => s.id === sucursalId)
   const libres = (sucursal?.cajas ?? []).filter(c => !c.abiertaPor)
   const [cajaId, setCajaId] = useState('')
   const caja = libres.find(c => c.id === cajaId) ?? libres[0]
-  const [fondo, setFondo] = useState(() => caja?.ultimoCierre?.deja != null ? caja.ultimoCierre.deja.toFixed(2) : '')
+  // e255: el fondo sale de lo que dejaron en ESA caja; al cambiar de caja o de sucursal se vuelve a tomar.
+  const fondoDe = (c?: CajaDeSucursal) => c?.ultimoCierre?.deja != null ? c.ultimoCierre.deja.toFixed(2) : ''
+  const [fondo, setFondo] = useState(() => fondoDe(caja))
   const [nota, setNota] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [fallo, setFallo] = useState<string>()
@@ -187,54 +217,65 @@ function AbrirCaja({ estado, onAbierta }: { estado: EstadoPos; onAbierta: () => 
     } finally { setOcupado(false) }
   }
 
+  const nombreCaja = caja?.nombre ?? ((sucursal?.cajas.length ?? 0) === 0 ? 'Caja 01' : 'Una caja nueva')
   return (
     <div className="pos-centro">
-      <div className="pos-tarjeta pos-angosta">
-        <div>
-          <h1 className="pos-titulo">Abrir caja</h1>
-          <p className="pos-sub">Antes de vender, cuenta el dinero con el que empiezas.</p>
-        </div>
-        <div className="pos-dos">
+      {/* 16 nov: dos paneles; las cajas como lista (libres se eligen; ocupadas dicen quién). */}
+      <div className="pos-abrir">
+        <div className="pos-abrir-izq">
+          <div>
+            <h1 className="pos-titulo">{saludo}, {usuario.nombre.split(' ')[0]}</h1>
+            <p className="pos-sub">Elige tu caja y cuenta el dinero con el que empiezas. Las ventas, ingresos y retiros quedan a tu nombre hasta que la cierres.</p>
+          </div>
           {sucursales.length > 1 && (
             <label className="pos-campo">
               <span>Sucursal</span>
-              <select value={sucursalId} onChange={e => { setSucursalId(e.target.value); setCajaId('') }}>
+              <select value={sucursalId} onChange={e => {
+                const id = e.target.value
+                setSucursalId(id); setCajaId('')
+                setFondo(fondoDe(sucursales.find(x => x.id === id)?.cajas.find(c => !c.abiertaPor)))
+              }}>
                 {sucursales.map(s => <option key={s.id} value={s.id}>{s.codigo} {s.nombre}</option>)}
               </select>
             </label>
           )}
-          <label className="pos-campo">
-            <span>Caja</span>
-            <select value={caja?.id ?? ''} onChange={e => setCajaId(e.target.value)}>
-              {libres.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-              {libres.length === 0 && <option value="">{(sucursal?.cajas.length ?? 0) === 0 ? 'Caja 01 (se crea ahora)' : 'Una caja nueva (se crea ahora)'}</option>}
-            </select>
-          </label>
+          <div className="pos-cajas" role="radiogroup" aria-label="Caja">
+            {(sucursal?.cajas ?? []).map(c => c.abiertaPor ? (
+              <div key={c.id} className="pos-caja ocupada"><i aria-hidden="true" />{c.nombre}<small>la tiene abierta {c.abiertaPor}</small></div>
+            ) : (
+              <button type="button" key={c.id} role="radio" aria-checked={caja?.id === c.id}
+                      className={`pos-caja${caja?.id === c.id ? ' on' : ''}`} onClick={() => { setCajaId(c.id); setFondo(fondoDe(c)) }}>
+                <i aria-hidden="true" />{c.nombre}<small>libre</small>
+              </button>
+            ))}
+            {libres.length === 0 && <div className="pos-caja on"><i aria-hidden="true" />{nombreCaja}<small>se crea ahora</small></div>}
+          </div>
+          {caja?.ultimoCierre && (
+            <p className="pos-ultimo">
+              La última vez la cerró <strong>{caja.ultimoCierre.por}</strong> el {new Date(caja.ultimoCierre.en).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })}
+              {caja.ultimoCierre.deja != null && <> y dejó en caja <strong className="mono">S/ {dinero(caja.ultimoCierre.deja)}</strong></>}.
+            </p>
+          )}
+        </div>
+        <div className="pos-abrir-der">
+          <div>
+            <h2 className="pos-h2">Abrir {nombreCaja}{sucursal && ` · ${sucursal.nombre}`}</h2>
+            <p className="pos-sub">Antes de vender, cuenta el dinero con el que empiezas.</p>
+          </div>
           <label className="pos-campo">
             <span>Fondo inicial en efectivo (S/)</span>
             <input className="grande" inputMode="decimal" value={fondo} placeholder="0.00" autoFocus
                    onChange={e => setFondo(e.target.value.replace(/[^\d.,]/g, ''))}
                    onKeyDown={e => { if (e.key === 'Enter') void abrir() }} />
           </label>
+          <label className="pos-campo">
+            <span>Nota (opcional)</span>
+            <input value={nota} maxLength={250} onChange={e => setNota(e.target.value)} placeholder="Ej.: dos billetes de 50 y monedas" />
+          </label>
+          {fallo && <Aviso>{fallo}</Aviso>}
+          <Boton className="pos-boton-fuerte" onClick={() => void abrir()} ocupado={ocupado} textoOcupado="Abriendo…">Abrir caja y empezar a vender</Boton>
+          <p className="nota">Una caja abierta por persona.</p>
         </div>
-        {caja?.ultimoCierre && (
-          <p className="pos-recuadro">
-            La última vez la cerró <strong>{caja.ultimoCierre.por}</strong> el {new Date(caja.ultimoCierre.en).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })}
-            {caja.ultimoCierre.deja != null && <> y dejó en caja <strong className="mono">S/ {dinero(caja.ultimoCierre.deja)}</strong></>}.
-          </p>
-        )}
-        {(sucursal?.cajas ?? []).filter(c => c.abiertaPor).map(c => (
-          <p key={c.id} className="nota">{c.nombre}: la tiene abierta {c.abiertaPor}.</p>
-        ))}
-        <label className="pos-campo">
-          <span>Nota (opcional)</span>
-          <input value={nota} maxLength={250} onChange={e => setNota(e.target.value)} placeholder="Ej.: dos billetes de 50 y monedas" />
-        </label>
-        {fallo && <Aviso>{fallo}</Aviso>}
-        <div className="pos-pie">
-          <Boton onClick={() => void abrir()} ocupado={ocupado} textoOcupado="Abriendo…">Abrir caja y empezar a vender</Boton>
-        </div>
-        <p className="nota">Una caja abierta por persona. Las ventas, ingresos y retiros quedan a tu nombre hasta que la cierres.</p>
       </div>
     </div>
   )
@@ -272,6 +313,8 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
   const [descDe, setDescDe] = useState<string>()
   const [seriesDe, setSeriesDe] = useState<string>()   // 068: la línea cuyos números de serie se eligen
   const buscador = useRef<HTMLInputElement>(null)
+  // 16 nov: el buscador de clientes se abre con «Elegir cliente» (en factura, siempre).
+  const [buscarCliente, setBuscarCliente] = useState(false)
 
   useEffect(() => {
     let vivo = true
@@ -283,11 +326,18 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
   }, [])
 
   const categorias = useMemo(() => [...new Set((productos ?? []).map(p => p.categoria).filter((c): c is string => !!c))].sort(), [productos])
+  const porCategoria = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const p of productos ?? []) if (p.categoria) m.set(p.categoria, (m.get(p.categoria) ?? 0) + 1)
+    return m
+  }, [productos])
   const texto = q.trim().toLocaleLowerCase('es')
-  const visibles = useMemo(() => (productos ?? [])
+  // 16 nov: los que calzan (para decir cuántos hay) y los 48 primeros que se muestran, como antes.
+  const coinciden = useMemo(() => (productos ?? [])
     .filter(p => !categoria || p.categoria === categoria)
-    .filter(p => !texto || p.descripcion.toLocaleLowerCase('es').includes(texto) || p.codigo.toLocaleLowerCase('es').includes(texto))
-    .slice(0, 48), [productos, categoria, texto])
+    .filter(p => !texto || p.descripcion.toLocaleLowerCase('es').includes(texto) || p.codigo.toLocaleLowerCase('es').includes(texto)),
+    [productos, categoria, texto])
+  const visibles = useMemo(() => coinciden.slice(0, 48), [coinciden])
 
   // El stock de lo que se ve (en la sucursal de la caja).
   const idsVisibles = visibles.map(p => p.id).join(',')
@@ -357,7 +407,7 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
   }
 
   function nuevaVenta() {
-    setLineas([]); setCliente(undefined); setTipo('03'); setQ('')
+    setLineas([]); setCliente(undefined); setTipo('03'); setQ(''); setBuscarCliente(false)
     setTimeout(() => buscador.current?.focus(), 50)
   }
 
@@ -388,21 +438,25 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
 
   return (
     <MarcoPos sesion={sesion} acciones={<>
-      {estado.puede.movimientos && <button type="button" className="boton secundario" onClick={() => setMovimiento(true)}>Ingreso / retiro</button>}
-      <button type="button" className="boton secundario" onClick={() => setVerVentas(true)}>Ventas de esta caja</button>
-      <button type="button" className="boton secundario" onClick={onCerrar}>Cerrar caja</button>
+      {estado.puede.movimientos && <button type="button" className="pos-gh" onClick={() => setMovimiento(true)}><Ico n="mas" />Ingreso / retiro</button>}
+      <button type="button" className="pos-gh" onClick={() => setVerVentas(true)}><Ico n="lista" />Ventas de esta caja</button>
+      <button type="button" className="pos-gh" onClick={onCerrar}><Ico n="candado" />Cerrar caja</button>
     </>}>
       <div className="pos-venta">
         <section className="pos-izq">
-          <input ref={buscador} className="pos-buscar" value={q} autoFocus
-                 placeholder="Escanea el código de barras o escribe el nombre o el código…"
-                 onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); enter() } }}
-                 aria-label="Buscar producto" />
+          <label className="pos-buscar">
+            <Ico n="lupa" />
+            <input ref={buscador} value={q} autoFocus
+                   placeholder="Escanea el código de barras o escribe el nombre o el código…"
+                   onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); enter() } }}
+                   aria-label="Buscar producto" />
+            <span className="pos-kbd" aria-hidden="true">Enter</span>
+          </label>
           {categorias.length > 0 && (
-            <div className="pos-cats">
-              <button type="button" className={!categoria ? 'on' : ''} onClick={() => setCategoria('')}>Todos</button>
+            <div className="pos-cats" role="tablist" aria-label="Categorías">
+              <button type="button" role="tab" aria-selected={!categoria} className={!categoria ? 'on' : ''} onClick={() => setCategoria('')}>Todos<em>{productos?.length ?? 0}</em></button>
               {categorias.map(c => (
-                <button type="button" key={c} className={categoria === c ? 'on' : ''} onClick={() => setCategoria(c)}>{c}</button>
+                <button type="button" role="tab" aria-selected={categoria === c} key={c} className={categoria === c ? 'on' : ''} onClick={() => setCategoria(c)}>{c}<em>{porCategoria.get(c) ?? 0}</em></button>
               ))}
             </div>
           )}
@@ -418,34 +472,71 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
               const hay = st ? (p.presentacion ? Math.floor(st.disponible / f) : st.disponible) : 0
               const sin = !!st?.controla && st.disponible < f
               const precio = p.tipoAfectacion === '10' && !p.incluyeIgv ? p.precioUnitario * (1 + IGV) : p.precioUnitario
+              // 16 nov: cuánto de este producto ya va en la cuenta (solo se muestra).
+              const enCuenta = lineas.filter(l => l.productoId === p.id && (l.presentacionId ?? null) === (p.presentacion?.id ?? null))
+                .reduce((s, l) => s + l.cantidad, 0)
               return (
-                <button type="button" key={p.presentacion ? `${p.id}:${p.presentacion.id}` : p.id} className={`pos-prod${sin ? ' sin' : ''}`} onClick={() => agregar(p)}>
+                <button type="button" key={p.presentacion ? `${p.id}:${p.presentacion.id}` : p.id} title={p.descripcion}
+                        className={`pos-prod${sin ? ' sin' : ''}${enCuenta > 0 ? ' en-cuenta' : ''}`} onClick={() => agregar(p)}>
+                  <span className="pos-prod-top">
+                    <span className={`pos-ini t${tonoDe(p.categoria ?? p.descripcion)}`} aria-hidden="true">{inicialesDe(p.descripcion)}</span>
+                    {enCuenta > 0 && <span className="pos-cnt" aria-label={`${fmtCantidad(enCuenta)} en la cuenta`}>{fmtCantidad(enCuenta)}</span>}
+                  </span>
                   <b>{p.descripcion}</b>
                   <small>{p.codigo} · {p.unidadMedida === 'ZZ' ? 'servicio' : p.presentacion ? `${p.unidadMedida} = ${p.presentacion.factor} ${p.unidadBase}` : p.unidadMedida}</small>
-                  <span className="pr">S/ {dinero(precio)}</span>
-                  {st?.controla
-                    ? <span className={`stock${sin ? ' mal' : hay <= 5 ? ' bajo' : ''}`}>{sin ? 'Sin stock' : `Hay ${fmtCantidad(hay)}`}</span>
-                    : <span className="stock gris">{p.unidadMedida === 'ZZ' ? 'Servicio' : ' '}</span>}
+                  <span className="pos-prod-pie">
+                    <span className="pr"><small>S/</small>{dinero(precio)}</span>
+                    {st?.controla
+                      ? <span className={`stock${sin ? ' mal' : hay <= 5 ? ' bajo' : ''}`}>{sin ? 'Agotado' : hay <= 5 ? `Quedan ${fmtCantidad(hay)}` : fmtCantidad(hay)}</span>
+                      : <span className="stock gris">{p.unidadMedida === 'ZZ' ? 'Servicio' : ''}</span>}
+                  </span>
                 </button>
               )
             })}
           </div>
           {productos && texto && visibles.length === 0 && <p className="nota">Ningún producto con «{q.trim()}».</p>}
-          <p className="nota">Un toque (o el lector) agrega 1; el mismo producto otra vez suma a su línea. F2 cobra.</p>
+          {coinciden.length > visibles.length && (
+            <p className="pos-mas">Se ven {visibles.length} de {coinciden.length}. Escribe parte del nombre o el código{categorias.length > 0 ? ', o elige una categoría,' : ''} para encontrar el resto.</p>
+          )}
+          <p className="pos-ayuda">
+            <span><span className="pos-kbd">Enter</span> agrega con el lector</span>
+            <span>Un toque suma 1 a su línea</span>
+            <span><span className="pos-kbd">F2</span> cobra</span>
+          </p>
         </section>
 
         <aside className="pos-ticket">
           <div className="pos-tcab">
-            <div className="pos-tipo" role="tablist" aria-label="Comprobante">
-              <button type="button" className={tipo === '03' ? 'on' : ''} onClick={() => setTipo('03')}>Boleta</button>
-              <button type="button" className={tipo === '01' ? 'on' : ''} onClick={() => setTipo('01')}>Factura</button>
+            <div className="pos-tfila">
+              <h2 className="pos-th">Venta actual{lineas.length > 0 && <small>{lineas.length} {lineas.length === 1 ? 'producto' : 'productos'}{serie ? ` · ${serie}` : ''}</small>}</h2>
+              <div className="pos-tipo" role="tablist" aria-label="Comprobante">
+                <button type="button" className={tipo === '03' ? 'on' : ''} onClick={() => setTipo('03')}>Boleta</button>
+                <button type="button" className={tipo === '01' ? 'on' : ''} onClick={() => setTipo('01')}>Factura</button>
+              </div>
             </div>
-            <BuscadorCliente elegido={cliente} onElegir={elegirCliente} />
-            <span className="nota">
-              {cliente
-                ? <>Para <strong>{cliente.razonSocial}</strong>{' '}<button type="button" className="enlace" onClick={() => { setCliente(undefined); setTipo('03') }}>quitar</button></>
-                : tipo === '03' ? <>Sin cliente: <strong>Público en general</strong> (hasta S/ 700).</> : 'Elige el cliente con RUC.'}
-            </span>
+            {/* 16 nov: el cliente en una ficha; el buscador, al pedirlo (o en factura). */}
+            {cliente ? (
+              <div className="pos-cli">
+                <span className="pos-cli-av" aria-hidden="true">{inicialesDe(cliente.razonSocial)}</span>
+                <div><b title={cliente.razonSocial}>{cliente.razonSocial}</b><small>{docDe(cliente.tipoDocumento)} {cliente.numeroDocumento}</small></div>
+                <button type="button" className="enlace" onClick={() => { setCliente(undefined); setTipo('03') }}>quitar</button>
+              </div>
+            ) : buscarCliente || tipo === '01' ? (
+              <div className="pos-cli-buscar">
+                <BuscadorCliente elegido={cliente} onElegir={c => { elegirCliente(c); setBuscarCliente(false) }} />
+                <span className="nota">
+                  {tipo === '03'
+                    ? <>Sin cliente: <strong>Público en general</strong> (hasta S/ 700).{' '}<button type="button" className="enlace" onClick={() => setBuscarCliente(false)}>cancelar</button></>
+                    : 'Elige el cliente con RUC.'}
+                </span>
+              </div>
+            ) : (
+              <div className="pos-cli">
+                <span className="pos-cli-av" aria-hidden="true">PG</span>
+                <div><b>Público en general</b><small>Boleta sin DNI, hasta S/ 700</small></div>
+                <button type="button" className="enlace" onClick={() => setBuscarCliente(true)}>Elegir cliente</button>
+              </div>
+            )}
           </div>
 
           <div className="pos-lineas">
@@ -453,7 +544,7 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
             {lineas.map(l => (
               <div className="pos-lin" key={l.clave}>
                 <div className="d">
-                  {l.descripcion}
+                  <span className="pos-lin-nombre" title={l.descripcion}>{l.descripcion}</span>
                   <small>
                     S/ {dinero(l.precio)} c/u{l.descuento > 0 && <span className="desc"> · desc. {dinero(l.descuento)}</span>}
                     {estado.puede.descuentos && <>{' · '}
@@ -515,12 +606,12 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
               <button type="button" className="boton secundario" disabled={lineas.length === 0} onClick={nuevaVenta}>Vaciar</button>
               <button type="button" className="boton secundario" disabled={lineas.length === 0} onClick={ponerEnEspera}>En espera</button>
               {esperas.length > 0 && (
-                <button type="button" className="boton secundario" onClick={() => setVerEsperas(true)}>Retomar ({esperas.length})</button>
+                <button type="button" className="boton secundario" onClick={() => setVerEsperas(true)}>Retomar <em className="pos-n">{esperas.length}</em></button>
               )}
             </div>
             {falta && lineas.length > 0 && <p className="pos-falta">{falta}</p>}
             <button type="button" className="boton pos-cobrar" disabled={!!falta} onClick={() => setCobrando(true)}>
-              Cobrar S/ {dinero(t.total)} <span>(F2)</span>
+              <span>Cobrar</span><span className="mono">S/ {dinero(t.total)}</span><span className="pos-kbd">F2</span>
             </button>
           </div>
         </aside>
@@ -651,18 +742,24 @@ function Cobrar({ total, tipo, serie, cliente, lineas, onCerrar, onCobrado }: {
              abierto onCerrar={() => { if (!ocupado && !reintentar) onCerrar() }} ancho="grande"
              acciones={<>
                {!reintentar && <Boton estilo="secundario" onClick={onCerrar} disabled={ocupado}>Volver</Boton>}
-               <Boton onClick={() => void cobrar()} disabled={!!problema} ocupado={ocupado} textoOcupado="Emitiendo…">
+               <Boton className="pos-boton-fuerte" onClick={() => void cobrar()} disabled={!!problema} ocupado={ocupado} textoOcupado="Emitiendo…">
                  {reintentar ? 'Reintentar el envío' : `Cobrar y emitir S/ ${dinero(total)}`}
                </Boton>
              </>}>
-      <form className="pos-cobro" onSubmit={e => { e.preventDefault(); void cobrar() }}>
-        <div className="pos-total-cobro"><span>Total</span><b className="mono">S/ {dinero(total)}</b></div>
+      {/* 16 nov: los medios a la izquierda; el monto, lo recibido y el vuelto a la derecha. */}
+      <form className="pos-cobro pos-cobro2" onSubmit={e => { e.preventDefault(); void cobrar() }}>
         <div className="pos-medios" role="radiogroup" aria-label="Medio de pago">
           {[...MEDIOS, { codigo: 'mixto' as const, nombre: 'Mixto' }].map(m => (
             <button type="button" key={m.codigo} role="radio" aria-checked={medio === m.codigo} disabled={!!reintentar}
-                    className={medio === m.codigo ? 'on' : ''} onClick={() => setMedio(m.codigo)}>{m.nombre}</button>
+                    className={medio === m.codigo ? 'on' : ''} onClick={() => setMedio(m.codigo)}>
+              <span className="pos-medio-ico"><Ico n={m.codigo} /></span>{m.nombre}
+              {m.codigo === 'efectivo' && <small>con vuelto</small>}
+              {m.codigo === 'mixto' && <small>2 o más</small>}
+            </button>
           ))}
         </div>
+        <div className="pos-cobro-der">
+        <div className="pos-total-cobro"><span>A cobrar</span><b className="mono">S/ {dinero(total)}</b></div>
 
         {medio === 'efectivo' && (
           <div className="pos-dos">
@@ -712,6 +809,7 @@ function Cobrar({ total, tipo, serie, cliente, lineas, onCerrar, onCobrado }: {
           <span className="nota">Sale con la serie {serie}.</span>
         </div>
         {fallo && <Aviso>{fallo}</Aviso>}
+        </div>
         <button type="submit" hidden />
       </form>
     </Dialogo>
@@ -862,6 +960,13 @@ function CerrarCaja({ onVolver, onCerrada }: { onVolver: () => void; onCerrada: 
         <div><h1 className="pos-titulo">Cerrar {d.sesion.caja}</h1><p className="pos-sub">Cuenta el efectivo. El sistema compara con lo que debería haber.</p></div>
         <Boton estilo="secundario" onClick={onVolver}>Volver a vender</Boton>
       </div>
+      {/* 16 nov: de un vistazo (solo muestra lo que ya trae el resumen). */}
+      <div className="pos-kpis">
+        <div><span>Vendido</span><b className="mono">S/ {dinero(d.arqueo.vendido)}</b><small>{d.arqueo.ventas} {d.arqueo.ventas === 1 ? 'venta' : 'ventas'}</small></div>
+        <div><span>Fondo inicial</span><b className="mono">S/ {dinero(d.arqueo.fondo)}</b><small>al abrir, {hora(d.sesion.abiertaEn)}</small></div>
+        <div><span>Ingresos − retiros</span><b className="mono">S/ {dinero(r2(d.arqueo.ingresos - d.arqueo.retiros))}</b><small>{d.arqueo.ingresosCuantos} ingreso(s) · {d.arqueo.retirosCuantos} retiro(s)</small></div>
+        <div className="dest"><span>Efectivo esperado</span><b className="mono">S/ {dinero(d.esperado)}</b><small>lo que debe haber</small></div>
+      </div>
       <div className="pos-cierre-cuerpo">
         <ArqueoSistemaTabla a={d.arqueo} esperado={d.esperado} />
         <section className="pos-tarjeta">
@@ -889,7 +994,7 @@ function CerrarCaja({ onVolver, onCerrada }: { onVolver: () => void; onCerrada: 
           </div>
           {fallo && <Aviso>{fallo}</Aviso>}
           <div className="pos-pie">
-            <Boton onClick={() => void cerrar()} disabled={!listo} ocupado={ocupado} textoOcupado="Cerrando…">Cerrar caja</Boton>
+            <Boton className="pos-boton-fuerte" onClick={() => void cerrar()} disabled={!listo} ocupado={ocupado} textoOcupado="Cerrando…">Cerrar caja</Boton>
           </div>
           <p className="nota">Cerrada, no se puede vender en ella hasta abrir otra. El arqueo queda en «Cajas» y no se borra.</p>
         </section>

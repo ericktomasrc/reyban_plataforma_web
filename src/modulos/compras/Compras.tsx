@@ -5,13 +5,13 @@ import { Boton } from '../../componentes/Boton'
 import { Cargando, Vacio } from '../../componentes/Cargando'
 import { Dialogo } from '../../componentes/Dialogo'
 import { Paginacion } from '../../componentes/Paginacion'
-import { Pestanas } from '../../componentes/Pestanas'
 import { ErrorApi } from '../../nucleo/api/errores'
 import { Permisos } from '../../nucleo/autorizacion/permisos'
 import { fecha } from '../../nucleo/formato/fechas'
 import { usePestana } from '../../nucleo/hooks/usePestana'
 import { useMensaje } from '../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion } from '../../nucleo/sesion/SesionContexto'
+import '../facturacion/comprobantes-lista.css'
 import { consultasServicio } from '../facturacion/servicios/facturacionServicio'
 import { inventarioServicio } from '../inventario/servicios/inventarioServicio'
 import {
@@ -70,12 +70,12 @@ export function Compras() {
 
   return (
     <>
-      <div className="encabezado-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Compras y gastos</h1>
-          <p className="secundario">
-            Lo que compras y gastas: las facturas de tus proveedores y los gastos del día a día. Con esto salen el
-            Registro de Compras y, más adelante, tu margen. <Link to="/reportes/compras">Ver el reporte</Link>
+          <p className="bajada-pagina">
+            Las facturas de tus proveedores y los gastos del día a día. Con esto sale tu Registro de Compras.{' '}
+            <Link to="/reportes/compras">Ver el reporte</Link>
           </p>
         </div>
         {registra && (
@@ -86,36 +86,43 @@ export function Compras() {
         )}
       </div>
 
-      <Pestanas etiqueta="Compras y gastos" valor={ver} onCambio={v => { setVer(v); setPagina(1) }} opciones={[
-        { valor: 'compras', texto: 'Compras', cuenta: datos?.conteo.compras },
-        { valor: 'gastos', texto: 'Gastos', cuenta: datos?.conteo.gastos },
-        { valor: 'anuladas', texto: 'Anuladas', cuenta: datos?.conteo.anuladas, ocultarVacia: true },
-      ]} />
+      {/* Diseño 15 nov: el periodo en cifras (las mismas que antes iban en una línea). */}
+      {datos && ver !== 'anuladas' && datos.total > 0 && (
+        <div className="cmp-mes estatico" aria-label="Totales del periodo">
+          <div className="cmp-mes-dato"><span>{ver === 'gastos' ? 'Gastos' : 'Compras'} en el periodo</span><strong className="mono">{datos.total}</strong><small>sin contar anuladas</small></div>
+          <div className="cmp-mes-dato"><span>Base</span><strong className="mono">S/ {dinero(datos.totales.base)}</strong><small>en soles</small></div>
+          <div className="cmp-mes-dato"><span>IGV</span><strong className="mono">S/ {dinero(datos.totales.igv)}</strong><small>crédito fiscal</small></div>
+          <div className="cmp-mes-dato bien"><span>Total</span><strong className="mono">S/ {dinero(datos.totales.total)}</strong><small>en soles</small></div>
+        </div>
+      )}
 
-      <div className="filtros-lista">
-        <label><span>Desde</span><input type="date" value={desde} max={hasta} onChange={e => { setDesde(e.target.value); setPagina(1) }} /></label>
-        <label><span>Hasta</span><input type="date" value={hasta} min={desde} max={hoy} onChange={e => { setHasta(e.target.value); setPagina(1) }} /></label>
-        <label className="buscar"><span>Buscar</span>
-          <input type="search" value={q} placeholder="Proveedor, RUC, número o descripción" onChange={e => setQ(e.target.value)} /></label>
+      <div className="lst-caja">
+      <div className="cmp-chips" role="group" aria-label="Qué ver">
+        {([['compras', 'Compras', datos?.conteo.compras], ['gastos', 'Gastos', datos?.conteo.gastos], ['anuladas', 'Anuladas', datos?.conteo.anuladas]] as const)
+          .filter(([v, , n]) => v !== 'anuladas' || ver === 'anuladas' || (n ?? 0) > 0)
+          .map(([v, t, n]) => (
+            <button key={v} type="button" className={ver === v ? 'cmp-chip elegido' : 'cmp-chip'} aria-pressed={ver === v}
+                    onClick={() => { setVer(v); setPagina(1) }}>{t}{n != null && <span className="cmp-chip-n">{n}</span>}</button>
+          ))}
       </div>
 
-      {fallo && <Aviso>{fallo}</Aviso>}
-      {!datos && !fallo && <Cargando />}
+      <div className="lst-filtros">
+        <label className="lst-fecha"><span>Desde</span><input type="date" value={desde} max={hasta} onChange={e => { setDesde(e.target.value); setPagina(1) }} /></label>
+        <label className="lst-fecha"><span>Hasta</span><input type="date" value={hasta} min={desde} max={hoy} onChange={e => { setHasta(e.target.value); setPagina(1) }} /></label>
+        <label className="lst-buscar"><span className="solo-lector">Buscar</span>
+          <input type="search" value={q} placeholder="Buscar por proveedor, RUC, número o descripción" onChange={e => setQ(e.target.value)} /></label>
+      </div>
+
+      {fallo && <div className="relleno"><Aviso>{fallo}</Aviso></div>}
+      {!datos && !fallo && <div className="relleno"><Cargando /></div>}
       {datos && (
         <>
-          {ver !== 'anuladas' && datos.total > 0 && (
-            <p className="nota">
-              {datos.total} en el periodo · Base <strong className="mono">{dinero(datos.totales.base)}</strong> ·
-              IGV <strong className="mono">{dinero(datos.totales.igv)}</strong> · Total <strong className="mono">S/ {dinero(datos.totales.total)}</strong>
-              {' '}(en soles)
-            </p>
-          )}
           {datos.filas.length === 0 ? (
-            <Vacio>{buscar ? `Nada con «${buscar}».` : ver === 'gastos' ? 'No hay gastos en este periodo.' : ver === 'anuladas' ? 'Ninguna anulada.' : 'No hay compras en este periodo.'}</Vacio>
+            <div className="relleno"><Vacio>{buscar ? `Nada con «${buscar}».` : ver === 'gastos' ? 'No hay gastos en este periodo.' : ver === 'anuladas' ? 'Ninguna anulada.' : 'No hay compras en este periodo.'}</Vacio></div>
           ) : (
-            <div className="bloque sin-relleno">
+            <div className="bloque sin-relleno lst-tabla">
               <div className="tabla-envoltura">
-                <table className={`tabla${registra && ver !== 'anuladas' ? ' tabla-clic' : ''}`}>
+                <table className={`tabla lst${registra && ver !== 'anuladas' ? ' tabla-clic' : ''}`}>
                   <thead><tr><th>Fecha</th><th>Comprobante</th><th>Proveedor</th><th>Categoría</th>
                     <th className="derecha">Base</th><th className="derecha">IGV</th><th className="derecha">Total</th><th /></tr></thead>
                   <tbody>
@@ -126,17 +133,21 @@ export function Compras() {
                           {c.comprobanteTipo === '00' ? <span className="secundario">Sin comprobante</span>
                             : <><span className="mono">{c.serie}-{c.numero}</span><div className="secundario">{NOMBRE_TIPO[c.comprobanteTipo]}</div></>}
                         </td>
-                        <td>{c.proveedorNombre ?? <span className="secundario">—</span>}
-                          {c.proveedorDoc && <div className="secundario mono">{c.proveedorDoc}</div>}
-                          {c.descripcion && <div className="secundario">{c.descripcion}</div>}
+                        <td className="lst-nombre"><div className="principal" title={c.proveedorNombre ?? undefined}>{c.proveedorNombre ?? <span className="secundario">—</span>}</div>
+                          {(c.proveedorDoc || c.descripcion) && (
+                            <div className="secundario" title={c.descripcion ?? undefined}>
+                              {c.proveedorDoc && <span className="mono">{c.proveedorDoc}</span>}
+                              {c.proveedorDoc && c.descripcion && ' · '}{c.descripcion}
+                            </div>
+                          )}
                           {c.ingreso && <Link className="etiqueta acento" to={`/inventario/operaciones/${c.invOperacionId}`} onClick={e => e.stopPropagation()}>✓ En stock · {c.ingreso}</Link>}
                           {!c.ingreso && !c.anuladaEn && inventario && registra && c.clase === 'compra' && c.categoria === 'mercaderia' && (
                             <button type="button" className="enlace" onClick={e => { e.stopPropagation(); navegar(`/inventario/ingresos/nuevo?compra=${c.id}`) }}>Ingresar al stock</button>
                           )}</td>
-                        <td className="secundario">{NOMBRE_CATEGORIA[c.categoria] ?? c.categoria}</td>
+                        <td><span className="lst-igv">{NOMBRE_CATEGORIA[c.categoria] ?? c.categoria}</span></td>
                         <td className="derecha mono">{dinero(c.base + c.noGravado)}</td>
                         <td className="derecha mono">{dinero(c.igv)}</td>
-                        <td className="derecha mono">{c.moneda === 'USD' ? 'US$ ' : ''}{dinero(c.total)}</td>
+                        <td className="derecha lst-precio">{c.moneda === 'USD' ? 'US$' : 'S/'} {dinero(c.total)}</td>
                         <td className="derecha" onClick={e => e.stopPropagation()}>
                           {c.anuladaEn
                             ? <span className="secundario" title={c.anuladaMotivo ?? ''}>Anulada · {c.anuladaMotivo}</span>
@@ -147,13 +158,14 @@ export function Compras() {
                   </tbody>
                 </table>
               </div>
-              <div className="lineas-pie">
-                <Paginacion total={datos.total} pagina={datos.pagina} porPagina={datos.porPagina} onCambiar={setPagina}
-                            onPorPagina={n => { setPorPagina(n); setPagina(1) }} />
-              </div>
             </div>
           )}
         </>
+      )}
+      </div>
+      {datos && datos.filas.length > 0 && (
+        <Paginacion total={datos.total} pagina={datos.pagina} porPagina={datos.porPagina} onCambiar={setPagina}
+                    onPorPagina={n => { setPorPagina(n); setPagina(1) }} />
       )}
 
       {editando && (
@@ -244,7 +256,7 @@ function DialogoCompra({ compra, clase: claseInicial, onCerrar, onHecho }: {
     && (moneda === 'PEN' || n(tc) > 0)
 
   return (
-    <Dialogo titulo={compra ? 'Corregir' : clase === 'gasto' ? 'Anotar un gasto' : 'Anotar una compra'} abierto onCerrar={onCerrar}
+    <Dialogo titulo={compra ? 'Corregir' : clase === 'gasto' ? 'Anotar un gasto' : 'Anotar una compra'} abierto onCerrar={onCerrar} ancho="grande"
       acciones={<>
         <Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
         <Boton onClick={() => void guardar()} ocupado={ocupado} textoOcupado="Guardando…" disabled={!listo}>Guardar</Boton>
@@ -258,6 +270,11 @@ function DialogoCompra({ compra, clase: claseInicial, onCerrar, onHecho }: {
         ))}
       </div>
 
+      {/* Diseño 15 nov: el formulario en secciones. Mismos campos y reglas. */}
+      <div className="dlg-secciones">
+      <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Comprobante</b><small>El papel que te dieron.</small></div>
+        <div className="dlg-sec-c">
       <div className="pareja">
         <label className="campo"><span className="etiqueta">Comprobante</span>
           <select value={tipo} onChange={e => setTipo(e.target.value)}>
@@ -267,9 +284,21 @@ function DialogoCompra({ compra, clase: claseInicial, onCerrar, onHecho }: {
         <label className="campo"><span className="etiqueta">Fecha de emisión</span>
           <input type="date" value={fechaE} max={hoyLima()} onChange={e => setFechaE(e.target.value)} /></label>
       </div>
+      {conComprobante && (
+          <div className="pareja">
+            <label className="campo"><span className="etiqueta">Serie</span>
+              <input className="mono" value={serie} maxLength={10} placeholder="F001" onChange={e => setSerie(e.target.value)} /></label>
+            <label className="campo"><span className="etiqueta">Número</span>
+              <input className="mono" inputMode="numeric" value={numero} maxLength={20} placeholder="1234" onChange={e => setNumero(e.target.value)} /></label>
+          </div>
+      )}
+        </div>
+      </section>
 
       {conComprobante && (
-        <>
+      <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Proveedor</b><small>Con el RUC traemos su razón social de SUNAT.</small></div>
+        <div className="dlg-sec-c">
           <div className="pareja">
             <label className="campo"><span className="etiqueta">RUC o DNI del proveedor</span>
               <input className="mono" inputMode="numeric" value={doc} maxLength={11} onChange={e => setDoc(e.target.value.replace(/\D/g, ''))} />
@@ -278,15 +307,13 @@ function DialogoCompra({ compra, clase: claseInicial, onCerrar, onHecho }: {
             <label className="campo"><span className="etiqueta">Proveedor</span>
               <input value={nombre} maxLength={200} onChange={e => setNombre(e.target.value)} /></label>
           </div>
-          <div className="pareja">
-            <label className="campo"><span className="etiqueta">Serie</span>
-              <input className="mono" value={serie} maxLength={10} placeholder="F001" onChange={e => setSerie(e.target.value)} /></label>
-            <label className="campo"><span className="etiqueta">Número</span>
-              <input className="mono" inputMode="numeric" value={numero} maxLength={20} placeholder="1234" onChange={e => setNumero(e.target.value)} /></label>
-          </div>
-        </>
+        </div>
+      </section>
       )}
 
+      <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Importe</b><small>{gravado ? 'El total con IGV; la base y el IGV salen solos.' : 'Lo que pagaste.'}</small></div>
+        <div className="dlg-sec-c">
       <div className="pareja">
         <label className="campo"><span className="etiqueta">Total {gravado ? '(con IGV)' : ''}</span>
           <input className="mono" inputMode="decimal" value={total} onChange={e => setTotal(e.target.value)} /></label>
@@ -319,6 +346,12 @@ function DialogoCompra({ compra, clase: claseInicial, onCerrar, onHecho }: {
         )
       )}
 
+        </div>
+      </section>
+
+      <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Clasificación</b><small>Para tus reportes.</small></div>
+        <div className="dlg-sec-c">
       <label className="campo"><span className="etiqueta">Categoría</span>
         <select value={categoria} onChange={e => setCategoria(e.target.value)}>
           {CATEGORIAS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
@@ -336,6 +369,9 @@ function DialogoCompra({ compra, clase: claseInicial, onCerrar, onHecho }: {
           </span>
         </label>
       )}
+        </div>
+      </section>
+      </div>
       {fallo && <Aviso>{fallo}</Aviso>}
     </Dialogo>
   )

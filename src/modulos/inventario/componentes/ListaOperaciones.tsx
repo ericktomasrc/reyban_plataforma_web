@@ -47,22 +47,20 @@ export function ListaOperaciones({ tipo, recargar = 0 }: { tipo: 'ingreso' | 'aj
     <>
       {error && <Aviso>{error}</Aviso>}
       <div className="filtros-lista">
-        <label>
+        {/* Diseño 16 nov: el estado en pastillas (el mismo filtro que el desplegable de antes). */}
+        <div className="inv-chips cmp-chips" role="group" aria-label="Estado">
+          {([['', 'Todos'], ['registrada', 'Registrados'], ['anulada', 'Anulados'], ...(tipo === 'ajuste' ? [['abierto', 'Conteos abiertos']] : [])] as [string, string][]).map(([v, t]) => (
+            <button key={v} type="button" className={`cmp-chip${estado === v ? ' elegido' : ''}`} aria-pressed={estado === v}
+                    onClick={() => { setEstado(v); setPagina(1) }}>{t}</button>
+          ))}
+        </div>
+        <label className="inv-buscar">
           <span>Buscar</span>
           <input value={q} placeholder={tipo === 'ingreso' ? 'Proveedor, RUC o su factura' : 'Lo que explica el ajuste'}
                  onChange={e => { setQ(e.target.value); setPagina(1) }} />
         </label>
         <FiltroFechas desde={desde} hasta={hasta} onDesde={v => { setDesde(v); setPagina(1) }} onHasta={v => { setHasta(v); setPagina(1) }} />
         <FiltroSucursal valor={sucursal} onCambio={v => { setSucursal(v); setPagina(1) }} />
-        <label>
-          <span>Estado</span>
-          <select value={estado} onChange={e => { setEstado(e.target.value); setPagina(1) }}>
-            <option value="">Todos</option>
-            <option value="registrada">Registrados</option>
-            <option value="anulada">Anulados</option>
-            {tipo === 'ajuste' && <option value="abierto">Conteos abiertos</option>}
-          </select>
-        </label>
       </div>
 
       <div className="bloque sin-relleno">
@@ -97,8 +95,8 @@ export function ListaOperaciones({ tipo, recargar = 0 }: { tipo: 'ingreso' | 'aj
                           {o.nota && <div className="secundario">{o.nota}</div>}</>}
                   </td>
                   <td className="num">{o.lineas}<div className="secundario">{cantidad(o.unidades)} u.</div></td>
-                  {tipo === 'ingreso' && <td className="num mono">{o.costo !== null ? `${o.moneda === 'USD' ? 'US$' : 'S/'} ${o.costo.toFixed(2)}` : '—'}</td>}
-                  <td className={o.estado === 'anulada' ? 'inv-mal' : o.estado === 'abierto' ? 'inv-bajo' : 'inv-bien'}>{ESTADOS[o.estado]}</td>
+                  {tipo === 'ingreso' && <td className="num">{o.costo !== null ? <strong>{`${o.moneda === 'USD' ? 'US$' : 'S/'} ${o.costo.toFixed(2)}`}</strong> : '—'}</td>}
+                  <td><span className={`inv-estado ${o.estado === 'anulada' ? 'inv-mal' : o.estado === 'abierto' ? 'inv-bajo' : o.estado === 'cerrado' ? '' : 'inv-bien'}`}>{ESTADOS[o.estado]}</span></td>
                 </tr>
               ))}
             </tbody>

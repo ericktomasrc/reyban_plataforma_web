@@ -190,22 +190,23 @@ export function PagoYDetraccion({
   return (
     <div className={paso ? 'bloque nc-tarjeta' : 'bloque'}>
       {paso
-        ? <h2 className="nc-titulo"><span className="nc-paso">{paso}</span>Forma de pago y detracción</h2>
+        ? <h2 className="nc-titulo"><span className="nc-paso">{paso}</span>¿Cómo te paga?</h2>
         : <h2 className="subtitulo">Forma de pago y detracción</h2>}
 
       {/* --- Contado o crédito ---------------------------------------------- */}
-      <div className="campo">
-        <span className="etiqueta">Tipo de transacción<Asterisco /></span>
+      {/* Diseño 15 nov: en Nuevo comprobante (con «paso») las opciones van grandes y con su pista. */}
+      <div className={paso ? 'campo nc-opciones-grandes' : 'campo'}>
+        <span className={paso ? 'etiqueta solo-lector' : 'etiqueta'}>Tipo de transacción<Asterisco /></span>
         <div className="opciones-en-linea" role="radiogroup">
           <label className="casilla">
             <input type="radio" name="forma-pago" checked={pago.forma === 'contado'}
                    onChange={() => ponerForma('contado')} />
-            <span>Al contado</span>
+            <span>Al contado{paso && <small>Te paga hoy, completo</small>}</span>
           </label>
           <label className="casilla">
             <input type="radio" name="forma-pago" checked={pago.forma === 'credito'}
                    onChange={() => ponerForma('credito')} />
-            <span>Al crédito</span>
+            <span>Al crédito{paso && <small>Te paga en cuotas, con fecha</small>}</span>
           </label>
         </div>
       </div>
@@ -268,8 +269,10 @@ export function PagoYDetraccion({
       )}
 
       {/* --- Detracción ------------------------------------------------------ */}
-      <div className="campo">
-        <span className="etiqueta">¿Operación sujeta a detracción?</span>
+      <div className={paso ? 'campo nc-detraccion-pregunta' : 'campo'}>
+        {paso
+          ? <h3 className="nc-subtitulo-seccion">¿Lleva detracción?</h3>
+          : <span className="etiqueta">¿Operación sujeta a detracción?</span>}
         <div className="opciones-en-linea" role="radiogroup">
           <label className="casilla">
             <input type="radio" name="detraccion" checked={det.activa}

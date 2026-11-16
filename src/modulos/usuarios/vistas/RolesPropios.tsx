@@ -4,6 +4,8 @@ import { contiene, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
+import '../../facturacion/comprobantes-lista.css'
+import '../personal.css'
 import { Cargando } from '../../../componentes/Cargando'
 import { Dialogo } from '../../../componentes/Dialogo'
 import { ErrorApi } from '../../../nucleo/api/errores'
@@ -159,16 +161,21 @@ export function RolesPropios() {
   if (roles.cargando && !roles.datos) return <Cargando />
 
   return (
-    <>
+    <div className="per-pagina">
       {/* 047: volver a Personal. */}
       <Link to="/usuarios" className="enlace-volver">← Personal de la empresa</Link>
 
-      <div className="bienvenida-cabecera">
-        <h1 className="titulo-pagina titulo-serif">Roles de {empresa?.nombre ?? 'tu empresa'}</h1>
-        <p className="bajada-pagina">
-          Qué puede hacer y ver cada persona. Puedes ajustar los roles de la plataforma para tu empresa: el cambio
-          vale solo para {empresa?.nombre ?? 'tu empresa'}.
-        </p>
+      <div className="encabezado-pagina cmp-encab">
+        <div>
+          <h1 className="titulo-pagina">Roles y permisos{(roles.datos ?? []).length > 0 && <span className="lst-cuenta">{(roles.datos ?? []).length} roles</span>}</h1>
+          <p className="bajada-pagina">
+            Qué puede hacer y ver cada persona. Puedes ajustar los roles de la plataforma para tu empresa: el cambio
+            vale solo para {empresa?.nombre ?? 'tu empresa'}.
+          </p>
+        </div>
+        <Boton onClick={() => { setFallo(undefined); setEdicion({ nombre: '', descripcion: '', permisos: new Set() }) }}>
+          Nuevo rol
+        </Boton>
       </div>
 
       {roles.error && <Aviso>{roles.error}</Aviso>}
@@ -192,13 +199,13 @@ export function RolesPropios() {
               <div className="rol-nombre">
                 <strong>{r.nombre}</strong>
                 {!r.deSistema ? <span className="etiqueta acento">propio</span>
-                  : r.ajustado ? <span className="etiqueta acento">ajustado para {empresa?.nombre ?? 'tu empresa'}</span>
+                  : r.ajustado ? <span className="etiqueta acento" title={`Ajustado para ${empresa?.nombre ?? 'tu empresa'}`}>ajustado para tu empresa</span>
                   : <span className="etiqueta">de la plataforma</span>}
                 {!r.activo && <span className="etiqueta aviso">desactivado</span>}
               </div>
               {r.descripcion && <div className="secundario">{r.descripcion}</div>}
               <div className="secundario">
-                {r.permisos.length} permiso(s) · {r.usuarios} persona(s)
+                {r.permisos.length} {r.permisos.length === 1 ? 'permiso' : 'permisos'} · {r.usuarios} {r.usuarios === 1 ? 'persona' : 'personas'}
                 {r.ajustado && diferencias(r) && <> · <strong>{diferencias(r)}</strong> respecto al original</>}
               </div>
             </div>
@@ -226,12 +233,7 @@ export function RolesPropios() {
       </div>
       <Paginacion {...paginacion} />
 
-      <div className="acciones-linea">
-        <Boton onClick={() => { setFallo(undefined); setEdicion({ nombre: '', descripcion: '', permisos: new Set() }) }}>
-          + Nuevo rol
-        </Boton>
-      </div>
-      <p className="nota">
+      <p className="nota per-nota">
         Nada se borra: un rol desactivado deja de dar permisos y queda en la bitácora. Ajustar un rol de la
         plataforma vale solo para esta empresa; «Volver al original» lo deja como lo trae la plataforma. Los
         cambios valen desde la próxima vez que esas personas entren.
@@ -311,6 +313,6 @@ export function RolesPropios() {
           </>
         )}
       </Dialogo>
-    </>
+    </div>
   )
 }

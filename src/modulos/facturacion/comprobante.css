@@ -433,3 +433,300 @@
 .vc-lado .nota, .vc-lado .mono, .vc-lado .secundario { overflow-wrap: anywhere; }
 /* 065: faltan números de serie en la línea */
 .nc-series-falta { color: var(--aviso); }
+
+/* Reyban · Pulido visual compacto (solo presentación; sin cambios de lógica). */
+.contenido > .nc { max-width: 1280px; }
+.nc { font-size: 13px; }
+.nc .nc-encabezado { gap: 12px; margin-bottom: 14px; align-items: center; }
+.nc .nc-encabezado .titulo-pagina { font-size: clamp(21px, 2vw, 27px); line-height: 1.2; margin-bottom: 5px; letter-spacing: -.025em; }
+.nc .nc-bajada, .nc .nc-bajada .mono { font-size: 12px; }
+.nc .nc-pastilla { font-size: 11px; padding: 3px 9px; }
+.nc .nc-dos { gap: 14px; }
+.nc .nc-tarjeta { padding: 17px 18px; margin-bottom: 14px; border-radius: 12px; box-shadow: 0 2px 12px rgb(16 32 41 / 3%); }
+.nc .nc-titulo { font-size: 14px; font-weight: 650; gap: 9px; margin-bottom: 14px; line-height: 1.35; }
+.nc .nc-paso { width: 24px; height: 24px; font-size: 11px; font-weight: 650; }
+.nc .nc-subtitulo { font-size: 12px; }
+.nc .nc-tarjeta label, .nc .nc-tarjeta .campo { font-size: 12px; }
+.nc .nc-tarjeta input:not([type=checkbox]):not([type=radio]),
+.nc .nc-tarjeta select,
+.nc .nc-tarjeta textarea { min-height: 37px; font-size: 12.5px; border-radius: 8px; }
+.nc .segmentado.nc-tipo button { min-height: 36px; font-size: 12.5px; }
+.nc .nc-modo-precios { gap: 9px; }
+.nc .nc-barra { box-shadow: 0 -4px 18px rgb(25 40 45 / 5%); }
+.nc .nc-barra-total { font-size: 12px; }
+.nc .nc-barra-botones { gap: 8px; }
+.nc .nc-barra-botones .boton { font-size: 12px; min-height: 36px; }
+.nc .nc-lineas { font-size: 12px; }
+.nc .nc-fila { gap: 7px; }
+.nc .nc-totales { font-size: 12px; }
+.nc .nc-vacio { padding: 20px 16px; }
+/* Los controles de pago y detracción conservan exactamente sus eventos y validaciones. */
+.nc .nc-tarjeta input[type=radio] { accent-color: var(--acento); }
+.nc .nc-tarjeta .nota { font-size: 11.5px; line-height: 1.5; }
+/* Listado: filtros, indicadores y tabla sobrios y compactos. */
+.contenido .rb-page-intro { margin-bottom: 12px; }
+.contenido .rb-page-intro h1 { font-size: clamp(21px, 2vw, 26px); letter-spacing: -.025em; }
+.contenido .rb-page-intro p { font-size: 12.5px; }
+.contenido .rb-stats { gap: 10px; margin-block: 12px; }
+.contenido .rb-stat { border-radius: 10px; padding: 12px 14px; box-shadow: none; }
+.contenido .rb-stat strong { font-size: 21px; line-height: 1.1; }
+.contenido .rb-stat span, .contenido .rb-stat small { font-size: 11.5px; }
+.contenido .rb-stat-icon { font-size: 16px; }
+.contenido .filtros { gap: 10px; padding: 13px; border-radius: 11px; }
+.contenido .filtros label { font-size: 12px; }
+.contenido .filtros input, .contenido .filtros select { min-height: 36px; font-size: 12.5px; }
+.contenido .tabla { font-size: 12px; }
+.contenido .tabla th { font-size: 11.5px; font-weight: 650; }
+.contenido .tabla th, .contenido .tabla td { padding-top: 10px; padding-bottom: 10px; }
+.contenido .tabla .secundario { font-size: 11px; }
+@media (max-width: 960px) {
+ .nc .nc-dos { grid-template-columns: 1fr; gap: 0; }
+ .nc .nc-tarjeta { padding: 14px; }
+ .contenido .rb-stats { grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); }
+}
+@media (max-width: 640px) {
+ .nc .nc-encabezado { flex-wrap: wrap; }
+ .nc .nc-barra { padding-bottom: max(10px,env(safe-area-inset-bottom)); }
+ .nc .nc-barra-botones { flex-wrap: wrap; }
+}
+
+/* v20: navegación real de tres etapas, compacta y sin numeración duplicada. */
+.nc [hidden] { display: none !important; }
+.nc .rb-wizard-real { display:flex; align-items:center; justify-content:center; gap:6px; margin:12px 0 14px; padding:5px; background:var(--superficie,#fff); border:1px solid var(--borde-sutil,#dce4e8); border-radius:11px; }
+.nc .rb-wizard-real button { display:flex; flex:1; justify-content:center; align-items:center; gap:8px; min-height:38px; padding:7px 10px; border:0; background:transparent; border-radius:8px; font:inherit; font-size:12px; font-weight:500; color:var(--tinta-secundaria,#64748b); cursor:pointer; }
+.nc .rb-wizard-real button.rb-wizard-current { background:var(--acento-suave,#e6f4ee); color:var(--acento,#007e54); font-weight:650; }
+.nc .rb-wizard-real button b { display:grid; place-items:center; width:23px; height:23px; flex:none; border-radius:50%; background:#e9eff1; color:#4a5a65; font-size:11px; }
+.nc .rb-wizard-real button.rb-wizard-current b { background:var(--acento,#007e54); color:white; }
+.nc .nc-paso { display:none; }
+.nc .nc-tarjeta { padding:clamp(14px,1.6vw,22px); }
+.nc .nc-titulo { font-size:14px; font-weight:650; }
+.nc .nc-barra { padding-right:155px; }
+@media(max-width:900px){.nc .nc-barra {padding-right:12px;} .nc .rb-wizard-real button {font-size:11px;padding:6px 4px;gap:5px;} }
+@media(max-width:560px){.nc .rb-wizard-real button span {font-size:10px;} .nc .rb-wizard-real button b {width:19px;height:19px;} }
+
+/* Reyban v21 — refinamiento visual del flujo. No modifica lógica ni validaciones. */
+.nc { font-size: 12.5px; }
+.nc .nc-encabezado { margin-bottom: 8px; }
+.nc .nc-encabezado .titulo-pagina { font-size: clamp(19px,1.5vw,23px); line-height:1.15; margin:0 0 4px; }
+.nc .nc-bajada { font-size:11px; gap:7px; }
+.nc .rb-wizard-real { margin:8px 0 10px; padding:3px; border-radius:9px; }
+.nc .rb-wizard-real button { min-height:32px; font-size:11.5px; padding:5px 8px; }
+.nc .rb-wizard-real button b { width:20px;height:20px;font-size:10px; }
+.nc .rb-document-summary { display:grid; grid-template-columns:minmax(110px,.7fr) minmax(145px,1fr) minmax(0,1.8fr) minmax(105px,.75fr); padding:0; margin:0 0 12px; overflow:hidden; border-radius:9px; }
+.nc .rb-document-summary > span { display:flex; flex-direction:column; gap:3px; min-width:0; padding:9px 12px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:11.5px; }
+.nc .rb-document-summary > span b { display:block; font-size:10px; font-weight:500; color:var(--tinta-3,#718096); }
+.nc .rb-document-summary > span:nth-child(3) { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nc .rb-document-summary > span:nth-child(3) b { margin-bottom:3px; }
+.nc .nc-tarjeta { padding:14px 16px; margin-bottom:10px; border-radius:10px; }
+.nc .nc-titulo { font-size:13px; line-height:1.35; margin-bottom:12px; }
+.nc .nc-tarjeta input:not([type=checkbox]):not([type=radio]), .nc .nc-tarjeta select, .nc .nc-tarjeta textarea { min-height:34px; font-size:12px; padding-block:6px; }
+.nc .nc-tarjeta label, .nc .nc-tarjeta .campo { font-size:11.5px; }
+.nc .nc-tarjeta .nota { font-size:10.5px; line-height:1.4; }
+.nc .nc-fila { grid-template-columns:26px minmax(220px, 2.8fr) minmax(70px,.65fr) minmax(75px,.75fr) minmax(92px,.85fr) minmax(85px,.8fr) minmax(92px,.85fr) 54px; gap:6px; }
+.nc .nc-cabecera { font-size:10px; letter-spacing:0; text-transform:none; }
+.nc .nc-cabecera small { display:block; font-size:9px; }
+.nc .nc-linea { padding:9px 10px; }
+.nc .nc-num { width:22px; height:22px; font-size:10px; }
+.nc .nc-celda input, .nc .nc-celda select { min-height:33px; padding:5px 7px; font-size:11.5px; }
+.nc .nc-pie-lineas { gap:12px; padding-top:12px; }
+.nc .nc-totales-col { max-width:320px; min-width:235px; }
+.nc .nc-totales { min-width:0; font-size:11.5px; gap:4px; }
+.nc .nc-totales .total { padding:9px 10px; border-radius:8px; }
+.nc .nc-barra { gap:10px; margin-top:10px; padding:9px 12px; padding-right:12px; border-radius:10px 10px 0 0; }
+.nc .nc-barra-total strong { font-size:16px; }
+.nc .nc-barra-total .secundario, .nc .nc-barra-falta { font-size:11px; }
+.nc .nc-barra-botones .boton { min-height:34px; padding-inline:12px !important; font-size:11.5px; }
+/* El acceso a ayuda permanece disponible, sin cubrir totales ni acciones. */
+body:has(.nc) .boton-ayuda { right:12px; bottom:50%; transform:translateY(50%); padding:9px; width:36px; height:36px; justify-content:center; border-radius:50%; box-shadow:0 3px 12px rgb(0 0 0 / 12%); }
+body:has(.nc) .boton-ayuda .boton-ayuda-texto { display:none; }
+body:has(.nc) .boton-ayuda:focus-visible { outline:3px solid var(--acento); outline-offset:3px; }
+@media(max-width:1100px) {
+ .nc .nc-fila { min-width:900px; }
+ .nc .nc-lineas { overflow-x:auto; }
+ .nc .rb-document-summary { grid-template-columns:1fr 1.1fr 1.5fr .8fr; }
+}
+@media(max-width:700px) {
+ .nc .rb-document-summary { grid-template-columns:1fr 1fr; }
+ .nc .rb-document-summary > span { padding:8px 10px; }
+ .nc .nc-tarjeta { padding:12px; }
+ .nc .nc-barra { flex-wrap:wrap; }
+ .nc .nc-barra-botones { width:100%; justify-content:flex-end; }
+ body:has(.nc) .boton-ayuda { right:9px; bottom:96px; transform:none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DISEÑO 15 NOV — Nuevo comprobante. Solo aspecto: los pasos dicen lo que ya
+   se eligió, y en los pasos 1 y 3 un resumen fijo a la derecha con los mismos
+   botones de siempre. En el paso 2 la grilla usa todo el ancho y la barra de
+   abajo hace de resumen.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.nc .nc-pasos button { justify-content: flex-start; text-align: left; min-height: 44px; padding: 6px 12px; }
+.nc .nc-pasos button span { display: flex; flex-direction: column; min-width: 0; }
+.nc .nc-pasos button small { font-size: 11px; font-weight: 400; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nc .nc-pasos button.nc-paso-hecho { color: var(--bien); }
+.nc .nc-pasos button.nc-paso-hecho b { background: var(--bien); color: #fff; }
+
+/* Factura o boleta, con su pista. */
+.nc .segmentado.nc-tipo button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.nc .segmentado.nc-tipo button b { font-weight: inherit; }
+.nc .nc-tipo-pista { font-size: 11px; font-weight: 400; color: var(--tinta-2); }
+
+/* El cuerpo: con o sin resumen a la derecha. */
+.nc-cuerpo { display: block; }
+.nc-cuerpo.con-resumen { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.nc-principal { min-width: 0; }
+.nc-cuerpo.con-resumen .nc-dos { grid-template-columns: 1fr; gap: 0; }
+
+.nc-resumen { position: sticky; top: 12px; background: var(--superficie, #fff); border: 1px solid var(--borde-sutil, #dce4e8);
+  border-radius: 12px; overflow: hidden; font-size: 13px; }
+.nc-resumen-cab { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 15px 18px; border-bottom: 1px solid var(--borde-sutil, #eef2f3); }
+.nc-resumen-cab small { color: var(--tinta-3); font-size: 12px; }
+.nc-resumen-cab strong { font-size: 17px; font-weight: 500; }
+.nc-resumen-datos, .nc-resumen-totales { margin: 0; padding: 12px 18px; display: grid; gap: 8px; border-bottom: 1px solid var(--borde-sutil, #eef2f3); }
+.nc-resumen-datos div, .nc-resumen-totales div { display: flex; justify-content: space-between; gap: 12px; }
+.nc-resumen-datos dt, .nc-resumen-totales dt { color: var(--tinta-2); }
+.nc-resumen-datos dd, .nc-resumen-totales dd { margin: 0; text-align: right; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.nc-resumen-totales .total { padding-top: 8px; margin-top: 2px; border-top: 1px dashed var(--borde, #e2e8ea); font-size: 19px; font-weight: 700; }
+.nc-resumen-totales .total dt { color: var(--tinta); }
+.nc-resumen-totales .total dd { color: var(--acento-fuerte, var(--acento)); font-weight: 700; }
+.nc-resumen-totales .neto dt, .nc-resumen-totales .neto dd { color: var(--tinta); font-weight: 650; }
+.nc-resumen-falta { list-style: none; margin: 0; padding: 12px 18px; display: grid; gap: 6px; border-bottom: 1px solid var(--borde-sutil, #eef2f3); font-size: 12.5px; }
+.nc-resumen-falta li { display: flex; gap: 8px; align-items: baseline; }
+.nc-resumen-falta li::before { flex: none; font-weight: 700; }
+.nc-resumen-falta li.si { color: var(--bien); }
+.nc-resumen-falta li.si::before { content: "✓"; }
+.nc-resumen-falta li.no { color: var(--aviso); }
+.nc-resumen-falta li.no::before { content: "●"; font-size: 9px; }
+.nc-resumen-botones { padding: 14px 18px 4px; display: grid; gap: 8px; }
+.nc-resumen-botones .boton { width: 100%; justify-content: center; }
+.nc-resumen-nota { margin: 0; padding: 4px 18px 14px; text-align: center; font-size: 11.5px; color: var(--tinta-3); }
+
+@media (max-width: 1100px) {
+  .nc-cuerpo.con-resumen { grid-template-columns: 1fr; }
+  .nc-resumen { position: static; }
+}
+@media (max-width: 700px) {
+  .nc .nc-pasos button small { display: none; }
+}
+
+/* --- Diseño 15 nov (2): el cuerpo de cada paso, como en el mockup --------- */
+
+/* Nombres largos: nada empuja ni rompe las pestañas ni el resumen. */
+.nc .nc-pasos button { flex: 1 1 0; min-width: 0; }
+.nc .nc-pasos button span { overflow: hidden; }
+.nc .nc-pasos button span, .nc .nc-pasos button small { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.nc-resumen-datos dd { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 62%; }
+.nc .buscador .elegido .principal { overflow-wrap: anywhere; }
+
+/* Paso 1 · ¿Qué vas a emitir?: tipo arriba; serie, fecha y moneda en una fila. */
+.nc .nc-sec-comprobante { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 14px; align-items: start; }
+.nc .nc-sec-comprobante > .nc-titulo, .nc .nc-sec-comprobante > .nc-fila-tipo, .nc .nc-sec-comprobante > .nc-fila-ancha { grid-column: 1 / -1; }
+.nc .nc-sec-comprobante > .nc-fila-datos { display: contents; }
+.nc .nc-sec-comprobante > .nc-fila-tipo.pareja { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 14px; }
+
+.nc .segmentado.nc-tipo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: transparent; border: 0; padding: 0; }
+.nc .segmentado.nc-tipo button.nc-tipo-op { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px;
+  min-height: 0; padding: 12px 14px; text-align: left; border: 1.5px solid var(--borde, #d7e0e7); border-radius: 10px;
+  background: var(--superficie, #fff); box-shadow: none; color: var(--tinta); font-weight: 400; }
+.marco-negocio .nc .segmentado.nc-tipo button.nc-tipo-op::before { content: none; }
+.nc .segmentado.nc-tipo button.nc-tipo-op.elegido { border-color: var(--acento); background: #f5fbfa; box-shadow: 0 0 0 3px var(--acento-suave); color: var(--tinta); }
+.nc .nc-tipo-sigla { width: 38px; height: 38px; border-radius: 8px; display: grid; place-items: center; flex: none;
+  font-size: 12px; font-weight: 700; background: var(--acento-suave); color: var(--acento); }
+.nc .nc-tipo-sigla.t03 { background: #eef0fb; color: #4a55a8; }
+.nc .nc-tipo-texto { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.nc .nc-tipo-texto b { font-size: 14px; font-weight: 650; }
+.nc .nc-tipo-pista { font-size: 12px; color: var(--tinta-2); white-space: normal; }
+
+/* Paso 1 · ¿A quién le facturas?: el cliente elegido como tarjeta. */
+.nc .nc-sec-cliente .buscador .elegido { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border: 1px solid var(--borde, #e2e8ea); border-radius: 10px; background: #fafcfc; }
+.nc .nc-sec-cliente .buscador .elegido > div { min-width: 0; }
+.nc .nc-sec-cliente .buscador .elegido .principal { font-size: 14px; font-weight: 650; }
+.nc .nc-sec-cliente .buscador .elegido .enlace { flex: none; font-weight: 650; }
+.nc .nc-sec-cliente .nc-cliente-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 14px; margin: 10px 0 0; }
+.nc .nc-sec-cliente .nc-cliente-datos dd { overflow-wrap: anywhere; }
+.nc .nc-ver-opcional { margin-top: 12px; font-weight: 650; }
+
+/* Paso 3 · ¿Cómo te paga?: opciones grandes, cuotas en tabla, detracción aparte. */
+.nc .nc-opciones-grandes .opciones-en-linea { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.nc .nc-opciones-grandes .casilla { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.5px solid var(--borde, #d7e0e7);
+  border-radius: 10px; background: var(--superficie, #fff); cursor: pointer; }
+.nc .nc-opciones-grandes .casilla:has(input:checked) { border-color: var(--acento); background: #f5fbfa; box-shadow: 0 0 0 3px var(--acento-suave); }
+.nc .nc-opciones-grandes .casilla span { display: flex; flex-direction: column; font-size: 14px; font-weight: 650; }
+.nc .nc-opciones-grandes .casilla small { font-size: 12px; font-weight: 400; color: var(--tinta-2); }
+.nc .cuotas { border: 1px solid var(--borde-sutil, #eef2f3); border-radius: 10px; padding: 12px 14px; margin: 4px 0 14px; }
+.nc .cuotas .fila-cuota { display: grid; grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: end;
+  padding: 8px 0; border-bottom: 1px solid var(--borde-sutil, #eef2f3); }
+.nc .cuotas .fila-cuota .numero { align-self: center; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--hundido, #eef1f3); font-size: 11.5px; color: var(--tinta-2); }
+.nc .cuotas .fila-cuota .campo { margin: 0; }
+.nc .cuotas .botonera { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.nc .nc-detraccion-pregunta { border-top: 1px solid var(--borde-sutil, #eef2f3); padding-top: 16px; margin-top: 16px; }
+.nc .nc-subtitulo-seccion { font-size: 15px; font-weight: 650; margin: 0 0 10px; }
+.nc .nc-detraccion-pregunta .opciones-en-linea .casilla { border-radius: 9px; }
+.nc .resumen-detraccion { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; background: #f7f9fa; border-radius: 9px; padding: 10px 12px; }
+.nc .resumen-detraccion strong { font-size: 17px; }
+.nc .resumen-detraccion .secundario { flex-basis: 100%; font-size: 11.5px; }
+
+/* Paso 3 · Entrega y envío: opciones en recuadro. */
+.nc .casilla-wsp, .nc .nc-tarjeta > .nc-dos.interno .casilla { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--borde, #e2e8ea); border-radius: 9px; margin-bottom: 8px; }
+.nc .casilla-wsp.caja-whatsapp { border-color: #9ed8b8; background: #f1fbf5; }
+
+@media (max-width: 760px) {
+  .nc .nc-sec-comprobante { grid-template-columns: 1fr; }
+  .nc .segmentado.nc-tipo, .nc .nc-opciones-grandes .opciones-en-linea { grid-template-columns: 1fr; }
+  .nc .cuotas .fila-cuota { grid-template-columns: 26px 1fr 1fr; }
+}
+.nc .nc-opciones-grandes .casilla { justify-content: flex-start; }
+.nc .nc-opciones-grandes .casilla input { width: 18px; height: 18px; min-height: 0; flex: none; margin: 0; }
+.nc .nc-opciones-grandes .casilla span { flex: 1; align-items: flex-start; text-align: left; }
+.nc .nc-sec-cliente .nc-cliente-datos { grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr); }
+.nc .nc-sec-cliente .nc-cliente-datos > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nc .nc-sec-cliente .nc-cliente-datos dt { font-size: 11.5px; color: var(--tinta-3); }
+.nc .nc-sec-cliente .nc-cliente-datos dd { margin: 0; font-size: 12.5px; }
+@media (max-width: 760px) { .nc .nc-sec-cliente .nc-cliente-datos { grid-template-columns: 1fr; } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DISEÑO 15 NOV — Notas de crédito y de débito. Solo aspecto.
+   ═══════════════════════════════════════════════════════════════════════════ */
+/* La página lleva la clase «nota», que es la del texto chico y gris (tablas.css):
+   por eso el título salía apagado. El contenedor vuelve al color normal. */
+.nc.nota { color: var(--tinta); font-size: inherit; margin: 0; }
+.nc.nota .vc-tipo { color: var(--acento); font-weight: 650; }
+
+.nt-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--borde, #e2e8ea);
+  border: 1px solid var(--borde, #e2e8ea); border-radius: 10px; overflow: hidden; }
+.nt-cifras > div { background: var(--superficie, #fff); padding: 11px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nt-cifras span { font-size: 12px; color: var(--tinta-2); }
+.nt-cifras strong { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--tinta); }
+.nt-cifras .queda strong { color: var(--bien); }
+
+.nt-grupo + .nt-grupo { margin-top: 14px; }
+.nt-grupo-titulo { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--tinta-3); }
+.nc .motivos-nota.nt-motivos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.nc .nt-motivo { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; text-align: left; }
+.nc .nt-icono { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; flex: none;
+  background: var(--hundido, #eef1f3); color: var(--tinta-2); font-size: 15px; font-weight: 700; }
+.nc .nt-motivo.elegida .nt-icono { background: var(--acento); color: #fff; }
+.nc .nt-motivo-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nc .nt-motivo:disabled { opacity: .55; }
+
+.nt-paso-cantidad { display: inline-flex; align-items: stretch; border: 1px solid var(--borde, #e2e8ea); border-radius: 7px; overflow: hidden; }
+.nt-paso-cantidad button { border: 0; background: #fafcfc; color: var(--tinta-2); padding: 0 10px; font: inherit; font-size: 15px; cursor: pointer; }
+.nt-paso-cantidad button:disabled { cursor: not-allowed; opacity: .5; }
+.nt-paso-cantidad input.numero-nota { border: 0; border-radius: 0; width: 70px; text-align: center; min-height: 32px; }
+.nc.nota .casillas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.nc.nota .casillas .casilla { border: 1.5px solid var(--borde, #e2e8ea); border-radius: 9px; padding: 10px 12px; }
+.nc.nota .casillas .casilla:has(input:checked) { border-color: var(--acento); background: #f5fbfa; }
+.nc-resumen-falta li.espera { color: var(--tinta-3); }
+.nc-resumen-aviso { padding: 10px 18px 0; }
+.nc-resumen-aviso .aviso { margin: 0; }
+
+@media (max-width: 900px) {
+  .nc .motivos-nota.nt-motivos, .nc.nota .casillas, .nt-cifras { grid-template-columns: 1fr; }
+}
+
+/* 16 nov: «no se encontró» se nota (antes era gris como una pista). */
+.bc-noesta { display: block; margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 13px;
+  background: var(--aviso-suave, #fdf3e1); color: var(--aviso, #9a6200); border: 1px solid #f1d9a8; }

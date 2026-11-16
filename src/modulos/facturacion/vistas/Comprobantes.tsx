@@ -13,8 +13,27 @@ import { fecha } from '../../../nucleo/formato/fechas'
 import { EstadoComprobante } from '../componentes/EstadoComprobante'
 import { documentosServicio } from '../servicios/facturacionServicio'
 import type { Atrasado, PaginaDocumentos } from '../tipos'
+import { inicioServicio, type Resumen } from '../../inicio/servicios/inicioServicio'
+import '../comprobantes-lista.css'
 
 const TIPOS: Record<string, string> = { '01': 'Factura', '03': 'Boleta', '07': 'Nota de crédito', '08': 'Nota de débito' }
+
+/** Diseño 15 nov: la letra del tipo, en el cuadrito de la fila. */
+const SIGLA: Record<string, string> = { '01': 'F', '03': 'B', '07': 'NC', '08': 'ND' }
+
+/** Diseño 15 nov: las pastillas usan los MISMOS valores que el filtro «Estado» de antes. */
+const ESTADOS_FILTRO: [string, string][] = [
+  ['', 'Todos'], ['borrador', 'Borradores'], ['encolado', 'En camino'], ['aceptado', 'Aceptados'],
+  ['observado', 'Con observaciones'], ['rechazado', 'Rechazados'], ['error', 'No se pudieron enviar'], ['anulado', 'Anulados'],
+]
+
+const miles = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const simbolo = (moneda: string) => moneda === 'PEN' ? 'S/' : moneda === 'USD' ? 'US$' : moneda
+
+function nombreMes(desde: string): string {
+  const [a, m] = desde.split('-').map(Number)
+  return new Date(a, m - 1, 1).toLocaleDateString('es-PE', { month: 'long' }).toLowerCase()
+}
 
 /** «vence hoy», «vence mañana», «venció el 5 oct. 2026»… */
 function plazo(a: Atrasado): string {
@@ -93,6 +112,15 @@ export function Comprobantes() {
   const conError   = atrasados.filter(a => a.estado === 'error').length
   const sinRespuesta = atrasados.length - conError
 
+  // DISEÑO 15 NOV: EL RESUMEN DEL MES, el mismo que usa el Inicio. Solo se lee;
+  // si falla no se enseña y la lista sigue igual.
+  const [resumen, setResumen] = useState<Resumen>()
+  useEffect(() => {
+    inicioServicio.resumen().then(setResumen).catch(() => { /* sin resumen */ })
+  }, [])
+
+  const filtrarEstado = (v: string) => { setEstado(v); setPagina(1) }
+
   const primeraCarga = useRef(true)
 
   // LA PRIMERA CARGA NO ESPERA. Los 300 ms son para no preguntarle al servidor
@@ -127,10 +155,13 @@ export function Comprobantes() {
 
   return (
     <>
-      <div className="encabezado-pagina">
+      <div className="encabezado-pagina cmp-encab">
         {/* Sin pestañas desde el 12 de octubre: Comprobantes, Clientes y
             Productos están en el menú de la izquierda. */}
-        <h1 className="titulo-pagina">Comprobantes</h1>
+        <div>
+          <h1 className="titulo-pagina">Comprobantes</h1>
+          <p className="bajada-pagina">Facturas, boletas y notas que emitiste, con su respuesta de SUNAT.</p>
+        </div>
 
         <Si puede={Permisos.Facturacion.Emitir}>
           <Boton onClick={() => navegar('/facturacion/comprobantes/nuevo')}>
@@ -193,28 +224,55 @@ export function Comprobantes() {
         </Aviso>
       )}
 
-      <div className="filtros">
+      {/* DISEÑO 15 NOV: el mes en cuatro cifras. Al pulsar una, filtra la lista. */}
+      {resumen && (
+        <div className="cmp-mes" aria-label={`Resumen de ${nombreMes(resumen.desde)}`}>
+          <button type="button" className="cmp-mes-dato" onClick={() => filtrarEstado('')}>
+            <span>Vendido en {nombreMes(resumen.desde)}</span>
+            <strong className="mono">S/ {miles.format(resumen.vendido)}</strong>
+            <small>
+              {resumen.emitidos} comprobante{resumen.emitidos === 1 ? '' : 's'}
+              {resumen.vendidoUsd > 0 && <> · US$ {miles.format(resumen.vendidoUsd)}</>}
+            </small>
+          </button>
+          <button type="button" className="cmp-mes-dato bien" onClick={() => filtrarEstado('aceptado')}>
+            <span>Aceptados</span><strong className="mono">{resumen.aceptados}</strong><small>por SUNAT este mes</small>
+          </button>
+          <button type="button" className="cmp-mes-dato ojo" onClick={() => filtrarEstado('encolado')}>
+            <span>En camino</span><strong className="mono">{resumen.enCamino}</strong><small>esperando a SUNAT</small>
+          </button>
+          <button type="button" className={resumen.rechazados > 0 ? 'cmp-mes-dato mal' : 'cmp-mes-dato'} onClick={() => filtrarEstado('rechazado')}>
+            <span>Rechazados</span><strong className="mono">{resumen.rechazados}</strong><small>{resumen.rechazados > 0 ? 'revisa y corrige' : 'ninguno este mes'}</small>
+          </button>
+        </div>
+      )}
+
+      {resumen?.ultimoRechazo && resumen.rechazados > 0 && (
+        <div className="cmp-rechazo" role="status">
+          <span>
+            <strong className="mono">{resumen.ultimoRechazo.numero ?? 'Un comprobante'}</strong> fue rechazado por SUNAT
+            {resumen.ultimoRechazo.mensaje ? <>: {resumen.ultimoRechazo.mensaje}</> : '.'}
+          </span>
+          <Link to={`/facturacion/comprobantes/${resumen.ultimoRechazo.id}`}>Ver qué pasó</Link>
+        </div>
+      )}
+
+      <div className="cmp-caja">
+      <div className="cmp-chips" role="group" aria-label="Estado">
+        {ESTADOS_FILTRO.map(([v, t]) => (
+          <button key={v || 'todos'} type="button" className={estado === v ? 'cmp-chip elegido' : 'cmp-chip'}
+                  aria-pressed={estado === v} onClick={() => filtrarEstado(v)}>{t}</button>
+        ))}
+      </div>
+
+      <div className="filtros cmp-filtros">
         <label className="ancho">
           <span>Buscar</span>
           <input
             value={q}
             onChange={e => { setQ(e.target.value); setPagina(1) }}
-            placeholder="Serie, cliente o RUC"
+            placeholder="Número, cliente o RUC"
           />
-        </label>
-
-        <label>
-          <span>Estado</span>
-          <select value={estado} onChange={e => { setEstado(e.target.value); setPagina(1) }}>
-            <option value="">Todos</option>
-            <option value="borrador">Borradores</option>
-            <option value="encolado">En camino</option>
-            <option value="aceptado">Aceptados</option>
-            <option value="observado">Con observaciones</option>
-            <option value="rechazado">Rechazados</option>
-            <option value="error">No se pudieron enviar</option>
-            <option value="anulado">Anulados</option>
-          </select>
         </label>
 
         <label>
@@ -234,11 +292,11 @@ export function Comprobantes() {
         <FiltroSucursal valor={sucursal} onCambio={v => { setSucursal(v); setPagina(1) }} />
       </div>
 
-      <div className="bloque sin-relleno">
+      <div className="bloque sin-relleno cmp-tabla">
         {cargando && !datos ? (
           <div className="relleno"><Cargando /></div>
         ) : datos && datos.filas.length > 0 ? (
-          <table className="tabla">
+          <table className="tabla lista-comprobantes">
             <thead>
               <tr>
                 <th>Comprobante</th>
@@ -254,15 +312,20 @@ export function Comprobantes() {
               {datos.filas.map(d => (
                 <tr key={d.id}>
                   <td>
-                    <div className="principal mono">
-                      {d.serie && d.correlativo !== null
-                        ? `${d.serie}-${String(d.correlativo).padStart(8, '0')}`
-                        : <span className="vacio">Sin número</span>}
-                    </div>
-                    <div className="secundario">
-                      {TIPOS[d.tipo] ?? d.tipo}
-                      {d.afecta && <> de <span className="mono">{d.afecta}</span></>}
-                      {d.ambiente === 'beta' && <> <span className="etiqueta aviso" title="Emitido en SUNAT beta: sin valor legal">prueba</span></>}
+                    <div className="cmp-doc">
+                      <span className={`cmp-sigla t${d.tipo}`} aria-hidden="true">{SIGLA[d.tipo] ?? d.tipo}</span>
+                      <div>
+                        <div className="principal mono">
+                          {d.serie && d.correlativo !== null
+                            ? `${d.serie}-${String(d.correlativo).padStart(8, '0')}`
+                            : <span className="vacio">Sin número</span>}
+                        </div>
+                        <div className="secundario">
+                          {TIPOS[d.tipo] ?? d.tipo}
+                          {d.afecta && <> de <span className="mono">{d.afecta}</span></>}
+                          {d.ambiente === 'beta' && <> <span className="etiqueta aviso cmp-prueba" title="Emitido en SUNAT beta: sin valor legal">prueba</span></>}
+                        </div>
+                      </div>
                     </div>
                   </td>
 
@@ -281,10 +344,9 @@ export function Comprobantes() {
                   </td>
 
                   <td className="derecha">
-                    <div className="principal mono">
-                      {d.tipo === '07' ? '−' : ''}{d.importeTotal.toFixed(2)}
+                    <div className="principal cmp-importe">
+                      {d.tipo === '07' ? '−' : ''}{simbolo(d.moneda)} {miles.format(d.importeTotal)}
                     </div>
-                    <div className="secundario">{d.moneda}</div>
                   </td>
 
                   <td className="acciones">
@@ -312,6 +374,8 @@ export function Comprobantes() {
             </Vacio>
           </div>
         )}
+      </div>
+
       </div>
 
       {datos && (

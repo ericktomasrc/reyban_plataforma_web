@@ -152,7 +152,7 @@ export function VerGuia() {
         <Boton estilo="secundario" onClick={() => navegar('/guias')}>Volver</Boton>
       </div>
 
-      <div className="vc-cuerpo">
+      <div className="vc-cuerpo gr-ver">
         <div className="vc-principal">
       {/* --- ¿Puede salir? ----------------------------------------------------- */}
       {aceptada && (
@@ -369,7 +369,11 @@ export function VerGuia() {
           <Boton estilo="secundario" onClick={() => setAnulando(false)}>Cancelar</Boton>
           <Boton estilo="peligro" onClick={() => void anular()} ocupado={ocupado === 'anular'} disabled={motivo.trim().length < 5}>Registrar anulación</Boton>
         </>}>
-        <p>Primero anúlala en SOL. Esto solo deja constancia aquí: la guía deja de figurar viva y lo que llevaba vuelve a quedar pendiente de su factura.</p>
+        <p className="gr-dlg-nota">Primero anúlala en SOL. Esto solo deja constancia aquí: la guía deja de figurar viva y lo que llevaba vuelve a quedar pendiente de su factura.</p>
+        <div className="dlg-secciones">
+        <div className="dlg-sec">
+          <div className="dlg-sec-t"><b>Lo que pusiste en SOL</b><small>Guía <span className="mono">{g.numero}</span></small></div>
+          <div className="dlg-sec-c">
         <div className="campo">
           <label htmlFor="motivo-anular">Motivo (el mismo que pusiste en SOL)</label>
           <input id="motivo-anular" value={motivo} maxLength={250} onChange={e => setMotivo(e.target.value)} placeholder="Ej.: el traslado no se realizó" />
@@ -378,6 +382,9 @@ export function VerGuia() {
           <label htmlFor="fecha-anular">Fecha en que la anulaste en SOL</label>
           <input id="fecha-anular" type="date" value={fechaAnulacion} onChange={e => setFechaAnulacion(e.target.value)} />
           <span className="pista">Si la dejas vacía, hoy.</span>
+        </div>
+          </div>
+        </div>
         </div>
         {falloAnular && <Aviso>{falloAnular}</Aviso>}
       </Dialogo>

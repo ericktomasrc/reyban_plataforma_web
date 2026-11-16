@@ -16,6 +16,8 @@ import type { EmpresaCartera } from '../servicios/carteraServicio'
 import { pedidosServicio } from '../servicios/pedidosServicio'
 import type { Pedido, ReclamoSobreMia } from '../servicios/pedidosServicio'
 import { FranjaReclamos } from '../componentes/ResponderReclamo'
+import '../../facturacion/comprobantes-lista.css'
+import '../cartera.css'
 
 // e175: los pedidos a su titular, en su pestaña. e191: las tarjetas son los filtros.
 type Filtro = FiltroCartera | 'pedidas'
@@ -141,10 +143,10 @@ export function MisEmpresas() {
 
 
   return (
-    <>
-      <div className="cabecera-bandeja">
+    <div className="car-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
-          <h1 className="titulo-pagina titulo-serif">Mis empresas</h1>
+          <h1 className="titulo-pagina">Mis empresas{empresas.length > 0 && <span className="lst-cuenta">{empresas.length} {empresas.length === 1 ? 'empresa' : 'empresas'}</span>}</h1>
           <p className="bajada-pagina">Las empresas que gestionas. Entra en una para emitir; una a la vez.</p>
         </div>
         {agrega && <Link to="/configurar?nueva=1" className="boton">+ Agregar empresa</Link>}
@@ -277,7 +279,7 @@ export function MisEmpresas() {
         <DialogoQuitar empresa={quitar} onCerrar={() => setQuitar(null)}
                        onHecho={async () => { setQuitar(null); await refrescar(); await cargar() }} />
       )}
-    </>
+    </div>
   )
 }
 

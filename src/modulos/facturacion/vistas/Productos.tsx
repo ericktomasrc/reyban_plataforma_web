@@ -13,6 +13,26 @@ import { DialogoProducto } from '../componentes/DialogoProducto'
 import { productosServicio } from '../servicios/facturacionServicio'
 import type { CatalogosSunat, ProductoEnLista } from '../tipos'
 import { inventarioServicio, type Categoria } from '../../inventario/servicios/inventarioServicio'
+import '../comprobantes-lista.css'
+
+/** Diseño 15 nov: el precio con S/ y de 2 a 4 decimales (los que tiene). */
+const precio = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+
+/** Diseño 15 nov: el IGV en corto para la tabla (el nombre completo queda en el «title»). */
+function igvCorto(codigo: string): string | undefined {
+  if (codigo === '10') return 'Gravado'
+  if (codigo === '17') return 'IVAP'
+  if (codigo === '20') return 'Exonerado'
+  if (codigo === '30') return 'Inafecto'
+  if (codigo === '40') return 'Exportación'
+  if (/^(1[1-6]|21|3[1-7])$/.test(codigo)) return 'Gratuito'
+  return undefined
+}
+
+/** «Unidad (bienes)» → «Unidad»; «Kilogramo» → «Kilogramo». */
+function unidadCorta(nombre: string | undefined): string | undefined {
+  return nombre?.replace(/\s*\(.*\)\s*$/, '')
+}
 
 /**
  * Lo que vende esta empresa.
@@ -117,6 +137,7 @@ export function Productos() {
 
   const nombreAfectacion = (codigo: string) =>
     catalogos?.afectaciones.find(a => a.codigo === codigo)?.nombre ?? codigo
+  const unidades: Record<string, string> = Object.fromEntries((catalogos?.unidades ?? []).map(u => [u.codigo, u.nombre]))
 
   async function desactivar(p: ProductoEnLista) {
     const seguro = await pedir({
@@ -156,10 +177,16 @@ export function Productos() {
 
   return (
     <>
-      <div className="encabezado-pagina">
+      <div className="encabezado-pagina cmp-encab">
         {/* Sin pestañas desde el 12 de octubre: Comprobantes, Clientes y
             Productos están en el menú de la izquierda. */}
-        <h1 className="titulo-pagina">Productos</h1>
+        <div>
+          <h1 className="titulo-pagina">Productos{total > 0 && <span className="lst-cuenta">{total} en total</span>}</h1>
+          <p className="bajada-pagina">
+            Lo que vendes, con su precio y su IGV.
+            {inventario ? ' El stock está en Inventario › Stock.' : ''}
+          </p>
+        </div>
 
         <Si puede={Permisos.Facturacion.ProductosGestionar}>
           <div className="botonera">
@@ -174,10 +201,6 @@ export function Productos() {
         </Si>
       </div>
 
-      <p className="bajada-pagina">
-        Lo que vendes, con su precio y su afectación del IGV.
-        {inventario ? ' Su stock está en Inventario › Stock.' : ''}
-      </p>
 
       {errorCarga && <Aviso>{errorCarga}</Aviso>}
 
@@ -188,34 +211,36 @@ export function Productos() {
         </Aviso>
       )}
 
-      <div className="filtros">
-        <label className="ancho">
-          <span>Buscar</span>
+      {/* Diseño 15 nov: filtros y tabla en una sola caja; filtros en una fila. */}
+      <div className="lst-caja">
+      <div className="lst-filtros">
+        <label className="lst-buscar">
+          <span className="solo-lector">Buscar</span>
           <input
             value={q}
             onChange={e => { setQ(e.target.value); setPagina(1) }}
-            placeholder="Código o descripción"
+            placeholder="Buscar por código o descripción"
             autoFocus
           />
         </label>
 
         {/* 24 oct: filtros y orden */}
         <label>
-          <span>Unidad</span>
+          <span className="solo-lector">Unidad</span>
           <select value={unidad} onChange={e => { setUnidad(e.target.value); setPagina(1) }}>
-            <option value="">Todas</option>
+            <option value="">Unidad: todas</option>
             {(catalogos?.unidades ?? []).map(u => <option key={u.codigo} value={u.codigo}>{u.nombre}</option>)}
           </select>
         </label>
         <label>
-          <span>IGV</span>
+          <span className="solo-lector">IGV</span>
           <select value={afectacion} onChange={e => { setAfectacion(e.target.value); setPagina(1) }}>
-            <option value="">Todos</option>
+            <option value="">IGV: todos</option>
             {(catalogos?.afectaciones ?? []).map(a => <option key={a.codigo} value={a.codigo}>{a.nombre}</option>)}
           </select>
         </label>
         <label>
-          <span>Estado</span>
+          <span className="solo-lector">Estado</span>
           <select value={estado} onChange={e => { setEstado(e.target.value); setPagina(1) }}>
             <option value="activos">Activos</option>
             <option value="inactivos">Desactivados</option>
@@ -224,25 +249,25 @@ export function Productos() {
         </label>
         {categorias.length > 0 && (
           <label>
-            <span>Categoría</span>
+            <span className="solo-lector">Categoría</span>
             <select value={categoria} onChange={e => { setCategoria(e.target.value); setPagina(1) }}>
-              <option value="">Todas</option>
+              <option value="">Categoría: todas</option>
               {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
           </label>
         )}
         {inventario && (
           <label>
-            <span>Stock</span>
+            <span className="solo-lector">Stock</span>
             <select value={stock} onChange={e => { setStock(e.target.value); setPagina(1) }}>
-              <option value="">Todos</option>
+              <option value="">Stock: todos</option>
               <option value="controla">Controlan stock</option>
               <option value="no_controla">No controlan</option>
             </select>
           </label>
         )}
         <label>
-          <span>Orden</span>
+          <span className="solo-lector">Orden</span>
           <select value={orden} onChange={e => { setOrden(e.target.value); setPagina(1) }}>
             <option value="recientes">Más recientes</option>
             <option value="az">A–Z</option>
@@ -250,16 +275,16 @@ export function Productos() {
         </label>
       </div>
 
-      <div className="bloque sin-relleno">
+      <div className="bloque sin-relleno lst-tabla">
         {cargando && !productos ? (
           <div className="relleno"><Cargando /></div>
         ) : productos && productos.length > 0 ? (
-          <table className="tabla">
+          <table className="tabla lst">
             <thead>
               <tr>
                 <th>Producto</th>
                 <th>Unidad</th>
-                <th>Afectación</th>
+                <th>IGV</th>
                 <th>Código SUNAT</th>
                 <th className="derecha">Precio</th>
                 <th aria-label="Acciones" />
@@ -269,22 +294,22 @@ export function Productos() {
             <tbody>
               {productos.map(p => (
                 <tr key={p.id} className={p.activo ? undefined : 'apagada'}>
-                  <td>
-                    <div className="principal">{p.descripcion}{p.esKit && <span className="etiqueta acento" title="Venderlo descuenta sus componentes"> Kit</span>}{p.esModelo && <span className="etiqueta acento" title="Se venden sus variantes"> Modelo · {p.variantes ?? 0} variante{p.variantes === 1 ? '' : 's'}</span>}</div>
-                    <div className="secundario mono">{p.codigo}</div>
-                    {(p.categoria || (inventario && p.controlaStock === false && p.unidadMedida !== 'ZZ' && !p.esKit && !p.esModelo)) && (
-                      <div className="secundario">
-                        {p.categoria}
-                        {inventario && p.controlaStock === false && p.unidadMedida !== 'ZZ' && !p.esKit && !p.esModelo && <>{p.categoria ? ' · ' : ''}no controla stock</>}
-                      </div>
-                    )}
+                  <td className="lst-nombre">
+                    <div className="principal" title={p.descripcion}>{p.descripcion}{!p.activo && <span className="lst-inactivo">Inactivo</span>}{p.esKit && <span className="etiqueta acento" title="Venderlo descuenta sus componentes"> Kit</span>}{p.esModelo && <span className="etiqueta acento" title="Se venden sus variantes"> Modelo · {p.variantes ?? 0} variante{p.variantes === 1 ? '' : 's'}</span>}</div>
+                    <div className="secundario">
+                      <span className="mono">{p.codigo}</span>
+                      {p.categoria && <> · {p.categoria}</>}
+                      {inventario && p.controlaStock === false && p.unidadMedida !== 'ZZ' && !p.esKit && !p.esModelo && <> · no controla stock</>}
+                    </div>
                   </td>
 
-                  <td className="secundario">{p.unidadMedida}</td>
+                  <td className="secundario lst-unidad" title={unidades[p.unidadMedida] ?? p.unidadMedida}>
+                    {p.unidadMedida === 'ZZ' ? 'Servicio' : unidadCorta(unidades[p.unidadMedida]) ?? p.unidadMedida} <span className="mono">{p.unidadMedida}</span>
+                  </td>
 
                   <td>
-                    <span className={p.tipoAfectacion === '10' ? 'etiqueta' : 'etiqueta acento'}>
-                      {nombreAfectacion(p.tipoAfectacion)}
+                    <span className={`lst-igv a${p.tipoAfectacion}`} title={nombreAfectacion(p.tipoAfectacion)}>
+                      {igvCorto(p.tipoAfectacion) ?? nombreAfectacion(p.tipoAfectacion)}
                     </span>
                   </td>
 
@@ -307,7 +332,9 @@ export function Productos() {
                     {/* Cuatro decimales, que es lo que se guarda y lo que viaja
                         al comprobante. Redondear a dos aquí haría que la
                         pantalla y la factura dijeran cosas distintas. */}
-                    <div className="principal mono">{p.precioUnitario.toFixed(4)}</div>
+                    {/* 15 nov: S/ y de 2 a 4 decimales: los que tiene de verdad (se
+                        guardan 4; nunca se redondea por debajo de lo guardado). */}
+                    <div className="principal lst-precio">S/ {precio.format(p.precioUnitario)}</div>
                     <div className="secundario">{p.incluyeIgv ? 'con IGV' : 'sin IGV'}</div>
                   </td>
 
@@ -346,6 +373,8 @@ export function Productos() {
             </Vacio>
           </div>
         )}
+      </div>
+
       </div>
 
       <Paginacion total={total} pagina={pagina} porPagina={porPagina}

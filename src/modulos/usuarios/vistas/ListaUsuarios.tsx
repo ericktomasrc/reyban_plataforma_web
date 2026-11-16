@@ -23,6 +23,8 @@ import { recuperacion2faServicio } from '../../acceso/servicios/recuperacion2faS
 import type { RecuperacionEnCurso } from '../../acceso/servicios/recuperacion2faServicio'
 import { NOMBRE_ALCANCE } from '../tipos'
 import type { UsuarioEnLista } from '../tipos'
+import '../../facturacion/comprobantes-lista.css'
+import '../personal.css'
 
 const NIVEL: Record<string, string> = { dueno: 'Dueño', colaborador_admin: 'Colaborador administrador', colaborador: 'Colaborador' }
 
@@ -51,6 +53,9 @@ const NIVEL: Record<string, string> = { dueno: 'Dueño', colaborador_admin: 'Col
  * alguien» a la derecha, sin diálogo. Quien nunca entró sale como
  * «Invitación enviada».
  */
+/** Diseño 16 nov: las iniciales del círculo de cada persona (solo aspecto). */
+const inicialesDe = (n: string) => n.trim().split(/\s+/).slice(0, 2).map(p => p[0] ?? '').join('').toUpperCase()
+
 const VISTAS = ['activos', 'invitaciones', 'desactivados', 'estudio'] as const
 type Vista = typeof VISTAS[number]
 
@@ -241,10 +246,10 @@ export function ListaUsuarios() {
   if (usuarios.cargando && !usuarios.datos) return <Cargando />
 
   return (
-    <>
-      <div className="cabecera-bandeja">
+    <div className="per-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
-          <h1 className="titulo-pagina titulo-serif">Personal de la empresa</h1>
+          <h1 className="titulo-pagina">Personal de la empresa{todos.length > 0 && <span className="lst-cuenta">{todos.length} {todos.length === 1 ? 'persona' : 'personas'}</span>}</h1>
           <p className="bajada-pagina">
             {opciones.datos?.restringido
               ? 'Solo ves y agregas personal de tus sucursales.'
@@ -273,7 +278,9 @@ export function ListaUsuarios() {
       ]} />
 
       {ver !== 'estudio' && <>
+      {/* Diseño 16 nov: las pastillas y la búsqueda en una sola caja, pegada a la tabla. */}
       {todos.length > 1 && (
+        <div className="filtros-lista per-filtros">
         <div className="filtros-personal" role="group" aria-label="Filtrar">
           <button type="button" className={filtro === 'todos' ? 'elegido' : undefined} onClick={() => setFiltro('todos')}>
             Todos ({todos.length})
@@ -293,12 +300,7 @@ export function ListaUsuarios() {
             </button>
           )}
         </div>
-      )}
-
-      {/* 24 oct: buscar y filtrar */}
-      {todos.length > 1 && (
-        <div className="filtros-lista">
-          <label className="buscar">
+          <label className="buscar per-buscar">
             <span>Buscar</span>
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Nombre, correo o documento" />
           </label>
@@ -347,6 +349,9 @@ export function ListaUsuarios() {
                 return (
                   <tr key={u.id} className={u.activo ? undefined : 'apagada'}>
                     <td>
+                      <div className="per-persona">
+                      <span className="per-ini" aria-hidden="true">{inicialesDe(u.nombre)}</span>
+                      <div>
                       <div className="principal">
                         {u.nombre}
                         {soyYo && <span className="etiqueta marca-yo">tú</span>}
@@ -355,6 +360,8 @@ export function ListaUsuarios() {
                         ? <div className="ficha-incompleta">Ficha incompleta{!u.numeroDocumento ? ' · falta el documento' : ''}</div>
                         : <div className="secundario">{NOMBRE_DOCUMENTO[u.tipoDocumento ?? '1']} {u.numeroDocumento} · {u.correo}</div>}
                       {u.fichaIncompleta && <div className="secundario">{u.correo}</div>}
+                      </div>
+                      </div>
                     </td>
 
                     <td>
@@ -505,13 +512,14 @@ export function ListaUsuarios() {
       <Paginacion {...paginacion} />
       </>}
 
-      {ver !== 'estudio' && <div className="bloque">
-        <strong>Alcance: qué puede ver cada uno</strong>
-        <p className="nota">
-          <strong>Toda la empresa</strong> — todo (la central). <strong>Su sucursal</strong> — solo lo de sus
-          sucursales. <strong>Solo lo suyo</strong> — solo los comprobantes que él emitió.
+      {ver !== 'estudio' && (
+        <p className="per-leyenda">
+          <span>Alcance, qué puede ver cada uno:</span>
+          <span><strong>Toda la empresa</strong> todo (la central)</span>
+          <span><strong>Su sucursal</strong> solo lo de sus sucursales</span>
+          <span><strong>Solo lo suyo</strong> solo los comprobantes que él emitió</span>
         </p>
-      </div>}
+      )}
 
       {/* 046: la gente de la Cuenta Profesional que también entra (solo lectura). */}
       {ver === 'estudio' && estudio.datos && estudio.datos.length > 0 && (
@@ -545,6 +553,6 @@ export function ListaUsuarios() {
           }}
         />
       )}
-    </>
+    </div>
   )
 }

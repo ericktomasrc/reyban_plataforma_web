@@ -7,6 +7,7 @@ import { fecha } from '../../../nucleo/formato/fechas'
 import { inventarioServicio } from '../../inventario/servicios/inventarioServicio'
 import { Cifra, dinero } from '../componentes/Graficos'
 import { reportesServicio, type ReporteVentas } from '../servicios/reportesServicio'
+import '../reportes.css'
 
 /**
  * e176 — COMPARAR DOS PERIODOS. Lo mismo del Tablero de ventas, lado a lado:

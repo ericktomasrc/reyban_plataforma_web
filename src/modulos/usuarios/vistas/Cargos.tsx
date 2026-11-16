@@ -4,6 +4,8 @@ import { contiene, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
+import '../../facturacion/comprobantes-lista.css'
+import '../personal.css'
 import { Asterisco, Campo } from '../../../componentes/Campo'
 import { Cargando, Vacio } from '../../../componentes/Cargando'
 import { Dialogo } from '../../../componentes/Dialogo'
@@ -67,17 +69,17 @@ export function Cargos({ deEstudio = false }: { deEstudio?: boolean }) {
   if (lista.cargando && !lista.datos) return <Cargando />
 
   return (
-    <div className={deEstudio ? 'mi-equipo' : undefined}>
+    <div className={deEstudio ? 'per-pagina mi-equipo' : 'per-pagina'}>
       <Link to={volver} className="enlace-volver">← {deEstudio ? 'Mi equipo' : 'Personal de la empresa'}</Link>
 
-      <div className="cabecera-bandeja">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           {deEstudio && <span className="marca-estudio">MI ESTUDIO · SOLO CUENTA PROFESIONAL</span>}
-          <h1 className="titulo-pagina titulo-serif">{deEstudio ? 'Cargos del estudio' : `Cargos de ${empresa?.nombre ?? 'la empresa'}`}</h1>
+          <h1 className="titulo-pagina">{deEstudio ? 'Cargos del estudio' : 'Cargos'}{cargos.length > 0 && <span className="lst-cuenta">{cargos.length} {cargos.length === 1 ? 'cargo' : 'cargos'}</span>}</h1>
           <p className="bajada-pagina">
             {deEstudio
               ? 'Los cargos de la gente de tu estudio. Son distintos de los cargos de cada empresa.'
-              : 'Los cargos del personal de esta empresa.'}
+              : `Los cargos del personal de ${empresa?.nombre ?? 'esta empresa'}.`}
             {' '}Al escribir uno nuevo en una ficha, se agrega solo; aquí se corrigen y ordenan.
           </p>
         </div>

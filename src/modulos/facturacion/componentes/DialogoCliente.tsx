@@ -143,6 +143,7 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
       titulo={editando ? `Editar a ${cliente.razonSocial}` : 'Nuevo cliente'}
       abierto
       onCerrar={onCerrar}
+      ancho="grande"
       acciones={
         <>
           <Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
@@ -152,8 +153,12 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
         </>
       }
     >
-      <form id="cliente" onSubmit={enviar}>
+      {/* Diseño 15 nov: la ficha en secciones (título a la izquierda). Mismos campos. */}
+      <form id="cliente" onSubmit={enviar} className="dlg-secciones">
 
+        <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Identificación</b><small>Tal como debe salir en el comprobante.</small></div>
+        <div className="dlg-sec-c">
         <div className="pareja">
           <label className="campo">
             <span className="etiqueta">Tipo de documento<Asterisco /></span>
@@ -199,6 +204,12 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
           pista="Opcional. Por si lo conoces por otro nombre que el de su ficha."
         />
 
+        </div>
+        </section>
+
+        <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Dirección</b><small>Sale impresa en la factura.</small></div>
+        <div className="dlg-sec-c">
         <Campo
           etiqueta="Dirección"
           value={direccion}
@@ -213,14 +224,14 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
             inputMode="numeric"
             pista="Seis dígitos. Opcional."
           />
-
-          <Campo
-            etiqueta="Teléfono"
-            value={telefono}
-            onChange={e => setTelefono(e.target.value)}
-          />
+          <span />
         </div>
+        </div>
+        </section>
 
+        <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Contacto</b><small>A dónde le llega su comprobante.</small></div>
+        <div className="dlg-sec-c">
         {/* OBLIGATORIO, y no es rigor de formulario: es a donde se le manda
             el comprobante. Un cliente sin correo es una factura que se emite,
             se firma, llega a SUNAT y no llega a quien la pagó. */}
@@ -232,6 +243,15 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
           onChange={e => setCorreo(e.target.value)}
           pista="A donde se le mandará su comprobante."
         />
+
+        <div className="pareja">
+          <Campo
+            etiqueta="Teléfono"
+            value={telefono}
+            onChange={e => setTelefono(e.target.value)}
+          />
+          <span />
+        </div>
 
         {/* 043: WHATSAPP, aparte del teléfono (el fijo de la oficina no lo recibe). */}
         <div className="caja-whatsapp-cliente">
@@ -255,6 +275,12 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
           </span>
         </div>
 
+        </div>
+        </section>
+
+        <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Facturación</b><small>Solo si siempre le facturas igual.</small></div>
+        <div className="dlg-sec-c">
         {/* LA AFECTACIÓN VIVE AQUÍ Y NO SOLO EN EL PRODUCTO porque no es una
             propiedad de lo que vendes: es de la operación, y la operación la
             define a quién le vendes. Las mismas zapatillas van gravadas a un
@@ -276,6 +302,8 @@ export function DialogoCliente({ cliente, catalogos, onCerrar, onGuardado }: Pro
             cualquier línea: esto avisa, no obliga.
           </span>
         </label>
+        </div>
+        </section>
 
         {editando && (
           <p className="nota">

@@ -11,6 +11,7 @@ import { InventarioApagado } from '../componentes/InventarioApagado'
 import { useEstadoInventario, useSucursalesDeTrabajo } from '../componentes/usoInventario'
 import { cantidad, inventarioServicio, type Almacen, type StockPorAlmacen } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 /**
  * 066 — ALMACENES DENTRO DE UNA SUCURSAL (tienda y depósito). El stock de la
@@ -55,11 +56,11 @@ export function Almacenes() {
   if (!estado.encendido) return <InventarioApagado titulo="Almacenes" />
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="inv-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Almacenes</h1>
-          <p className="secundario">
+          <p className="bajada-pagina">
             Si una sucursal guarda mercadería en más de un lugar (la tienda y un depósito). El stock de la sucursal no
             cambia: aquí ves dónde está. Se vende del principal; si no alcanza, sale de los demás.
           </p>
@@ -68,14 +69,19 @@ export function Almacenes() {
       </div>
 
       <div className="filtros-lista">
-        <label className="campo">
-          <span className="etiqueta">Sucursal</span>
-          <select value={elegida} onChange={e => setSucursal(e.target.value)} disabled={sucursales.length <= 1}>
-            {sucursales.map(s => <option key={s.id} value={s.id}>{s.codigo} {s.nombre}</option>)}
-          </select>
-        </label>
-        {almacenes && almacenes.length > 0 && (
+        {/* Diseño 16 nov: con una sola sucursal se muestra como texto (antes, un desplegable deshabilitado). */}
+        {sucursales.length <= 1 ? (
+          <span className="inv-fijo">Sucursal: <b>{sucursales.map(s => `${s.codigo} ${s.nombre}`).join('')}</b></span>
+        ) : (
           <label className="campo">
+            <span className="etiqueta">Sucursal</span>
+            <select value={elegida} onChange={e => setSucursal(e.target.value)}>
+              {sucursales.map(s => <option key={s.id} value={s.id}>{s.codigo} {s.nombre}</option>)}
+            </select>
+          </label>
+        )}
+        {almacenes && almacenes.length > 0 && (
+          <label className="campo inv-buscar">
             <span className="etiqueta">Buscar</span>
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Producto o código…" />
           </label>
@@ -126,7 +132,7 @@ export function Almacenes() {
         <DialogoMover producto={moviendo} almacenes={almacenes} onCerrar={() => setMoviendo(undefined)}
                       onHecho={m => { setMoviendo(undefined); mensaje.bien(m); setRecargar(x => x + 1) }} />
       )}
-    </>
+    </div>
   )
 }
 

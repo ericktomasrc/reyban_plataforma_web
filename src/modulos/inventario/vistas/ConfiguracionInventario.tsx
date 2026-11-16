@@ -12,6 +12,7 @@ import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import { useEstadoInventario } from '../componentes/usoInventario'
 import { inventarioServicio, type EstadoInventario, type ModoInventario } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 /**
  * 052 — CONFIGURACIÓN DEL INVENTARIO Y «EMPEZAR A CONTROLAR».
@@ -105,10 +106,10 @@ function Configuracion({ estado, onCambio }: { estado: EstadoInventario; onCambi
   const pasoActual = !estado.encendido ? 1 : p.controlados === 0 ? 2 : !todasCargadas ? 3 : pendientes.length > 0 ? 4 : 5
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="inv-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
-          <h1 className="titulo-pagina">Inventario · configuración</h1>
+          <h1 className="titulo-pagina">Configuración del inventario</h1>
           <p className="secundario">Al encender el inventario nada se bloquea todavía. Primero cargas lo que tienes; cuando confirmes «Empezar a controlar», desde ese momento se cuenta y se bloquea lo que no hay.</p>
         </div>
       </div>
@@ -279,6 +280,6 @@ function Configuracion({ estado, onCambio }: { estado: EstadoInventario; onCambi
       )}
 
       {dialogo}
-    </>
+    </div>
   )
 }

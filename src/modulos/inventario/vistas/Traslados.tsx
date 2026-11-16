@@ -14,6 +14,7 @@ import { InventarioApagado } from '../componentes/InventarioApagado'
 import { useEstadoInventario } from '../componentes/usoInventario'
 import { cantidad, inventarioServicio, type PaginaTraslados, type Traslado } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 const enLima = (iso: string) =>
   new Date(iso).toLocaleString('es-PE', { timeZone: 'America/Lima', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -67,37 +68,38 @@ export function Traslados() {
   )
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="inv-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Traslados</h1>
-          <p className="secundario">
-            Mover mercadería de una sucursal a otra. El traslado ES la guía de remisión con motivo «Traslado entre
-            establecimientos de la misma empresa» (04): no hay que hacer dos cosas.
+          <p className="bajada-pagina">
+            Mover mercadería de una sucursal a otra. El traslado es la guía de remisión con motivo 04 (entre establecimientos de la misma empresa).
           </p>
         </div>
         {puede(Permisos.Guias.Emitir) && <Boton onClick={() => navegar('/guias/nueva?motivo=04')}>Nuevo traslado</Boton>}
       </div>
 
-      <div className="inv-pasos">
-        <div><small>1 · ORIGEN</small>Emite la guía 04 con los productos. Revisa que haya disponible.</div>
-        <div><small>2 · AL EMITIRLA</small>Sale del físico del origen y queda <strong>en tránsito</strong>.</div>
-        <div><small>3 · DESTINO «RECIBÍ»</small>Cuenta lo que llegó; entra al físico del destino.</div>
-        <div><small>4 · SI FALTA ALGO</small>La diferencia queda anotada como «faltante en traslado».</div>
-      </div>
+      {/* Diseño 16 nov: los 4 pasos, plegados (el mismo texto). */}
+      <details className="inv-como">
+        <summary>¿Cómo funciona un traslado?</summary>
+        <ol>
+          <li><b>Origen:</b> emite la guía 04 con los productos. Revisa que haya disponible.</li>
+          <li><b>Al emitirla:</b> sale del físico del origen y queda <strong>en tránsito</strong>.</li>
+          <li><b>Destino, «Recibí»:</b> cuenta lo que llegó; entra al físico del destino.</li>
+          <li><b>Si falta algo:</b> la diferencia queda anotada como «faltante en traslado».</li>
+        </ol>
+      </details>
 
       {error && <Aviso>{error}</Aviso>}
 
-      <div className="filtros-guias">
-        <div className="chips">
+      <div className="filtros-lista">
+        <div className="inv-chips chips">
           {chip('por_recibir', 'Por recibir aquí', datos?.porRecibir)}
           {chip('enviados', 'Enviados en camino')}
           {chip('recibidos', 'Recibidos')}
           {(datos?.conDiferencia ?? 0) > 0 && chip('diferencia', 'Con diferencia', datos?.conDiferencia, true)}
           {chip('todos', 'Todos')}
         </div>
-      </div>
-      <div className="filtros-lista">
         <FiltroFechas desde={desde} hasta={hasta} onDesde={v => { setDesde(v); setPagina(1) }} onHasta={v => { setHasta(v); setPagina(1) }} />
       </div>
 
@@ -116,10 +118,10 @@ export function Traslados() {
                     <Link to={`/guias/${t.guiaId}`} className="principal mono">{t.guiaNumero ?? '(sin número)'}</Link>
                     <div className="secundario">{t.recibidoEn ? `recibido ${enLima(t.recibidoEn)}${t.recibidoPor ? ` por ${t.recibidoPor}` : ''}` : `salió ${enLima(t.salioEn)}`}</div>
                   </td>
-                  <td>{t.origen} → <strong>{t.destino}</strong></td>
-                  <td>{t.productos}</td>
+                  <td className="inv-ruta">{t.origen} <span aria-hidden="true">→</span> <strong>{t.destino}</strong></td>
+                  <td className="inv-productos" title={t.productos ?? undefined}>{t.productos}</td>
                   <td className={ESTADOS[t.estado]?.clase}>
-                    <strong>{ESTADOS[t.estado]?.texto ?? t.estado}</strong>
+                    <span className="inv-estado">{(ESTADOS[t.estado]?.texto ?? t.estado).replace(/^●\s*/, '')}</span>
                     {t.estado === 'con_diferencia' && t.recibido !== null && (
                       <div className="secundario">llegaron {cantidad(t.recibido)} · faltan {cantidad(t.enviado - t.recibido)}</div>
                     )}
@@ -150,7 +152,7 @@ export function Traslados() {
         <DialogoRecibir id={recibiendo} onCerrar={() => setRecibiendo(undefined)}
                         onHecho={() => { setRecibiendo(undefined); setRecargar(n => n + 1) }} />
       )}
-    </>
+    </div>
   )
 }
 

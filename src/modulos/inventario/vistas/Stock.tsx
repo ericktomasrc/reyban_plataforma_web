@@ -15,6 +15,7 @@ import {
   type AlertaInventario, type Categoria, type EstadoInventario, type PaginaStock,
 } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 /**
  * 052 — STOCK POR SUCURSAL (diseño aprobado el 24 oct).
@@ -40,6 +41,8 @@ export function Stock() {
   const [error, setError] = useState<string>()
   const [cargando, setCargando] = useState(true)
   const [bajando, setBajando] = useState(false)
+  // Diseño 16 nov: cuántos hay en «Todos» (se recuerda al filtrar por la franja).
+  const [totalTodos, setTotalTodos] = useState<number>()
   const primera = useRef(true)
 
   useEffect(() => {
@@ -63,7 +66,9 @@ export function Stock() {
   async function cargar() {
     setCargando(true)
     try {
-      setDatos(await inventarioServicio.stock({ q, sucursalId: sucursal, categoriaId: categoria, mostrar, pagina, porPagina }))
+      const r = await inventarioServicio.stock({ q, sucursalId: sucursal, categoriaId: categoria, mostrar, pagina, porPagina })
+      setDatos(r)
+      if (!mostrar) setTotalTodos(r.total)
       setError(undefined)
     } catch (e) {
       setError(e instanceof ErrorApi ? e.message : 'No se pudo cargar el stock.')
@@ -94,11 +99,11 @@ export function Stock() {
   const negativos = alertas.reduce((n, a) => n + a.negativos, 0)
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="inv-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
-          <h1 className="titulo-pagina">Stock</h1>
-          <p className="secundario">Cuánto hay en cada sucursal. Solo los productos que tienen marcado «Controla stock»; los servicios no se cuentan.</p>
+          <h1 className="titulo-pagina">Stock{totalTodos !== undefined && !q && !categoria && <span className="lst-cuenta">{totalTodos} {totalTodos === 1 ? 'producto' : 'productos'}</span>}</h1>
+          <p className="bajada-pagina">Cuánto hay para vender en cada sucursal. Solo los productos con «Controla stock».</p>
         </div>
         <div className="acciones-guia">
           {puede(Permisos.Inventario.Ajustar) && <Boton estilo="secundario" onClick={() => navegar('/inventario/ajustes')}>Ajuste</Boton>}
@@ -109,11 +114,24 @@ export function Stock() {
         </div>
       </div>
 
-      <div className="inv-leyenda">
-        <div><small>Físico</small>Lo que hay en el almacén ahora</div>
-        <div><small>Reservado</small>Facturado, espera su guía</div>
-        <div className="clave"><small>Disponible = físico − reservado</small>Lo que se puede vender</div>
-        <div><small>En tránsito</small>Salió de otra sucursal, aún no llega</div>
+      {/* Diseño 16 nov: en lugar de las 4 tarjetas de definiciones, una franja que filtra
+          (el mismo filtro «Mostrar» de antes). Las definiciones van en una línea al pie. */}
+      <div className="cmp-mes inv-franja" role="group" aria-label="Mostrar">
+        <button type="button" className={`cmp-mes-dato${mostrar === '' ? ' elegido' : ''}`} onClick={() => { setMostrar(''); setPagina(1) }}>
+          <span>Todos</span><strong>{totalTodos ?? '—'}</strong><small>con «Controla stock»</small>
+        </button>
+        <button type="button" className={`cmp-mes-dato ojo${mostrar === 'bajo_minimo' ? ' elegido' : ''}`} onClick={() => { setMostrar('bajo_minimo'); setPagina(1) }}>
+          <span>Bajo el mínimo</span><strong>{bajos}</strong>
+          <small title={alertas.filter(a => a.bajoMinimo > 0).map(a => `${a.codigo} ${a.nombre}`).join(', ')}>
+            {bajos > 0 ? alertas.filter(a => a.bajoMinimo > 0).map(a => a.nombre).join(', ') : 'ninguno'}
+          </small>
+        </button>
+        <button type="button" className={`cmp-mes-dato mal${mostrar === 'sin_stock' ? ' elegido' : ''}`} onClick={() => { setMostrar('sin_stock'); setPagina(1) }}>
+          <span>Sin stock</span><strong>{mostrar === 'sin_stock' && datos ? datos.total : 'Ver'}</strong><small>no se pueden vender</small>
+        </button>
+        <button type="button" className={`cmp-mes-dato mal${mostrar === 'negativo' ? ' elegido' : ''}`} onClick={() => { setMostrar('negativo'); setPagina(1) }}>
+          <span>En negativo</span><strong>{negativos}</strong><small>{negativos > 0 ? 'revisar' : 'ninguno'}</small>
+        </button>
       </div>
 
       {estado && estado.sucursales.some(s => !s.controlaDesde) && (
@@ -125,18 +143,11 @@ export function Stock() {
         </Aviso>
       )}
 
-      {(bajos > 0 || negativos > 0) && (
-        <Aviso tono="ojo">
-          {bajos > 0 && <><strong>{bajos} producto(s) bajo el mínimo</strong> ({alertas.filter(a => a.bajoMinimo > 0).map(a => `${a.codigo} ${a.nombre}`).join(', ')}). </>}
-          {negativos > 0 && <><strong>{negativos} en negativo</strong>: revísalos. </>}
-          <button type="button" className="enlace" onClick={() => { setMostrar(bajos > 0 ? 'bajo_minimo' : 'negativo'); setPagina(1) }}>Ver solo esos</button>
-        </Aviso>
-      )}
 
       {error && <Aviso>{error}</Aviso>}
 
       <div className="filtros-lista">
-        <label>
+        <label className="inv-buscar">
           <span>Buscar</span>
           <input value={q} placeholder="Código o nombre del producto" onChange={e => { setQ(e.target.value); setPagina(1) }} />
         </label>
@@ -158,15 +169,6 @@ export function Stock() {
             </select>
           </label>
         )}
-        <label>
-          <span>Mostrar</span>
-          <select value={mostrar} onChange={e => { setMostrar(e.target.value); setPagina(1) }}>
-            <option value="">Todos</option>
-            <option value="bajo_minimo">Bajo el mínimo</option>
-            <option value="sin_stock">Sin stock</option>
-            <option value="negativo">En negativo</option>
-          </select>
-        </label>
         <Boton estilo="secundario" onClick={() => void excel()} ocupado={bajando} textoOcupado="Bajando…">Descargar Excel</Boton>
       </div>
 
@@ -179,7 +181,7 @@ export function Stock() {
               <tr>
                 <th>Producto</th>
                 {columnas.map(s => (
-                  <th key={s.id} className="num">{s.codigo} {s.nombre}<div className="secundario">disp. · físico</div></th>
+                  <th key={s.id} className="num">{s.codigo} {s.nombre}</th>
                 ))}
                 <th className="num">En tránsito</th>
                 {columnas.length > 1 && <th className="num">Total disp.</th>}
@@ -191,20 +193,23 @@ export function Stock() {
                 <tr key={f.productoId}>
                   <td>
                     <div className="principal">{f.descripcion}</div>
-                    <div className="secundario"><span className="mono">{f.codigo}</span> · {f.unidad}{f.categoria && <> · {f.categoria}</>}</div>
+                    <div className="secundario">{f.codigo} · {f.unidad}{f.categoria && <> · <span className="inv-cat">{f.categoria}</span></>}</div>
                   </td>
                   {f.sucursales.map(s => (
                     <td key={s.sucursalId} className={`num${s.fisico < 0 ? ' inv-mal' : s.disponible <= 0 ? ' inv-mal' : s.bajoMinimo ? ' inv-bajo' : ''}`}>
-                      <span className="mono"><strong>{cantidad(s.disponible)}</strong> · {cantidad(s.fisico)}</span>
-                      {s.reservado > 0 && <div className="secundario inv-reservado">{cantidad(s.reservado)} reservadas</div>}
+                      {/* Diseño 16 nov: lo disponible grande; el físico y lo reservado, chico debajo. */}
+                      <strong className="inv-disp">{cantidad(s.disponible)}</strong>
+                      {(s.reservado > 0 || s.fisico !== s.disponible) && (
+                        <div className="secundario">{cantidad(s.fisico)} físico{s.reservado > 0 && <> · <span className="inv-reservado">{cantidad(s.reservado)} reservadas</span></>}</div>
+                      )}
                       {s.fisico < 0 ? <div className="secundario">En negativo: revisar</div>
                         : s.disponible <= 0 ? <div className="secundario">Sin stock</div>
                         : s.bajoMinimo ? <div className="secundario">▼ mínimo {cantidad(s.minimo)}</div> : null}
                     </td>
                   ))}
-                  <td className="num mono">{f.transito > 0 ? cantidad(f.transito) : <span className="vacio">—</span>}</td>
-                  {columnas.length > 1 && <td className="num mono"><strong>{cantidad(f.totalDisponible)}</strong></td>}
-                  <td><Link to={`/inventario/kardex/${f.productoId}`}>Kardex</Link></td>
+                  <td className="num">{f.transito > 0 ? cantidad(f.transito) : <span className="vacio">—</span>}</td>
+                  {columnas.length > 1 && <td className="num"><strong className="inv-disp">{cantidad(f.totalDisponible)}</strong></td>}
+                  <td className="lst-acciones"><Link className="inv-enlace" to={`/inventario/kardex/${f.productoId}`}>Kardex</Link></td>
                 </tr>
               ))}
             </tbody>
@@ -219,6 +224,12 @@ export function Stock() {
         )}
       </div>
 
+      <p className="inv-leyenda-linea">
+        <span><b>Disponible</b> = físico − reservado: lo que se puede vender</span>
+        <span><b>Reservado</b>: facturado, espera su guía</span>
+        <span><b>En tránsito</b>: salió de otra sucursal, aún no llega</span>
+      </p>
+
       {datos && (
         <Paginacion total={datos.total} pagina={datos.pagina} porPagina={datos.porPagina}
                     onCambiar={setPagina} onPorPagina={n => { setPorPagina(n); setPagina(1) }} />
@@ -228,6 +239,6 @@ export function Stock() {
         Se aplica: el negativo solo aparece si la empresa activó «Permitir vender sin stock». Las cantidades admiten decimales
         para lo que se vende por peso o medida.
       </p>
-    </>
+    </div>
   )
 }

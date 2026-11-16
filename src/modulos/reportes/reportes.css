@@ -1,0 +1,70 @@
+/* =============================================================================
+   Diseño 16 nov — REPORTES SOBRIOS (solo pantalla: el PDF impreso no cambia).
+   Mismos filtros, mismos números, mismas descargas.
+   ========================================================================== */
+@media screen {
+  .reporte { --serie-1: #0f6f6c; --serie-2: #c97a2b; --serie-3: #6b8299; font-size: 12.5px; }
+  .reporte .mono { font-family: inherit; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+  .reporte .encabezado-pagina { margin-bottom: 14px; }
+  .reporte .titulo-pagina { font-size: 20px; letter-spacing: -.01em; }
+
+  /* Filtros: una barra compacta; la búsqueda queda pegada debajo. */
+  .reporte .filtros-reporte, .reporte .busqueda-reporte { background: var(--superficie); border: 1px solid var(--borde-sutil, #e6ebef);
+    border-radius: 12px; padding: 10px 14px; gap: 10px; align-items: flex-end; box-shadow: none; margin-bottom: 12px; }
+  .reporte .filtros-reporte:has(+ .busqueda-reporte) { border-radius: 12px 12px 0 0; margin-bottom: 0; }
+  .reporte .filtros-reporte + .busqueda-reporte { border-radius: 0 0 12px 12px; border-top: 1px dashed var(--borde-sutil, #e6ebef); margin-top: 0; }
+  .reporte .filtros label > span { font-size: 11.5px; color: var(--tinta-3); font-weight: 500; margin-bottom: 3px; }
+  .reporte .filtros input, .reporte .filtros select { min-height: 34px; height: 34px; font-size: 12.5px; border-radius: 8px; }
+  .reporte .filtros .caja-busqueda { flex: 1 1 280px; }
+  .reporte .filtros .caja-busqueda input { width: 100%; }
+  .reporte .acciones-reporte .boton { min-height: 34px; padding: 0 12px; font-size: 12.5px; }
+
+  /* El aviso de modo prueba: una línea, no una franja grande. */
+  .reporte .aviso, .reporte .etiqueta.aviso { font-size: 12px; padding: 7px 12px; border-radius: 8px; margin-bottom: 12px; }
+
+  /* Cifras: una franja (como en el resto de la plataforma). */
+  .reporte .cifras-reporte { gap: 0; background: var(--superficie); border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+  .reporte .cifra-reporte { border: 0; border-right: 1px solid var(--borde-sutil, #e6ebef); border-radius: 0; padding: 10px 14px; background: transparent; }
+  .reporte .cifra-reporte:last-child { border-right: 0; }
+  .reporte .cifra-reporte span { font-size: 11.5px; }
+  .reporte .cifra-reporte strong { font-size: 17px; font-weight: 650; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .reporte .cifra-reporte small { font-size: 11px; color: var(--tinta-3); }
+
+  /* Paneles y títulos. */
+  .reporte .bloque { border-color: var(--borde-sutil, #e6ebef); border-radius: 12px; padding: 14px 16px; }
+  .reporte .bloque.sin-relleno { padding: 0; }
+  .reporte .subtitulo { font-size: 12.5px; font-weight: 650; text-transform: none; letter-spacing: 0; color: var(--tinta); margin: 0 0 12px; }
+  .reporte .dos-reporte { gap: 14px; }
+
+  /* Barras y gráficos en los colores de la marca. */
+  .reporte .barras-reporte { gap: 8px; }
+  .reporte .barra-fila { font-size: 12px; }
+  .reporte .barras-reporte { max-width: 920px; }
+  .reporte .barra-pista { height: 6px; background: var(--hundido, #eef1f4); border-radius: 4px; }
+  .reporte .barra { height: 6px; border-radius: 3px; }
+  .reporte .barra-valor { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .reporte .grafico .texto-eje { font-size: 10.5px; fill: var(--tinta-3); }
+  .reporte .leyenda-dona { font-size: 12px; }
+  .reporte .grafico-dona { width: 128px; height: 128px; }
+  .reporte .grafico { max-height: 220px; }
+  .reporte .enlace-tabla { font-size: 12px; text-decoration: none; font-weight: 600; }
+  .reporte .enlace-tabla:hover { text-decoration: underline; }
+
+  /* Tablas. */
+  .reporte .tabla th { font-size: 11px; letter-spacing: .04em; color: var(--tinta-3); }
+  .reporte .tabla td { font-size: 12px; }
+  .reporte .tabla .fila-total td { background: #fafbfc; }
+  .reporte .tabla a { text-decoration: none; font-weight: 600; }
+  .reporte .tabla a:hover { text-decoration: underline; }
+
+  /* Resumen / Detalle: pastillas. */
+  .reporte .segmentado.pestanas-tabla { background: transparent; padding: 0; gap: 6px; border: 0; margin-bottom: 12px; }
+  .reporte .segmentado.pestanas-tabla button { border-radius: 999px; border: 1px solid var(--borde); background: var(--superficie); font-size: 12.5px; padding: 5px 12px; color: var(--tinta-2); box-shadow: none; }
+  .reporte .segmentado.pestanas-tabla button.elegido { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+  .reporte .segmentado.pestanas-tabla button.elegido .pestana-cuenta { background: rgba(255, 255, 255, .18); color: #fff; }
+  .reporte .segmentado.pestanas-tabla button { min-height: 30px; height: 30px; display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+  .reporte .segmentado.pestanas-tabla .pestana-cuenta { font-size: 11px; height: 18px; min-width: 18px; padding: 0 6px; border-radius: 999px; line-height: 18px; display: inline-block; text-align: center; }
+  .reporte .segmentado.pestanas-tabla .pestana-cuenta.aviso { background: #fdf3e2; color: #8a5a09; }
+  .reporte .nota, .reporte .pie-reporte { font-size: 12px; color: var(--tinta-3); }
+  @media (max-width: 900px) { .reporte .cifra-reporte { border-right: 0; border-bottom: 1px solid var(--borde-sutil, #e6ebef); } }
+}

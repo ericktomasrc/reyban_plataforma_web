@@ -8,6 +8,7 @@ import { InventarioApagado } from '../componentes/InventarioApagado'
 import { ListaOperaciones } from '../componentes/ListaOperaciones'
 import { useEstadoInventario } from '../componentes/usoInventario'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 /** 052 — INGRESOS POR COMPRA: la lista, con lo más nuevo arriba. */
 export function Ingresos() {
@@ -18,17 +19,17 @@ export function Ingresos() {
   if (!estado.encendido) return <InventarioApagado titulo="Ingresos por compra" />
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="inv-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Ingresos por compra</h1>
-          <p className="secundario">La mercadería que llegó de un proveedor. Suma al físico de la sucursal. No es un comprobante electrónico: se anota la factura del proveedor.</p>
+          <p className="bajada-pagina">La mercadería que llegó de un proveedor: suma al stock de la sucursal. Se anota la factura del proveedor (no es un comprobante electrónico).</p>
         </div>
         <Si puede={Permisos.Inventario.Ingresar}>
-          <Boton onClick={() => navegar('/inventario/ingresos/nuevo')}>Nuevo ingreso</Boton>
+          <Boton onClick={() => navegar('/inventario/ingresos/nuevo')}>+ Nuevo ingreso</Boton>
         </Si>
       </div>
       <ListaOperaciones tipo="ingreso" />
-    </>
+    </div>
   )
 }

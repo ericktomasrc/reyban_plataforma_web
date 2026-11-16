@@ -1,0 +1,169 @@
+/* =============================================================================
+   Diseño 16 nov — MI PLAN Y MIS PAGOS, SOBRIOS. Solo aspecto: mismos planes,
+   mismos precios, mismos botones y pagos. Todo bajo .pln-pagina.
+   ========================================================================== */
+.pln-pagina { font-size: 13px; }
+.pln-pagina .encabezado-pagina { align-items: flex-end; gap: 16px; margin-bottom: 16px; }
+.pln-pagina .encabezado-pagina .titulo-pagina { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+.pln-pagina .bajada-pagina { margin: 4px 0 0; font-size: 13px; color: var(--tinta-2); }
+.pln-pagina .bajada-pagina a { color: var(--acento); font-weight: 600; text-decoration: none; margin-left: 4px; }
+.pln-pagina .bajada-pagina a:hover { text-decoration: underline; }
+.pln-pagina .bloque { border-color: var(--borde-sutil, #e6ebef); border-radius: 12px; box-shadow: none; }
+
+/* ---------- Mi plan ---------- */
+/* El mes gratis: una tarjeta tranquila, sin regalo grande. */
+.pln-pagina .tarjeta-gratis { display: block; margin: 0 0 12px; padding: 14px 18px; border: 1px solid var(--borde-sutil, #e6ebef);
+  border-left: 3px solid var(--acento); border-radius: 12px; background: var(--superficie); }
+.pln-pagina .tarjeta-gratis .rotulo { font-size: 11.5px; color: var(--tinta-3); font-weight: 500; }
+.pln-pagina .tarjeta-gratis h2 { margin: 2px 0 6px; font-size: 17px; font-weight: 650; color: var(--tinta); }
+.pln-pagina .tarjeta-gratis p { margin: 0 0 2px; font-size: 13px; color: var(--tinta-2); line-height: 1.5; }
+.pln-pagina .tarjeta-gratis strong { color: var(--tinta); font-weight: 600; }
+.pln-pagina .franja-plan { font-size: 13px; padding: 9px 14px; border-radius: 10px; }
+
+/* Lo que usó en su mes gratis: una línea. */
+.pln-pagina .recomendacion-plan { margin: 0 0 16px; padding: 9px 14px; border-radius: 10px; font-size: 12.5px; color: #7a5200;
+  background: #fdf8ee; border: 1px solid #f1e2c0; }
+.pln-pagina .recomendacion-plan strong { font-weight: 600; }
+
+/* Mensual / Anual: pastillas. */
+.pln-pagina .segmentado.periodo-plan { background: transparent; padding: 0; border: 0; gap: 6px; margin: 0 0 18px; box-shadow: none; }
+.pln-pagina .segmentado.periodo-plan button { border-radius: 999px; border: 1px solid var(--borde); background: var(--superficie);
+  height: 30px; min-height: 0; padding: 0 14px; font-size: 12.5px; color: var(--tinta-2); box-shadow: none; }
+.pln-pagina .segmentado.periodo-plan button.elegido { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+
+/* Las tres tarjetas. */
+.pln-pagina .tarjetas-plan { gap: 14px; }
+.pln-pagina .tarjeta-plan { gap: 8px; padding: 22px 20px 18px; border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 14px;
+  box-shadow: none; background: var(--superficie); }
+.pln-pagina .tarjeta-plan.destacada { border-color: var(--acento); box-shadow: none; }
+.pln-pagina .tarjeta-plan.actual { background: var(--superficie); }
+.pln-pagina .tarjeta-plan.ahora { border-color: #e6cf9c; box-shadow: none; }
+.pln-pagina .tarjeta-plan h2 { font-size: 16px; font-weight: 650; letter-spacing: -.005em; }
+.pln-pagina .tarjeta-plan > p.secundario { font-size: 12.5px; color: var(--tinta-3); }
+.pln-pagina .cinta-plan { top: -9px; left: 18px; padding: 1px 9px; font-size: 10.5px; font-weight: 600; letter-spacing: .01em; }
+.pln-pagina .tarjetas-plan .incluye-plan { display: block; align-self: stretch; padding: 0; background: none; border-radius: 0; font-size: 12px; font-weight: 600; line-height: 1.45; min-height: 3.1em; color: var(--tinta-2); }
+.pln-pagina .tarjetas-plan .incluye-plan.pro { color: var(--acento); }
+.pln-pagina .tarjetas-plan .incluye-plan.max { color: #8a5a00; }
+.pln-pagina .precio-plan { gap: 6px; margin: 8px 0 0; padding-top: 12px; border-top: 1px solid var(--borde-sutil, #e6ebef); }
+.pln-pagina .precio-plan strong { font-size: 26px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.pln-pagina .precio-plan s { font-size: 12.5px; }
+.pln-pagina .precio-plan span { font-size: 12.5px; }
+.pln-pagina .oferta-plan { font-size: 11.5px; line-height: 1.45; color: var(--tinta-3); }
+.pln-pagina .tarjetas-plan .lista-plan { list-style: none; padding: 0; margin: 6px 0 14px; gap: 7px; font-size: 12.5px; line-height: 1.45; color: var(--tinta-2); }
+.pln-pagina .tarjetas-plan .lista-plan li { position: relative; padding-left: 20px; font-weight: 400; }
+.pln-pagina .tarjetas-plan .lista-plan li::before { content: ""; position: absolute; left: 2px; top: 4px; width: 9px; height: 5px;
+  border-left: 1.6px solid var(--acento); border-bottom: 1.6px solid var(--acento); transform: rotate(-45deg); }
+.pln-pagina .tarjetas-plan .lista-plan li.nuevo-plan { color: var(--tinta); font-weight: 500; }
+.pln-pagina .tarjetas-plan .lista-plan li.tope-plan { color: var(--tinta-2); }
+.pln-pagina .tarjetas-plan .lista-plan li.tope-plan s { color: var(--tinta-3); font-size: 11.5px; }
+.pln-pagina .pie-tarjeta-plan { gap: 6px; }
+.pln-pagina .pie-tarjeta-plan .boton { min-height: 34px; height: 34px; padding: 0 14px; font-size: 12.5px; }
+.pln-pagina .pie-tarjeta-plan .etiqueta { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+
+/* Lo que pagarías: una franja clara, el botón a la derecha. */
+.pln-pagina .resumen-pago { max-width: none; margin-top: 16px; padding: 16px 20px; background: var(--superficie);
+  border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 14px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 24px; align-items: center; }
+.pln-pagina .resumen-pago h3 { grid-column: 1 / -1; margin: 0 0 6px; font-size: 13.5px; font-weight: 650; }
+.pln-pagina .resumen-pago .filas-pago { grid-column: 1; margin: 0; gap: 5px; font-size: 13px; color: var(--tinta-2); max-width: 560px; }
+.pln-pagina .resumen-pago .filas-pago strong { color: var(--tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pln-pagina .resumen-pago .filas-pago .fuerte { font-size: 13.5px; color: var(--tinta); }
+.pln-pagina .resumen-pago .condiciones-pago { grid-column: 1; margin: 8px 0 0; flex-direction: row; flex-wrap: wrap; gap: 4px 16px; font-size: 11.5px; }
+.pln-pagina .resumen-pago .boton { grid-column: 2; grid-row: 2 / span 2; align-self: center; min-height: 38px; padding: 0 18px; font-size: 13px; }
+.pln-pagina .resumen-pago .nota { grid-column: 1 / -1; margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--borde-sutil, #e6ebef);
+  font-size: 11.5px; color: var(--tinta-3); }
+.pln-pagina > .nota, .pln-pagina .nota-cartera { font-size: 12px; color: var(--tinta-3); margin: 10px 0 0; }
+
+/* Cancelar: una línea discreta, no una caja grande. */
+.pln-pagina .cancelar-plan { margin-top: 18px; padding: 0; border: 0; background: transparent; }
+.pln-pagina .cancelar-plan > p.secundario { font-size: 12px; color: var(--tinta-3); }
+.pln-pagina .cancelar-plan > p.secundario .enlace { font-size: 12px; color: var(--tinta-2); }
+.pln-pagina .cancelar-plan:has(h2), .pln-pagina .cancelar-plan.cancelado { padding: 16px 20px; border: 1px solid var(--borde-sutil, #e6ebef); background: var(--superficie); border-radius: 14px; }
+.pln-pagina .cancelar-plan h2 { font-size: 15px; margin: 0 0 6px; }
+
+/* ---------- Mis pagos ---------- */
+.pln-pagina .banda-modo { padding: 8px 14px; border-radius: 10px; font-size: 12.5px; margin-bottom: 14px; }
+.pln-pagina .pagos-cuerpo { grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; margin-bottom: 14px; }
+.pln-pagina .pagos-pasos { display: grid; gap: 14px; align-content: start; }
+.pln-pagina .pagos-pasos .bloque { margin: 0; }
+.pln-pagina .paso-pago, .pln-pagina .resumen-pagar { padding: 20px 22px; }
+.pln-pagina .paso-pago h2, .pln-pagina .resumen-pagar h2 { font-size: 15px; font-weight: 650; margin: 0 0 12px; gap: 10px; }
+.pln-pagina .numero-paso { width: 22px; height: 22px; font-size: 11.5px; font-weight: 650; margin: 0; }
+.pln-pagina .paso-pago > p.secundario, .pln-pagina .resumen-datos p { font-size: 12.5px; color: var(--tinta-2); }
+.pln-pagina .resumen-datos .etiqueta { font-size: 10.5px; padding: 1px 7px; border-radius: 999px; }
+.pln-pagina .resumen-datos .boton { min-height: 30px; height: 30px; padding: 0 12px; font-size: 12.5px; }
+
+/* Factura / Boleta y Mensual / Anual: opciones bajas. */
+.pln-pagina .elige-doc, .pln-pagina .elige-periodo { gap: 8px; margin-bottom: 14px; }
+.pln-pagina .elige-doc label, .pln-pagina .elige-periodo label { padding: 7px 14px; border-radius: 10px; font-size: 13px; box-shadow: none; min-height: 0; }
+.pln-pagina .elige-doc label strong { font-size: 13px; font-weight: 600; }
+.pln-pagina .elige-doc label span { font-size: 11.5px; }
+.pln-pagina .elige-doc label.activo, .pln-pagina .elige-periodo label.activo { border-color: var(--acento); background: #f4f9f8; box-shadow: 0 0 0 3px var(--acento-suave); }
+.pln-pagina .resumen-pagar .elige-periodo label { padding: 7px 8px; font-size: 12.5px; line-height: 1.3; }
+
+.pln-pagina .rejilla-datos { gap: 0 12px; }
+.pln-pagina .rejilla-datos .campo > span { font-size: 12px; font-weight: 600; color: var(--tinta-2); }
+.pln-pagina .rejilla-datos input, .pln-pagina .rejilla-datos select { min-height: 38px; height: 38px; font-size: 13px; border-radius: 8px; }
+.pln-pagina .rejilla-datos .campo small { font-size: 11.5px; }
+.pln-pagina .acciones-bloque .boton { min-height: 36px; font-size: 13px; }
+.pln-pagina .paso-bloqueado { padding: 10px 14px; border-radius: 10px; font-size: 12.5px; }
+.pln-pagina .paso-pago .nota.seguridad { font-size: 11.5px; color: var(--tinta-3); }
+.pln-pagina .lista-tarjetas li { padding: 9px 14px; border-radius: 10px; font-size: 13px; }
+.pln-pagina .lista-tarjetas .etiqueta { font-size: 10.5px; padding: 1px 7px; border-radius: 999px; }
+.pln-pagina .lista-tarjetas .enlace { font-size: 12px; text-decoration: none; font-weight: 600; }
+.pln-pagina .paso-pago > .boton, .pln-pagina .paso-pago .boton { min-height: 34px; font-size: 12.5px; }
+
+/* Estado y pago (columna derecha). */
+.pln-pagina .estado-pago { padding: 12px 16px; border-radius: 12px; border-color: var(--borde-sutil, #e6ebef); box-shadow: none; background: var(--superficie); }
+.pln-pagina .estado-pago .rotulo { font-size: 11px; }
+.pln-pagina .estado-pago strong { font-size: 13.5px; font-weight: 600; }
+.pln-pagina .estado-pago .nota { font-size: 12px; }
+.pln-pagina .resumen-pagar { border-top: 1px solid var(--borde-sutil, #e6ebef); }
+.pln-pagina .detalle-pago { padding: 14px; border-radius: 10px; }
+.pln-pagina .detalle-pago > .monto-grande, .pln-pagina .monto-grande { font-size: 26px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.pln-pagina .monto-grande span { font-size: 12.5px; }
+.pln-pagina .concepto-pago { font-size: 12px; margin: 4px 0 10px; }
+.pln-pagina .detalle-pago > .fila-resumen, .pln-pagina .fila-resumen { font-size: 12.5px; }
+.pln-pagina .detalle-pago > .fila-resumen strong { font-size: 12.5px; font-weight: 600; }
+.pln-pagina .resumen-pagar .pista { font-size: 11.5px; color: var(--tinta-3); line-height: 1.45; }
+.pln-pagina .resumen-pagar .boton { min-height: 38px; font-size: 13px; }
+.pln-pagina .se-cobra { font-size: 12px; }
+.pln-pagina .nota-lanzamiento { font-size: 11.5px; padding: 7px 10px; border-radius: 8px; }
+
+/* Historial. */
+.pln-pagina .tabla th { font-size: 11px; letter-spacing: .04em; color: var(--tinta-3); }
+.pln-pagina .tabla td { font-size: 12.5px; }
+.pln-pagina .datos-banco { font-size: 12.5px; border-radius: 8px; }
+.pln-pagina section.bloque > h2 { font-size: 15px; font-weight: 650; }
+@media (max-width: 900px) {
+  .pln-pagina .resumen-pago { grid-template-columns: 1fr; }
+  .pln-pagina .resumen-pago .boton { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 10px; }
+}
+
+/* ---------- Plan Cartera (Cuenta Profesional) ---------- */
+.pln-pagina .cartera-plan > .bloque { padding: 20px 22px; }
+.pln-pagina .cartera-plan .bloque h2 { font-size: 15px; font-weight: 650; margin: 0 0 4px; }
+.pln-pagina .cartera-plan .bloque > p.secundario { font-size: 12.5px; color: var(--tinta-2); }
+.pln-pagina .calculadora-cartera { gap: 8px; margin: 10px 0 6px; }
+.pln-pagina .calculadora-cartera input { width: 84px; height: 34px; font-size: 15px; font-weight: 600; border-radius: 8px; }
+.pln-pagina .paquetes-cartera { gap: 6px; }
+.pln-pagina .paquetes-cartera button { min-width: 0; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; color: var(--tinta-2); }
+.pln-pagina .paquetes-cartera button.elegido { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.pln-pagina .total-cartera { font-size: 13px; gap: 5px; max-width: 420px; color: var(--tinta-2); }
+.pln-pagina .total-cartera strong { color: var(--tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pln-pagina .total-cartera .suma { font-size: 14px; color: var(--tinta); }
+.pln-pagina .cartera-plan .bloque > .boton, .pln-pagina .cartera-plan .boton { min-height: 34px; font-size: 12.5px; }
+.pln-pagina .franja-cupos { font-size: 12px; }
+.pln-pagina .planes-cartera { padding: 14px 18px; border-color: var(--borde-sutil, #e6ebef); border-radius: 12px; }
+.pln-pagina .planes-cartera summary { font-size: 13px; }
+.pln-pagina .planes-cartera-rejilla { gap: 14px; }
+.pln-pagina .planes-cartera-rejilla h3 { font-size: 14px; font-weight: 650; }
+.pln-pagina .planes-cartera-rejilla .incluye-plan { padding: 0; background: none; font-size: 12px; font-weight: 600; margin: 4px 0; }
+.pln-pagina .planes-cartera-rejilla .lista-plan { font-size: 12.5px; gap: 5px; line-height: 1.45; }
+.pln-pagina .planes-cartera-rejilla .lista-plan li.nuevo-plan { font-weight: 500; }
+.pln-pagina .cartera-plan .bloque.sin-relleno { padding: 0; overflow: hidden; }
+.pln-pagina .cartera-plan .tabla select { height: 30px; min-height: 0; font-size: 12.5px; border-radius: 7px; }
+.pln-pagina .ayuda-tabla { font-size: 12px; color: var(--tinta-3); }
+.pln-pagina .como-funciona { border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 12px; padding: 14px 18px; }
+.pln-pagina .como-funciona h3 { font-size: 13.5px; font-weight: 650; }
+.pln-pagina .como-funciona ul { font-size: 12.5px; gap: 5px; }

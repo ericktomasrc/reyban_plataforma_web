@@ -96,3 +96,69 @@ tr.inactivo td { color: var(--tinta-3); }
 /* 068: los números de serie de un bien que viaja entre locales. */
 .series-bien { display: block; margin-top: 4px; font-size: 13px; text-align: left; }
 .series-bien.mal { color: var(--peligro); }
+/* --- Diseño 16 nov: Nueva guía y detalle, más sobrios -------------------- */
+.nc.guia-form .nc-paso { display: inline-grid; width: 24px; height: 24px; font-size: 12px; font-weight: 650; }
+.nc.guia-form .nc-tarjeta > .nc-titulo { padding-bottom: 12px; margin: 0 0 16px; border-bottom: 1px solid var(--borde-sutil, #eef2f3); font-size: 15px; }
+.nc.guia-form .nc-tarjeta > .nc-titulo .secundario { font-weight: 400; font-size: 13px; margin-left: 4px; }
+.gr-ver .tarjetas-guia { gap: 14px; }
+.gr-ver .tarjetas-guia .bloque { padding: 16px 18px; }
+.gr-ver .tarjetas-guia .rotulo { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 650; color: var(--tinta);
+  padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--borde-sutil, #eef2f3); }
+.gr-ver .tarjetas-guia p { font-size: 13.5px; line-height: 1.5; }
+.gr-ver .tarjetas-guia p strong { font-weight: 600; }
+.gr-ver .vc-lado .subtitulo { text-transform: none; letter-spacing: 0; font-size: 13.5px; font-weight: 650; color: var(--tinta); margin-bottom: 12px; }
+.gr-ver .vc-lado .vc-tarjeta { padding: 16px 18px; }
+.gr-ver .vc-lado .vc-explica { font-size: 12.5px; }
+/* --- 16 nov: Nueva guía en 4 pasos con resumen a la derecha -------------- */
+.nc.guia-form .gr-paso .nc-titulo .nc-paso { display: none; }
+.nc.guia-form .gr-paso > .nc-tarjeta + .nc-tarjeta { margin-top: 14px; }
+.nc.guia-form .gr-navegar { display: flex; justify-content: space-between; gap: 10px; margin: 16px 0 8px; }
+.nc.guia-form .gr-resumen dd { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nc.guia-form .gr-resumen .nc-resumen-totales .total { font-size: 17px; }
+.nc.guia-form .guia-antes { margin-top: 12px; }
+.nc.guia-form .gr-barra { display: none; }
+@media (max-width: 1100px) { .nc.guia-form .gr-barra { display: flex; } .nc.guia-form .gr-resumen .nc-resumen-botones { display: none; } }
+/* --- 16 nov: modales de guías y configuración ---------------------------- */
+.gr-dlg-nota { margin: 0 0 14px; padding: 10px 12px; border-radius: 8px; background: var(--hundido, #f3f6f7); font-size: 13px; line-height: 1.5; color: var(--tinta-2); }
+.dialogo .nota.se-aplica { margin: 0 0 12px; font-size: 12px; }
+.dlg-sec-c .pareja.gr-ruc { grid-template-columns: 150px minmax(0, 1fr); }
+.cmp-mes.gr-estado { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cmp-mes.gr-estado .cmp-mes-dato strong { font-size: 18px; }
+@media (max-width: 720px) { .cmp-mes.gr-estado { grid-template-columns: 1fr; } .dlg-sec-c .pareja.gr-ruc { grid-template-columns: 1fr; } }
+/* --- 16 nov (2): comprobante, destinatario y carga ------------------------ */
+.guia-form .gr-fijo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  padding: 12px 14px; margin-bottom: 16px; border: 1px solid var(--borde-sutil, #e3eaed); border-radius: 10px; background: var(--hundido, #f6f8f9); font-size: 13.5px; }
+.guia-form .gr-quitar, .guia-form .gr-quitar.boton { color: var(--peligro, #b42318); font-weight: 600; }
+.guia-form .gr-quitar:hover { background: #fdecea; color: var(--peligro, #b42318); }
+.guia-form .gr-destino > div { display: grid; gap: 2px; min-width: 0; }
+.guia-form .gr-destino small { font-size: 12px; color: var(--tinta-3); }
+.guia-form .gr-destino strong { font-size: 15px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 520px; }
+.guia-form .gr-destino .mono { font-size: 12.5px; color: var(--tinta-2); }
+.guia-form .gr-destino > .secundario { font-size: 12.5px; }
+.tabla.gr-bienes { table-layout: fixed; width: 100%; }
+.tabla.gr-bienes col.c-n { width: 40px; }
+.tabla.gr-bienes col.c-u { width: 125px; }
+.tabla.gr-bienes col.c-q { width: 112px; }
+.tabla.gr-bienes col.c-x { width: 72px; }
+.tabla.gr-bienes td { vertical-align: middle; padding-top: 10px; padding-bottom: 10px; }
+.tabla.gr-bienes td > .secundario.mono { font-size: 11.5px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tabla.gr-bienes .gr-bien-texto { font-size: 13.5px; font-weight: 500; line-height: 1.4; color: var(--tinta);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.tabla.gr-bienes td.derecha .cantidad { margin-left: auto; display: block; }
+.tabla.gr-bienes td.derecha > div { font-size: 11.5px; margin-top: 3px; }
+.tabla.gr-bienes .gr-quitar-fila { color: var(--tinta-3); font-size: 12.5px; padding: 4px 8px; }
+.tabla.gr-bienes .gr-quitar-fila:hover { color: var(--peligro, #b42318); background: #fdecea; }
+.guia-form .acciones-linea { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 4px; }
+.guia-form .gr-sub { font-size: 13px; font-weight: 650; color: var(--tinta); margin: 22px 0 10px; padding-top: 16px; border-top: 1px solid var(--borde-sutil, #eef2f3); text-transform: none; letter-spacing: 0; }
+@media (max-width: 760px) { .tabla.gr-bienes { table-layout: auto; } .guia-form .gr-destino strong { max-width: 100%; } }
+.tabla.gr-bienes td input:not(.cantidad) { width: 100%; max-width: none; }
+.tabla.gr-bienes td select { width: 100%; max-width: none; background-color: var(--superficie, #fff); }
+.tabla.gr-bienes th.derecha, .tabla.gr-bienes td.derecha { text-align: right; }
+/* 16 nov (3): «Quitar» sigue rojo al pasar el mouse o al hacer clic (antes lo pisaba .boton.plano:hover). */
+.nc.guia-form .boton.plano.gr-quitar,
+.nc.guia-form .boton.plano.gr-quitar:hover:not(:disabled),
+.nc.guia-form .boton.plano.gr-quitar:focus-visible,
+.nc.guia-form .boton.plano.gr-quitar:active:not(:disabled) { color: var(--peligro, #b42318); }
+.nc.guia-form .boton.plano.gr-quitar:hover:not(:disabled),
+.nc.guia-form .boton.plano.gr-quitar:active:not(:disabled) { background: #fdecea; box-shadow: none; }
+.tabla.gr-bienes .boton.plano.gr-quitar-fila:hover:not(:disabled) { color: var(--peligro, #b42318); background: #fdecea; box-shadow: none; }

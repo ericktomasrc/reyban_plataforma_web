@@ -1,0 +1,138 @@
+/* =============================================================================
+   Diseño 16 nov — CONFIGURACIÓN MÁS AMIGABLE (el asistente de la empresa).
+   Pasos arriba, una ayuda a la derecha de cada paso, letras contenidas.
+   Todo bajo .cfg-pagina.
+   ========================================================================== */
+.cfg-pagina { font-size: 13px; }
+.cfg-pagina .enlace-volver { font-size: 12.5px; }
+.cfg-pagina .encabezado-pagina { align-items: flex-end; gap: 16px; margin: 8px 0 14px; }
+.cfg-pagina .encabezado-pagina .titulo-pagina { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+.cfg-pagina .bajada-pagina { margin: 4px 0 0; font-size: 13px; color: var(--tinta-2); }
+
+/* Los pasos, en una barra. */
+.cfg-pasos { list-style: none; margin: 0 0 14px; padding: 8px 12px; display: flex; gap: 0;
+  background: var(--superficie); border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 12px; overflow-x: auto; }
+.cfg-pasos li { flex: 1 1 0; display: flex; align-items: center; min-width: max-content; }
+.cfg-pasos li::after { content: ""; flex: 1; min-width: 12px; height: 1px; background: var(--borde-sutil, #e6ebef); margin: 0 8px; }
+.cfg-pasos li:last-child { flex: 0 0 auto; }
+.cfg-pasos li:last-child::after { display: none; }
+.cfg-pasos .paso-boton { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 2px;
+  font: inherit; font-size: 12.5px; color: var(--tinta-3); cursor: pointer; text-align: left; }
+.cfg-pasos .paso-boton:disabled { cursor: default; }
+.cfg-pasos .paso-boton:not(:disabled):hover span { color: var(--tinta); }
+.cfg-pasos .paso-boton i { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #cdd6dd; background: #fff;
+  display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 650; color: var(--tinta-3); }
+.cfg-pasos .paso-boton small { display: block; font-size: 10.5px; color: var(--tinta-3); font-weight: 400; line-height: 1.2; }
+.cfg-pasos li.hecho .paso-boton { color: var(--tinta-2); }
+.cfg-pasos li.hecho .paso-boton i { background: var(--acento); border-color: var(--acento); color: #fff; }
+.cfg-pasos li.actual .paso-boton { color: var(--tinta); font-weight: 650; }
+.cfg-pasos li.actual .paso-boton i { border-color: var(--acento); color: var(--acento); box-shadow: 0 0 0 3px var(--acento-suave); }
+
+/* El paso y su ayuda. */
+.cfg-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.cfg-pagina .asistente-paso { margin: 0; border-color: var(--borde-sutil, #e6ebef); border-radius: 12px; padding: 22px 26px; display: grid; gap: 14px; align-content: start; }
+.cfg-pagina .asistente-paso h2 { margin: 0; font-size: 16px; font-weight: 650; }
+.cfg-pagina .asistente-paso form { display: grid; gap: 14px; }
+.cfg-pagina .texto-paso { font-size: 13px; line-height: 1.5; margin-top: -8px; }
+.cfg-pagina .asistente-paso .campo, .cfg-pagina .asistente-paso .aviso, .cfg-pagina .asistente-paso .pareja > .campo { margin-bottom: 0; }
+.cfg-pagina .asistente-paso .pareja { gap: 12px; }
+.cfg-pagina .asistente-paso .campo .etiqueta, .cfg-pagina .asistente-paso .campo > label { font-size: 12px; font-weight: 600; color: var(--tinta-2); }
+.cfg-pagina .asistente-paso input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.cfg-pagina .asistente-paso select { min-height: 38px; font-size: 13px; border-radius: 8px; }
+.cfg-pagina .asistente-paso .pista { font-size: 11.5px; }
+.cfg-pagina .asistente-paso .aviso { font-size: 12.5px; padding: 10px 14px; border-radius: 10px; }
+.cfg-pagina .pie-asistente { border-top: 1px solid var(--borde-sutil, #e6ebef); padding-top: 14px; margin-top: 4px; }
+.cfg-pagina .pie-asistente .boton { min-height: 36px; font-size: 13px; }
+
+.cfg-ayuda { background: var(--superficie); border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 12px; padding: 16px 18px;
+  font-size: 12.5px; color: var(--tinta-2); line-height: 1.5; position: sticky; top: 16px; }
+.cfg-ayuda h3 { margin: 0 0 10px; font-size: 13px; font-weight: 650; color: var(--tinta); }
+.cfg-ayuda ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.cfg-ayuda li { position: relative; padding-left: 13px; }
+.cfg-ayuda li::before { content: ""; position: absolute; left: 0; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--acento); }
+.cfg-ayuda strong { color: var(--tinta); font-weight: 600; }
+.cfg-ayuda-pie { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--borde-sutil, #e6ebef); font-size: 12px; color: var(--tinta-3); }
+
+/* Paso 1: el RUC solo, y lo que trae SUNAT. */
+.cfg-ruc { max-width: 340px; }
+.cfg-ruc input { font-size: 17px !important; letter-spacing: .04em; min-height: 44px !important; }
+.cfg-a-mano { border-top: 1px solid var(--borde-sutil, #e6ebef); padding-top: 14px; }
+.cfg-a-mano .enlace, .cfg-sunat .enlace { font-size: 12.5px; font-weight: 600; text-decoration: none; }
+.cfg-sunat { border: 1px solid #cfe3dc; background: #f6faf8; border-radius: 10px; padding: 14px 16px; }
+.cfg-sunat-t { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px;
+  font-size: 12px; font-weight: 650; color: var(--bien, #1b6b4a); }
+.cfg-sunat-t .etiqueta { margin-left: 8px; font-size: 10.5px; padding: 1px 8px; border-radius: 999px; }
+.cfg-sunat dl { margin: 0; display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; font-size: 13px; }
+.cfg-sunat dt { color: var(--tinta-3); font-size: 12px; }
+.cfg-sunat dd { margin: 0; }
+.cfg-sunat .secundario { color: var(--tinta-3); }
+.cfg-ojo { margin: 0; font-size: 12px; color: var(--aviso); }
+
+/* Dos caminos (certificado, series). */
+.cfg-opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cfg-opcion { display: grid; gap: 4px; align-content: start; text-align: left; font: inherit; cursor: pointer;
+  border: 1px solid var(--borde); border-radius: 10px; padding: 14px 16px; background: var(--superficie); color: var(--tinta); }
+.cfg-opcion:hover { border-color: var(--acento); }
+.cfg-opcion i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #b9c4cc; margin-bottom: 4px; }
+.cfg-opcion strong { font-size: 13.5px; font-weight: 650; }
+.cfg-opcion span { font-size: 12px; color: var(--tinta-2); line-height: 1.45; }
+.cfg-opcion.elegida { border-color: var(--acento); box-shadow: 0 0 0 3px var(--acento-suave); }
+.cfg-opcion.elegida i { border: 5px solid var(--acento); }
+.cfg-opcion:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.cfg-nota { margin: 0; border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 10px; padding: 11px 14px; font-size: 12.5px; color: var(--tinta-2); }
+
+/* Series de cero. */
+.cfg-series { display: grid; gap: 8px; }
+.cfg-serie { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 10px; }
+.cfg-serie strong { width: 50px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.cfg-serie-d { flex: 1; color: var(--tinta-2); }
+.cfg-serie-n { color: var(--tinta-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.cfg-serie .etiqueta { font-size: 10.5px; padding: 1px 8px; border-radius: 999px; }
+.cfg-serie .boton { min-height: 30px; height: 30px; padding: 0 12px; font-size: 12.5px; }
+.cfg-series-sub { font-size: 12px; color: var(--tinta-3); margin: 6px 0 0; }
+.cfg-pagina .tabla th { font-size: 11px; letter-spacing: .04em; color: var(--tinta-3); }
+.cfg-pagina .tabla td { font-size: 12.5px; }
+.cfg-pagina .mono { font-family: inherit; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.cfg-pagina .chips .chip { font-size: 12px; }
+
+/* Paso 4: la marca, en su bloque. */
+.cfg-marca { display: grid; gap: 14px; border-top: 1px solid var(--borde-sutil, #e6ebef); padding-top: 14px; }
+.cfg-marca-t { display: flex; align-items: baseline; gap: 10px; }
+.cfg-marca-t strong { font-size: 13.5px; font-weight: 650; }
+.cfg-marca-t span { font-size: 12px; color: var(--tinta-3); }
+/* Formato del PDF: tarjetas bajas y «Ver ejemplo» con forma de botón. */
+.cfg-pagina .modos-consulta { gap: 10px; }
+.cfg-pagina .modos-consulta .modo { border-radius: 10px; padding: 10px 14px; gap: 4px; border: 1px solid var(--borde); }
+.cfg-pagina .modos-consulta .modo.elegido { border: 1px solid var(--acento); box-shadow: 0 0 0 3px var(--acento-suave); }
+.cfg-pagina .modos-consulta .modo .interruptor { margin: 0; gap: 8px; font-size: 13px; }
+.cfg-pagina .modos-consulta .modo .interruptor strong { font-size: 13px; font-weight: 650; }
+.cfg-pagina .modos-consulta .modo .interruptor input { width: 15px; height: 15px; accent-color: var(--acento); }
+.cfg-pagina .modos-consulta .modo > span { font-size: 12px; line-height: 1.45; color: var(--tinta-2); opacity: 1; }
+.cfg-pagina .modos-consulta .modo .boton.plano { justify-self: start; margin-top: 4px; min-height: 28px; height: 28px; padding: 0 10px;
+  font-size: 12px; font-weight: 600; color: var(--acento); background: var(--superficie); border: 1px solid #bfd9d6; border-radius: 7px; opacity: 1; }
+.cfg-pagina .modos-consulta .modo .boton.plano:hover { background: var(--acento-suave); border-color: var(--acento); }
+.cfg-pagina .vista-correo-titulo { font-size: 11.5px; }
+.cfg-pagina .boton-muestra { cursor: default; pointer-events: none; padding: 6px 12px; font-size: 12.5px; }
+.cfg-pagina .vista-correo { border-color: var(--borde-sutil, #e6ebef); border-radius: 10px; }
+.cfg-pagina .vista-correo-cuerpo { font-size: 13px; padding: 14px; }
+.cfg-pagina .guia-certificado { font-size: 12.5px; }
+
+/* Paso 6. */
+.cfg-pagina .lista-listo { font-size: 13px; }
+.cfg-pagina .lista-listo-texto span { font-size: 12px; color: var(--tinta-3); }
+.cfg-pagina .marca-listo.opcional { background: var(--hundido, #eef1f4); color: var(--tinta-3); border-color: transparent; }
+.cfg-pagina .cabecera-listo h2 { font-size: 18px; }
+.cfg-pagina .nota { font-size: 12px; }
+
+@media (max-width: 1100px) {
+  .cfg-cuerpo { grid-template-columns: 1fr; }
+  .cfg-ayuda { position: static; }
+}
+@media (max-width: 700px) {
+  .cfg-pagina .asistente-paso { padding: 16px; }
+  .cfg-opciones { grid-template-columns: 1fr; }
+  .cfg-pasos .paso-boton span { display: none; }
+  .cfg-pasos li.actual .paso-boton span { display: inline; }
+  .cfg-serie { flex-wrap: wrap; }
+  .cfg-sunat dl { grid-template-columns: 1fr; gap: 2px; }
+}

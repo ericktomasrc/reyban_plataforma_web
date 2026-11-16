@@ -1,0 +1,1243 @@
+/* ==========================================================================
+   REFINAMIENTO VISUAL REYBAN
+   Estilo minimalista. Conserva íntegramente la paleta de marca existente.
+   Esta hoja solo contiene reglas de presentación; no introduce lógica.
+   ========================================================================== */
+
+:root {
+  --radio: 7px;
+  --radio-grande: 10px;
+  --sombra: 0 1px 2px rgb(22 32 42 / 4%), 0 8px 24px rgb(22 32 42 / 5%);
+}
+
+/* Lectura y ritmo visual */
+body {
+  font-size: 14px;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.025em;
+}
+
+h1 { font-size: clamp(22px, 2vw, 27px); }
+h2 { font-size: 18px; }
+h3 { font-size: 15px; }
+
+::selection {
+  background: var(--acento-suave);
+  color: var(--acento-fuerte);
+}
+
+/* Marco y navegación */
+.cabecera {
+  min-height: 60px;
+  height: auto;
+  padding-inline: clamp(16px, 2.2vw, 30px);
+  box-shadow: 0 1px 0 rgb(22 32 42 / 2%);
+}
+
+.cabecera .logo {
+  letter-spacing: -0.035em;
+  font-size: 16px;
+}
+
+.cabecera .selector-boton {
+  border-radius: 8px;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.lateral {
+  width: 252px;
+  padding: 20px 14px;
+  gap: 16px;
+  background: var(--superficie);
+}
+
+.seccion-lateral + .seccion-lateral {
+  padding-top: 15px;
+}
+
+.titulo-seccion {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  padding-inline: 13px;
+}
+
+.seccion-lateral a {
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  transition: color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.seccion-lateral a:hover {
+  transform: translateX(2px);
+}
+
+.seccion-lateral a.activo {
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--acento);
+}
+
+.contenido {
+  padding: clamp(22px, 3vw, 38px) clamp(18px, 3vw, 42px);
+}
+
+.contenido > * {
+  max-width: 1240px;
+}
+
+.titulo-pagina {
+  margin-bottom: 26px;
+}
+
+.encabezado-pagina {
+  margin-bottom: 24px;
+  align-items: flex-end;
+}
+
+.migas {
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+/* Superficies y tarjetas */
+.bloque {
+  border-color: var(--borde-sutil);
+  border-radius: 10px;
+  padding: clamp(18px, 2vw, 26px);
+  box-shadow: 0 1px 2px rgb(22 32 42 / 3%);
+  margin-bottom: 20px;
+}
+
+.bloque > h2 {
+  margin-bottom: 16px;
+}
+
+.bloque.sin-relleno {
+  border-radius: 10px;
+}
+
+.bloque.sin-relleno .relleno {
+  padding: clamp(16px, 2vw, 24px);
+}
+
+/* Formularios */
+.campo {
+  gap: 6px;
+  margin-bottom: 17px;
+}
+
+.campo > label,
+.campo > .etiqueta {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: 7px;
+  border-color: var(--borde);
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.campo textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.campo input:hover,
+.campo select:hover,
+.campo textarea:hover {
+  border-color: var(--tinta-3);
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-suave);
+}
+
+.campo input:disabled,
+.campo select:disabled,
+.campo textarea:disabled {
+  background: var(--papel);
+  color: var(--tinta-3);
+}
+
+.campo .pista {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Botones: se conserva el color y la función de cada variante */
+.boton {
+  min-height: 38px;
+  padding: 8px 16px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.boton:hover:not(:disabled) {
+  box-shadow: 0 3px 9px rgb(22 32 42 / 9%);
+}
+
+.boton:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.boton.secundario {
+  border-color: var(--borde);
+}
+
+.boton.plano {
+  box-shadow: none;
+}
+
+/* Tablas */
+.tabla {
+  font-size: 13px;
+}
+
+.tabla th {
+  padding: 13px 16px;
+  background: var(--papel);
+  color: var(--tinta-2);
+  font-size: 10px;
+  letter-spacing: .075em;
+  border-bottom-color: var(--borde-sutil);
+}
+
+.tabla td {
+  padding: 13px 16px;
+  line-height: 1.45;
+}
+
+.tabla tbody tr {
+  transition: background 120ms ease;
+}
+
+.tabla tbody tr:hover {
+  background: var(--acento-suave);
+}
+
+.tabla .principal {
+  font-weight: 600;
+}
+
+.tabla .secundario {
+  font-size: 11.5px;
+}
+
+.tabla .acciones .boton {
+  min-height: 32px;
+  padding: 5px 10px;
+}
+
+/* Estados, etiquetas y avisos */
+.etiqueta {
+  font-family: var(--fuente);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+
+.estado {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estado::before {
+  width: 6px;
+  height: 6px;
+}
+
+.aviso {
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Ventanas */
+.dialogo {
+  border-radius: 12px;
+  border-color: var(--borde-sutil);
+  box-shadow: 0 18px 60px rgb(22 32 42 / 18%);
+}
+
+.dialogo-cabecera {
+  padding: 17px 22px;
+}
+
+.dialogo-cabecera h2 {
+  font-size: 16px;
+}
+
+.dialogo-cuerpo {
+  padding: 22px;
+}
+
+.dialogo-pie {
+  padding: 14px 22px;
+  background: var(--superficie);
+}
+
+/* Acceso */
+.tarjeta-acceso {
+  max-width: 410px;
+  padding: 34px 32px;
+  border-color: var(--borde-sutil);
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgb(22 32 42 / 7%);
+}
+
+.tarjeta-acceso .marca {
+  letter-spacing: .14em;
+  font-size: 11px;
+}
+
+.tarjeta-acceso h1 {
+  letter-spacing: -0.035em;
+}
+
+/* Controles nativos y accesibilidad */
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .lateral {
+    width: min(290px, 86vw);
+    padding: 18px 14px;
+  }
+
+  .contenido {
+    padding: 22px 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .cabecera {
+    padding: 10px 14px;
+  }
+
+  .contenido {
+    padding: 18px 14px;
+  }
+
+  .encabezado-pagina {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .bloque {
+    padding: 16px;
+  }
+
+  .tarjeta-acceso {
+    padding: 28px 22px;
+  }
+
+  .dialogo-cabecera,
+  .dialogo-cuerpo,
+  .dialogo-pie {
+    padding-inline: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ==========================================================================
+   LOGIN REVISADO — selectores verificados contra Ingreso.tsx
+   Solo presentación. No se modifican formularios, enlaces ni autenticación.
+   ========================================================================== */
+
+.acceso-dividido {
+  min-height: 100vh;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  background: var(--superficie);
+}
+
+.acceso-marca {
+  flex: 0 0 42%;
+  min-width: 360px;
+  justify-content: space-between;
+  padding: clamp(36px, 5vw, 72px);
+  background: var(--acento-suave);
+  color: var(--tinta);
+}
+
+.acceso-logo {
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.025em;
+}
+
+.acceso-logo-icono {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--acento);
+  color: #fff;
+}
+
+.acceso-mensaje {
+  max-width: 460px;
+}
+
+.acceso-mensaje h1 {
+  max-width: 12ch;
+  margin-bottom: 20px;
+  color: var(--tinta);
+  font-family: var(--fuente);
+  font-size: clamp(34px, 4vw, 48px);
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -.05em;
+}
+
+.acceso-mensaje p {
+  max-width: 42ch;
+  color: var(--tinta-2);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.acceso-pie {
+  color: var(--tinta-3);
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+
+.acceso-principal {
+  flex: 1 1 58%;
+  min-width: 0;
+  padding: 48px clamp(24px, 5vw, 76px);
+  background: var(--superficie);
+}
+
+.acceso-columna {
+  max-width: 430px;
+  gap: 14px;
+}
+
+.acceso-columna .tarjeta-acceso {
+  padding: 34px;
+  border: 1px solid var(--borde-sutil);
+  border-radius: 14px;
+  background: var(--superficie);
+  box-shadow: 0 12px 38px rgb(22 32 42 / 7%);
+}
+
+.acceso-columna .tarjeta-acceso h2 {
+  margin-bottom: 24px;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -.04em;
+}
+
+.acceso-columna .campo {
+  margin-bottom: 18px;
+}
+
+.acceso-columna .campo input {
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.acceso-columna .boton {
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.enlace-olvido {
+  margin-top: 16px;
+  font-size: 12px;
+}
+
+.separador {
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.opcion-registro {
+  min-height: 66px;
+  padding: 12px 14px;
+  border-color: var(--borde-sutil);
+  border-radius: 9px;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.opcion-registro:hover {
+  border-color: var(--acento);
+  box-shadow: 0 4px 14px rgb(22 32 42 / 6%);
+  transform: translateY(-1px);
+}
+
+.opcion-icono {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+}
+
+.opcion-texto strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.opcion-texto span {
+  font-size: 11.5px;
+}
+
+.opcion-flecha {
+  transition: transform 150ms ease;
+}
+
+.opcion-registro:hover .opcion-flecha {
+  transform: translateX(3px);
+}
+
+.enlace-recuperar,
+.enlaces-publicos {
+  font-size: 11.5px;
+}
+
+@media (max-width: 760px) {
+  .acceso-dividido {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .acceso-marca {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 26px 24px;
+    gap: 26px;
+  }
+
+  .acceso-mensaje h1 {
+    max-width: 15ch;
+    font-size: 30px;
+  }
+
+  .acceso-mensaje p {
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .acceso-pie {
+    display: none;
+  }
+
+  .acceso-principal {
+    flex: 1 1 auto;
+    padding: 24px 16px 32px;
+  }
+
+  .acceso-columna .tarjeta-acceso {
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .acceso-marca {
+    padding: 20px 18px;
+  }
+
+  .acceso-mensaje h1 {
+    font-size: 26px;
+  }
+
+  .acceso-columna .tarjeta-acceso {
+    padding: 20px 16px;
+  }
+}
+
+/* Fondo ilustrado del acceso: textura geométrica y documento abstracto.
+   Se construye solo con CSS para no añadir dependencias ni alterar procesos. */
+.acceso-marca {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: var(--acento-suave);
+  background-image:
+    radial-gradient(ellipse at 82% 18%, rgb(255 255 255 / 78%) 0, rgb(255 255 255 / 0%) 34%),
+    radial-gradient(ellipse at 12% 92%, rgb(15 118 110 / 10%) 0, rgb(15 118 110 / 0%) 42%),
+    linear-gradient(135deg, rgb(255 255 255 / 24%), transparent 58%);
+}
+
+.acceso-marca::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  opacity: .38;
+  background-image:
+    linear-gradient(rgb(15 118 110 / 7%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(15 118 110 / 7%) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(135deg, #000 0%, transparent 78%);
+}
+
+.acceso-marca::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 17%;
+  right: 9%;
+  width: clamp(190px, 22vw, 285px);
+  height: clamp(245px, 31vw, 350px);
+  border: 1px solid rgb(15 118 110 / 17%);
+  border-radius: 22px;
+  opacity: .72;
+  transform: rotate(7deg);
+  pointer-events: none;
+  background-color: rgb(255 255 255 / 20%);
+  background-image:
+    linear-gradient(rgb(15 118 110 / 22%), rgb(15 118 110 / 22%)),
+    linear-gradient(rgb(15 118 110 / 13%), rgb(15 118 110 / 13%)),
+    linear-gradient(rgb(15 118 110 / 13%), rgb(15 118 110 / 13%)),
+    linear-gradient(rgb(15 118 110 / 13%), rgb(15 118 110 / 13%)),
+    linear-gradient(rgb(15 118 110 / 9%), rgb(15 118 110 / 9%));
+  background-repeat: no-repeat;
+  background-size: 42% 7px, 72% 5px, 66% 5px, 74% 5px, 48% 48px;
+  background-position: 28px 34px, 28px 76px, 28px 98px, 28px 120px, 28px 166px;
+  box-shadow: 0 22px 55px rgb(15 80 75 / 8%);
+}
+
+.acceso-logo,
+.acceso-mensaje,
+.acceso-pie {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 760px) {
+  .acceso-marca::after {
+    top: 12%;
+    right: -28px;
+    width: 130px;
+    height: 165px;
+    opacity: .35;
+  }
+}
+
+/* Reyban v7: Inicio del superadministrador. Solo presentación. */
+.inicio-admin { max-width: 1300px; margin-inline: auto; }
+.inicio-admin-hero {
+  position: relative; display: flex; align-items: center; gap: 22px;
+  overflow: hidden; padding: clamp(24px, 3vw, 40px);
+  margin-bottom: 22px; border: 1px solid var(--borde-sutil);
+  border-radius: 18px; background: var(--acento-suave);
+}
+.inicio-admin-hero::after {
+  content: ""; position: absolute; pointer-events: none; right: -8%; bottom: -105%;
+  width: 46%; aspect-ratio: 1; border-radius: 50%;
+  border: 45px solid rgba(0, 110, 100, .055);
+}
+.inicio-admin-hero-icono {
+  flex: none; display: grid; place-items: center; width: 66px; height: 66px;
+  border-radius: 17px; color: var(--acento); background: var(--superficie);
+  font-size: 32px; box-shadow: 0 5px 18px rgba(20, 45, 45, .05);
+}
+.inicio-admin-sobretitulo { display: block; margin-bottom: 8px; font-size: 11px;
+  letter-spacing: .09em; font-weight: 750; color: var(--acento); }
+.inicio-admin-hero .titulo-pagina { margin: 0 0 6px; letter-spacing: -.035em; }
+.inicio-admin-hero p { margin: 0; color: var(--tinta-2); }
+.inicio-admin-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 18px; align-items: start; }
+.inicio-admin-grid > .bloque, .inicio-admin-consultas > .bloque {
+  margin: 0; min-width: 0; padding: clamp(22px, 2.3vw, 32px);
+  border: 1px solid var(--borde-sutil); border-radius: 16px;
+  background: var(--superficie); box-shadow: 0 5px 24px rgba(23, 41, 45, .045);
+}
+.inicio-admin-titulo { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.inicio-admin-titulo h2 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
+.inicio-admin-icono { display: grid; place-items: center; flex: none; width: 38px; height: 38px;
+  border-radius: 11px; background: var(--acento-suave); color: var(--acento); font-weight: 800; }
+.inicio-admin-cuenta .datos { margin: 0; }
+.inicio-admin-cuenta .datos .fila { padding-block: 10px; border-bottom: 1px solid var(--borde-sutil); }
+.inicio-admin-cuenta .datos .fila:last-child { border-bottom: 0; }
+.inicio-admin-cuenta .datos dt { color: var(--tinta-2); }
+.inicio-admin-cuenta .datos dd { font-weight: 600; overflow-wrap: anywhere; }
+.inicio-admin-permisos .vacio { padding: 12px 0; text-align: left; }
+.inicio-admin-permisos .etiquetas { display: flex; flex-wrap: wrap; gap: 8px; }
+.inicio-admin-consultas { grid-column: 1 / -1; }
+.inicio-admin-consultas .bloque h2 { margin-bottom: 16px; font-size: 18px; }
+.inicio-admin-consultas .bloque > p { padding: 16px 18px; border-radius: 10px; background: var(--acento-suave); }
+.inicio-admin-nota { margin-top: 18px; font-size: 12px; }
+@media (max-width: 960px) {
+  .inicio-admin-grid { grid-template-columns: 1fr; }
+  .inicio-admin-consultas { grid-column: auto; }
+}
+@media (max-width: 600px) {
+  .inicio-admin-hero { align-items: flex-start; gap: 12px; padding: 20px; }
+  .inicio-admin-hero-icono { width: 44px; height: 44px; font-size: 24px; }
+  .inicio-admin-grid { gap: 12px; }
+}
+
+/* V8: referencia aprobada, sólo presentación del marco y del Inicio admin */
+.cabecera .logo.reyban-logo-marca { display:flex; align-items:center; min-width:190px; }
+.reyban-logo-marca img { width:164px; max-height:60px; object-fit:contain; display:block; }
+.lateral { background:var(--superficie); }
+.seccion-lateral a { border-radius:10px; padding-block:10px; }
+.seccion-lateral a.activo { background:var(--acento); color:#fff; }
+.seccion-lateral a.activo .icono-lateral { color:#fff; }
+.inicio-admin { max-width:1320px; }
+.inicio-admin-hero {
+  min-height:230px; border:0; border-radius:0; padding:30px 30px 38px 10px;
+  background: transparent url('/reyban-inicio-ilustracion.svg') no-repeat right 10px bottom / auto 235px;
+  margin-bottom:0; align-items:center;
+}
+.inicio-admin-hero::after { display:none; }
+.inicio-admin-hero-icono { display:none; }
+.inicio-admin-hero > div:last-child { max-width:66%; position:relative; z-index:1; }
+.inicio-admin-sobretitulo { color:var(--tinta-3); letter-spacing:0; font-weight:500; font-size:13px; }
+.inicio-admin-hero .titulo-pagina { font-size:clamp(30px,3vw,42px); margin-bottom:10px; }
+.inicio-admin-hero p { font-size:16px; }
+.inicio-admin-grid { grid-template-columns:minmax(0, 1.65fr) minmax(300px, .85fr); gap:16px; }
+.inicio-admin-grid > .bloque, .inicio-admin-consultas > .bloque { border-radius:17px; padding:27px; }
+.inicio-admin-cuenta { grid-column:1; grid-row:1; }
+.inicio-admin-acciones { grid-column:2; grid-row:1; }
+.inicio-admin-permisos { grid-column:1 / -1; grid-row:2; }
+.inicio-admin-consultas { grid-column:1 / -1; grid-row:3; }
+.inicio-admin-titulo h2 { font-size:20px; }
+.inicio-admin-icono { font-size:19px; }
+.inicio-admin-acciones-enlaces { display:grid; gap:12px; }
+.inicio-admin-acciones-enlaces a {
+ display:flex; align-items:center; justify-content:space-between; padding:14px 17px;
+ border:1px solid var(--borde-sutil); border-radius:10px; color:var(--tinta);
+ text-decoration:none; font-weight:600; background:var(--superficie);
+}
+.inicio-admin-acciones-enlaces a:first-child { background:var(--acento); border-color:var(--acento); color:#fff; }
+.inicio-admin-acciones-enlaces a:hover { box-shadow:0 3px 12px rgb(0 0 0 / 8%); }
+.inicio-admin-cuenta .datos .fila { padding-block:8px; }
+.inicio-admin-consultas .bloque > p { background:transparent; padding:0; }
+@media(max-width:960px) {
+ .inicio-admin-grid { grid-template-columns:1fr; }
+ .inicio-admin-cuenta,.inicio-admin-acciones,.inicio-admin-permisos,.inicio-admin-consultas { grid-column:auto; grid-row:auto; }
+ .inicio-admin-hero { background-size:auto 180px; }
+}
+@media(max-width:600px) {
+ .reyban-logo-marca img { width:135px; }
+ .inicio-admin-hero { min-height:190px; padding:20px 10px; background-size:auto 120px; background-position:right bottom; }
+ .inicio-admin-hero > div:last-child { max-width:80%; }
+ .inicio-admin-hero p { font-size:13px; }
+}
+
+/* V9: calibrated against the approved Reyban reference at 1754x896. */
+.inicio-admin { width:100%; max-width:none; margin:0; }
+.inicio-admin-hero {
+  box-sizing:border-box; min-height:138px; height:138px; padding:13px 12px 16px;
+  margin:0 0 10px; border:0; border-radius:0; overflow:visible;
+  display:flex; align-items:center;
+  background-image:url('/reyban-inicio-referencia.png');
+  background-repeat:no-repeat; background-position:right bottom;
+  background-size:auto 150px;
+}
+.inicio-admin-hero::after { display:none; }
+.inicio-admin-hero > div:last-child { max-width:65%; }
+.inicio-admin-sobretitulo { font-size:12px; margin-bottom:8px; color:var(--tinta-2); }
+.inicio-admin-hero .titulo-pagina { font-size:clamp(24px,2.25vw,34px); line-height:1.12; margin:0 0 7px; letter-spacing:-.035em; }
+.inicio-admin-hero p { font-size:14px; line-height:1.45; margin:0; }
+.inicio-admin-grid { grid-template-columns:minmax(0,1.7fr) minmax(275px,.9fr); gap:12px; align-items:stretch; }
+.inicio-admin-grid > .bloque, .inicio-admin-consultas > .bloque {
+  box-sizing:border-box; margin:0; padding:20px 24px; border-radius:15px;
+  box-shadow:0 3px 15px rgba(22,32,42,.045);
+}
+.inicio-admin-cuenta { grid-column:1; grid-row:1; }
+.inicio-admin-acciones { grid-column:2; grid-row:1; }
+.inicio-admin-permisos { grid-column:1 / -1; grid-row:2; }
+.inicio-admin-consultas { grid-column:1 / -1; grid-row:3; }
+.inicio-admin-titulo { margin:0 0 13px; gap:11px; align-items:center; }
+.inicio-admin-titulo h2 { font-size:17px; line-height:1.2; margin:0; }
+.inicio-admin-subtitulo { font-size:12px; line-height:1.35; color:var(--tinta-2); margin:4px 0 0; }
+.inicio-admin-icono { width:37px; height:37px; font-size:17px; border-radius:11px; }
+.inicio-admin-cuenta .datos { margin:0; }
+.inicio-admin-cuenta .datos .fila { padding:5px 0; border:0; }
+.inicio-admin-cuenta .datos dt, .inicio-admin-cuenta .datos dd { font-size:13px; line-height:1.45; }
+.inicio-admin-cuenta .datos dd { font-weight:600; }
+.inicio-admin-acciones-enlaces { gap:10px; }
+.inicio-admin-acciones-enlaces a { min-height:42px; box-sizing:border-box; padding:10px 14px; font-size:13px; border-radius:9px; }
+.inicio-admin-permisos .inicio-admin-titulo { margin-bottom:5px; }
+.inicio-admin-permisos .vacio { padding:0; margin:0; font-size:13px; line-height:1.5; }
+.inicio-admin-consultas .bloque h2 { font-size:17px; margin:0 0 9px; }
+.inicio-admin-consultas .bloque > p { font-size:13px; margin:0; padding:0; background:transparent; }
+.inicio-admin-nota { margin-top:10px; font-size:11px; }
+/* Keep sidebar closer to reference, but do not alter menu permissions or routes. */
+.seccion-lateral a { border-radius:8px; }
+.seccion-lateral a.activo { background:#008457; color:#fff; }
+.reyban-logo-marca img { width:150px; max-height:52px; object-fit:contain; }
+@media(max-width:960px) {
+ .inicio-admin-grid { grid-template-columns:1fr; }
+ .inicio-admin-cuenta,.inicio-admin-acciones,.inicio-admin-permisos,.inicio-admin-consultas { grid-column:auto; grid-row:auto; }
+ .inicio-admin-hero { background-size:auto 120px; }
+}
+@media(max-width:600px) {
+ .inicio-admin-hero { height:145px; min-height:145px; padding:12px 0; background-size:auto 95px; }
+ .inicio-admin-hero > div:last-child { max-width:75%; }
+ .inicio-admin-hero .titulo-pagina { font-size:25px; }
+ .inicio-admin-hero p { font-size:12px; }
+ .inicio-admin-grid > .bloque, .inicio-admin-consultas > .bloque { padding:17px; }
+}
+
+/* V10: alineación real del marco y eliminación de doble encabezado.
+   La miga de navegación existente es la única fuente del título Inicio. */
+@media (min-width: 901px) {
+  .cabecera .logo.reyban-logo-marca {
+    box-sizing: border-box;
+    flex: 0 0 calc(252px - var(--e5));
+    width: calc(252px - var(--e5));
+    min-width: 0;
+    align-self: stretch;
+    border-right: 1px solid var(--borde);
+    margin: 0;
+  }
+  .lateral { box-sizing: border-box; width: 252px; flex: 0 0 252px; }
+}
+/* La miga ya existe en Disposicion.tsx; no se reproduce dentro del Inicio. */
+.inicio-admin .inicio-admin-hero { min-height: 148px; height: 148px; padding: 8px 10px 12px; margin-bottom: 8px; }
+.inicio-admin .inicio-admin-hero .titulo-pagina { margin-top: 0; }
+.inicio-admin .inicio-admin-grid { align-items: start; }
+.inicio-admin .inicio-admin-grid > .bloque,
+.inicio-admin .inicio-admin-consultas > .bloque { padding: 19px 22px; }
+.inicio-admin .inicio-admin-acciones-enlaces { gap: 9px; }
+@media (max-width: 960px) {
+  .inicio-admin .inicio-admin-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .inicio-admin .inicio-admin-hero { min-height: 120px; height: 120px; background-size: auto 105px; }
+}
+
+/* V11: ajustes de alineación, densidad e iconografía del marco. */
+@media (min-width:901px) {
+  .cabecera { padding-left:0 !important; gap:14px; }
+  .cabecera .logo.reyban-logo-marca { flex:0 0 252px !important; width:252px !important; min-width:252px !important; padding:0 24px; border-right:1px solid var(--borde); margin:0; }
+  .lateral { flex:0 0 252px !important; width:252px !important; }
+}
+.reyban-logo-marca img { width:150px; max-height:52px; image-rendering:auto; }
+.icono-lateral { display:inline-flex; flex:0 0 20px; width:20px; height:20px; align-items:center; justify-content:center; opacity:1; }
+.icono-lateral svg { display:block; width:18px; height:18px; }
+.seccion-lateral a,.boton-lateral { gap:11px; }
+.campanita { margin-right:0; }
+.campanita-boton { width:38px; height:38px; color:var(--tinta-2); }
+.campanita-boton svg { width:20px; height:20px; }
+.cabecera .quien-envoltura { margin-right:12px; }
+.cabecera button.quien { position:relative; padding:7px 11px 7px 49px; border-radius:12px; text-align:left; min-height:48px; }
+.cabecera button.quien::before { content:' '; position:absolute; left:7px; top:50%; transform:translateY(-50%); width:32px; height:32px; border-radius:50%; background:var(--acento-suave); }
+.cabecera button.quien::after { content:' '; position:absolute; left:17px; top:50%; transform:translateY(-50%); width:12px; height:12px; border:2px solid var(--acento); border-radius:50%; }
+.cabecera .quien .nombre { justify-content:flex-start; font-weight:650; gap:9px; }
+.cabecera .quien .empresa { text-align:left; margin-top:2px; font-size:11px; }
+.cabecera .quien .rol { font-size:10px; }
+.contenido { padding-top:18px; }
+.contenido .migas { margin-bottom:3px; }
+.inicio-admin .inicio-admin-hero { min-height:130px; height:130px; margin-bottom:7px; padding-top:5px; }
+.inicio-admin .inicio-admin-hero .titulo-pagina { font-size:clamp(26px,2.2vw,34px); }
+.inicio-admin .inicio-admin-grid > .bloque, .inicio-admin .inicio-admin-consultas > .bloque { padding:18px 22px; }
+@media(max-width:900px) { .cabecera .logo.reyban-logo-marca { width:auto; min-width:0; } }
+@media(max-width:600px) { .cabecera .quien .empresa { display:none; } .cabecera button.quien { padding-left:43px; } .inicio-admin .inicio-admin-hero { min-height:110px; height:110px; } }
+
+/* Cuenta Negocio — adaptación visual del mockup aprobado, sin alterar flujos. */
+.marco-negocio .cabecera button.quien { display:flex; align-items:center; gap:11px; padding:7px 13px; min-height:56px; }
+.marco-negocio .cabecera button.quien::before,.marco-negocio .cabecera button.quien::after { content:none; display:none; }
+.marco-negocio .avatar-inicial { flex:none; display:grid; place-items:center; width:43px; height:43px; border-radius:50%; background:#dcf3e9; color:#087b55; font-weight:800; font-size:21px; }
+.marco-negocio .cabecera .quien .nombre { display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; font-size:15px; line-height:1.3; }
+.marco-negocio .cabecera .quien .rol { font-size:11px; padding:4px 9px; white-space:nowrap; }
+.marco-negocio .cabecera .quien .empresa { margin-top:4px; font-size:11px; line-height:1.5; color:var(--tinta-3); max-width:360px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.marco-negocio .cabecera .quien .flecha-quien { margin-left:5px; }
+.marco-negocio .contenido { padding-top:17px; }
+.marco-negocio .contenido .migas { margin-bottom:8px; }
+.marco-negocio .tablero-negocio { width:100%; max-width:none; }
+.tablero-negocio .cabecera-bandeja { min-height:132px; padding:10px 14px 17px 0; margin-bottom:16px; align-items:center; background:url('/reyban-negocio-hero.svg') no-repeat right center / auto 100%; }
+.tablero-negocio .cabecera-bandeja > div { position:relative; z-index:1; max-width:65%; }
+.tablero-negocio .cabecera-bandeja .titulo-serif { font-family:var(--fuente); font-size:clamp(26px,2.3vw,36px); font-weight:750; letter-spacing:-.035em; line-height:1.15; }
+.tablero-negocio .nombre-saludo { color:#087b55; }
+.tablero-negocio .cabecera-bandeja .bajada-pagina { font-size:14px; line-height:1.6; }
+.tablero-negocio .cabecera-bandeja > .boton { z-index:1; align-self:center; margin-right:5px; white-space:nowrap; background:#008656; border-color:#008656; }
+.tablero-negocio .resumen-inicio.con-filtros { grid-template-columns:1.5fr repeat(5,minmax(0,1fr)); gap:12px; margin-bottom:17px; }
+.tablero-negocio .resumen-inicio .destacado,.tablero-negocio .resumen-bandeja > button.tarjeta-filtro { min-width:0; border-radius:13px; padding:16px 15px; box-shadow:0 3px 13px rgba(22,48,39,.045); }
+.tablero-negocio .resumen-inicio .destacado strong { font-size:clamp(21px,1.8vw,30px); }
+.tablero-negocio .resumen-bandeja > button.tarjeta-filtro strong { font-size:clamp(21px,1.8vw,28px); }
+.tablero-negocio .inicio-cuerpo { gap:16px; }
+.tablero-negocio .inicio-cuerpo .bloque { border-radius:14px; box-shadow:0 3px 13px rgba(22,48,39,.04); }
+.tablero-negocio .inicio-cuerpo .inicio-ultimos { flex:1 1 55%; }
+.tablero-negocio .inicio-cuerpo .inicio-lado { flex:1 1 300px; max-width:410px; }
+.tablero-negocio .inicio-cuerpo .cabecera-bloque h2,.tablero-negocio .tu-empresa h2 { font-size:19px; }
+.marco-negocio .boton-ayuda { right:18px; bottom:18px; border-radius:28px; padding:11px 16px; box-shadow:0 7px 22px rgba(0,74,50,.18); background:#008657; font-size:13px; }
+.marco-negocio .boton-ayuda-icono { display:inline-flex; align-items:center; justify-content:center; }
+@media(max-width:1350px) { .tablero-negocio .resumen-inicio.con-filtros { grid-template-columns:repeat(3,minmax(0,1fr)); } .tablero-negocio .resumen-inicio.con-filtros .destacado { grid-column:auto; } }
+@media(max-width:900px) { .marco-negocio .cabecera .quien .empresa { max-width:210px; } .tablero-negocio .cabecera-bandeja { background-size:auto 90%; } }
+@media(max-width:700px) { .marco-negocio .cabecera button.quien { padding:5px; } .marco-negocio .avatar-inicial { width:36px; height:36px; font-size:18px; } .marco-negocio .cabecera .quien .rol { display:none; } .tablero-negocio .cabecera-bandeja { min-height:125px; background-size:auto 85px; background-position:right bottom; } .tablero-negocio .cabecera-bandeja > div { max-width:78%; } .tablero-negocio .resumen-inicio.con-filtros { grid-template-columns:repeat(2,minmax(0,1fr)); } .tablero-negocio .inicio-cuerpo .inicio-lado { max-width:none; } }
+
+/* v13 — ajustes Cuenta Negocio: indicadores, perfil y hero sin superposición */
+@media (min-width: 701px) {
+ .marco-negocio .cabecera button.quien {
+   display:grid; grid-template-columns:44px minmax(0,1fr); grid-template-rows:auto auto;
+   align-items:center; column-gap:12px; row-gap:3px; max-width:450px; min-height:60px;
+   padding:7px 12px; text-align:left;
+ }
+ .marco-negocio .cabecera .quien .avatar-inicial { grid-column:1; grid-row:1 / 3; }
+ .marco-negocio .cabecera .quien .nombre { grid-column:2; grid-row:1; min-width:0; display:flex; align-items:center; flex-wrap:wrap; gap:5px 9px; }
+ .marco-negocio .cabecera .quien .empresa { grid-column:2; grid-row:2; max-width:100%; min-width:0; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+}
+.marco-negocio .cabecera .quien .rol { font-size:10px; padding:3px 8px; }
+.marco-negocio .cabecera .quien-envoltura { min-width:0; }
+.marco-negocio .tablero-negocio .cabecera-bandeja {
+ position:relative; box-sizing:border-box; min-height:172px; padding:20px 16px 30px 0;
+ background-position:right bottom; background-size:auto 142px;
+ align-items:flex-start; margin-bottom:12px;
+}
+.marco-negocio .tablero-negocio .cabecera-bandeja > div { max-width:calc(100% - 350px); }
+.marco-negocio .tablero-negocio .cabecera-bandeja > .boton {
+ position:absolute; right:14px; top:4px; margin:0; z-index:2;
+ padding:10px 15px; min-height:40px; border-radius:9px;
+}
+.marco-negocio .tablero-negocio .resumen-inicio .destacado,
+.marco-negocio .tablero-negocio .resumen-bandeja > button.tarjeta-filtro {
+ position:relative; padding:17px 13px 15px; min-height:136px;
+}
+.marco-negocio .tablero-negocio .resumen-inicio .destacado > span:first-child,
+.marco-negocio .tablero-negocio .resumen-bandeja > button.tarjeta-filtro > span:first-of-type {
+ display:block; padding-left:29px; min-height:23px; line-height:23px;
+}
+.marco-negocio .negocio-indicador-icono {
+ position:absolute; top:16px; left:12px; width:22px; height:22px; color:#087e57;
+}
+.marco-negocio .tarjeta-filtro.ojo .negocio-indicador-icono { color:#9b6500; }
+.marco-negocio .tarjeta-filtro.mal .negocio-indicador-icono { color:#a33c34; }
+@media(max-width:1100px) {
+ .marco-negocio .tablero-negocio .cabecera-bandeja > div { max-width:60%; }
+ .marco-negocio .tablero-negocio .cabecera-bandeja { background-size:auto 110px; }
+}
+@media(max-width:700px) {
+ .marco-negocio .tablero-negocio .cabecera-bandeja { min-height:190px; padding-bottom:85px; background-size:auto 92px; }
+ .marco-negocio .tablero-negocio .cabecera-bandeja > div { max-width:100%; padding-right:5px; }
+ .marco-negocio .tablero-negocio .cabecera-bandeja > .boton { top:auto; right:8px; bottom:14px; }
+ .marco-negocio .tablero-negocio .resumen-inicio .destacado,
+ .marco-negocio .tablero-negocio .resumen-bandeja > button.tarjeta-filtro { min-height:115px; }
+}
+
+/* V14 - Correcciones focalizadas Cuenta Negocio, sin cambios de negocio. */
+.marco-negocio .cabecera button.quien { grid-template-columns:32px minmax(0,1fr); column-gap:9px; min-height:49px; padding:5px 10px; }
+.marco-negocio .avatar-inicial,.marco-negocio .cabecera .quien .avatar-inicial { width:32px; height:32px; font-size:15px; font-weight:750; }
+.marco-negocio .cabecera .quien .nombre { font-size:13px; gap:4px 7px; }
+.marco-negocio .cabecera .quien .empresa { font-size:10px; line-height:1.3; }
+.marco-negocio .cabecera .quien .rol { font-size:10px; padding:2px 7px; }
+.marco-negocio .contenido { padding-top:12px; }
+.marco-negocio .contenido .migas { margin-bottom:4px; }
+.marco-negocio .tablero-negocio .cabecera-bandeja {
+ min-height:128px; height:auto; margin:0 0 12px; padding:6px 230px 12px 0;
+ background-size:auto 112px; background-position:right bottom;
+ align-items:center;
+}
+.marco-negocio .tablero-negocio .cabecera-bandeja > div { max-width:100%; }
+.marco-negocio .tablero-negocio .cabecera-bandeja .titulo-serif { margin:0 0 7px; }
+.marco-negocio .tablero-negocio .cabecera-bandeja .bajada-pagina { margin:0; }
+.marco-negocio .tablero-negocio .cabecera-bandeja > .boton { top:6px; right:12px; }
+.marco-negocio .tablero-negocio .resumen-inicio.con-filtros { margin-top:0; margin-bottom:12px; }
+.marco-negocio .tablero-negocio .resumen-inicio .destacado,
+.marco-negocio .tablero-negocio .resumen-bandeja > button.tarjeta-filtro { min-height:122px; padding:14px 13px 12px; }
+.marco-negocio .tablero-negocio .resumen-inicio .destacado > span:first-of-type,
+.marco-negocio .tablero-negocio .resumen-bandeja > button.tarjeta-filtro > span:first-of-type { padding-left:29px; min-height:22px; line-height:22px; }
+.marco-negocio .tablero-negocio .negocio-indicador-icono { top:13px; left:12px; width:20px; height:20px; }
+.marco-negocio .tablero-negocio .inicio-cuerpo { gap:12px; }
+.marco-negocio .tablero-negocio .inicio-cuerpo .bloque { margin-top:0; }
+.marco-negocio .franja-planes.gratis { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:5px; }
+.marco-negocio .icono-mes-gratis { width:17px; height:17px; flex:none; color:#078153; vertical-align:middle; }
+@media(max-width:1100px) {
+ .marco-negocio .tablero-negocio .cabecera-bandeja { padding-right:185px; background-size:auto 95px; }
+}
+@media(max-width:700px) {
+ .marco-negocio .cabecera button.quien { padding:4px 6px; }
+ .marco-negocio .avatar-inicial,.marco-negocio .cabecera .quien .avatar-inicial { width:28px; height:28px; font-size:13px; }
+ .marco-negocio .tablero-negocio .cabecera-bandeja { min-height:155px; padding:4px 0 65px; background-size:auto 80px; }
+ .marco-negocio .tablero-negocio .cabecera-bandeja > .boton { top:auto; bottom:8px; right:8px; }
+}
+
+
+/* V15 — Cuenta Negocio: composición compacta, sin ilustración ni botones flotantes de emisión. */
+.marco-negocio .tablero-negocio .cabecera-bandeja {
+  display:flex; flex-direction:row; flex-wrap:wrap; justify-content:space-between;
+  align-items:center; gap:12px 22px; box-sizing:border-box;
+  min-height:0; height:auto; margin:0 0 14px; padding:2px 0 0;
+  background:none !important;
+}
+.marco-negocio .tablero-negocio .cabecera-bandeja > div {
+  flex:1 1 340px; max-width:none; min-width:0; padding:0;
+}
+.marco-negocio .tablero-negocio .cabecera-bandeja .titulo-serif {
+  font-size:clamp(22px,1.75vw,28px); line-height:1.2;
+  margin:0 0 4px; letter-spacing:-.025em;
+}
+.marco-negocio .tablero-negocio .cabecera-bandeja .bajada-pagina {
+  font-size:12px; line-height:1.45; margin:0;
+}
+.marco-negocio .tablero-negocio .cabecera-bandeja > .boton {
+  position:static !important; inset:auto !important; transform:none !important;
+  flex:0 0 auto; align-self:center; margin:0; padding:10px 16px;
+  min-height:40px; white-space:nowrap; z-index:auto;
+}
+.marco-negocio .contenido { padding-top:10px; }
+.marco-negocio .contenido .migas { margin-bottom:5px; }
+.marco-negocio .tablero-negocio .resumen-inicio.con-filtros {
+  gap:10px; margin:0 0 12px;
+}
+.marco-negocio .tablero-negocio .resumen-inicio .destacado,
+.marco-negocio .tablero-negocio .resumen-bandeja > button.tarjeta-filtro {
+  min-height:100px; padding:12px 12px 10px; border-radius:12px;
+}
+.marco-negocio .tablero-negocio .resumen-inicio .destacado strong,
+.marco-negocio .tablero-negocio .resumen-bandeja > button.tarjeta-filtro strong {
+  font-size:clamp(19px,1.55vw,25px); line-height:1.25;
+}
+.marco-negocio .tablero-negocio .resumen-inicio .destacado > span:first-of-type,
+.marco-negocio .tablero-negocio .resumen-bandeja > button.tarjeta-filtro > span:first-of-type {
+  font-size:12px; padding-left:26px; min-height:21px; line-height:21px;
+}
+.marco-negocio .tablero-negocio .negocio-indicador-icono { width:19px; height:19px; top:12px; left:12px; }
+.marco-negocio .tablero-negocio .inicio-cuerpo { gap:12px; }
+.marco-negocio .tablero-negocio .inicio-cuerpo .bloque,
+.marco-negocio .tablero-negocio .tope-tarjeta { padding:18px 20px; border-radius:13px; }
+.marco-negocio .tablero-negocio .inicio-cuerpo .cabecera-bloque h2,
+.marco-negocio .tablero-negocio .inicio-cuerpo .tu-empresa h2,
+.marco-negocio .tablero-negocio .tope-tarjeta h2 { font-size:17px; line-height:1.3; }
+.marco-negocio .tablero-negocio .inicio-cuerpo .cabecera-bloque h2,
+.marco-negocio .tablero-negocio .inicio-cuerpo .tu-empresa h2 {
+  display:flex; align-items:center; gap:10px;
+}
+.marco-negocio .negocio-icono-seccion {
+  display:inline-flex; flex:none; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:11px;
+  background:#e0f4e9; color:#078254;
+}
+.marco-negocio .negocio-icono-seccion svg { width:21px; height:21px; }
+/* El encabezado del tope se genera en un componente compartido: icono decorativo sólo en Negocio. */
+.marco-negocio .tablero-negocio .tope-cabeza h2 { display:flex; align-items:center; gap:10px; }
+.marco-negocio .tablero-negocio .tope-cabeza h2::before {
+  content:''; display:inline-block; flex:none; width:36px; height:36px;
+  border-radius:11px; background:#e0f4e9 url('/reyban-icono-comprobante.svg') center / 21px 21px no-repeat;
+}
+@media(max-width:700px) {
+  .marco-negocio .tablero-negocio .cabecera-bandeja { gap:10px; padding:0; }
+  .marco-negocio .tablero-negocio .cabecera-bandeja > div { flex-basis:100%; }
+  .marco-negocio .tablero-negocio .cabecera-bandeja > .boton { position:static !important; margin:0 0 2px; }
+  .marco-negocio .tablero-negocio .resumen-inicio.con-filtros { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .marco-negocio .tablero-negocio .inicio-cuerpo .bloque { padding:15px; }
+}
+
+/* V16: menú minimalista aprobado — únicamente presentación, Cuenta Negocio. */
+.marco-negocio .seccion-lateral a.activo,
+.marco-negocio .seccion-lateral .submenu-lateral a.activo,
+.marco-negocio .seccion-lateral .boton-lateral.activo {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #008457 !important;
+  box-shadow: none !important;
+  font-weight: 700;
+}
+.marco-negocio .seccion-lateral a.activo .icono-lateral,
+.marco-negocio .seccion-lateral .boton-lateral.activo .icono-lateral {
+  color: #008457 !important;
+}
+.marco-negocio .seccion-lateral a.activo::before,
+.marco-negocio .seccion-lateral .boton-lateral.activo::before {
+  content: none !important;
+}
+.marco-negocio .seccion-lateral a:hover,
+.marco-negocio .seccion-lateral .boton-lateral:hover {
+  background: transparent !important;
+  color: #008457;
+}
+.marco-negocio .seccion-lateral a,
+.marco-negocio .seccion-lateral .boton-lateral {
+  transition: color .15s ease;
+}
+
+/* V17 — Cuenta Negocio / Comprobantes: refinamiento estrictamente visual.
+   Sin cambios en estados, formularios, validaciones ni llamadas a servicios. */
+.marco-negocio .contenido:has(> .nc) > .nc { max-width: 1240px; width: 100%; }
+.marco-negocio .nc { font-size: 13px; }
+.marco-negocio .nc .nc-encabezado { margin-bottom: 14px; gap: 14px; align-items: center; }
+.marco-negocio .nc .titulo-pagina { font-size: clamp(21px, 2vw, 26px); line-height: 1.2; letter-spacing: -.025em; font-weight: 650; }
+.marco-negocio .nc .nc-bajada { font-size: 12px; gap: 7px; }
+.marco-negocio .nc .nc-bajada .mono { font-size: 12px; }
+.marco-negocio .nc .nc-tarjeta { padding: 18px 20px; margin-bottom: 14px; border-radius: 13px; box-shadow: 0 2px 12px rgb(24 42 54 / 4%); }
+.marco-negocio .nc .nc-dos { gap: 14px; }
+.marco-negocio .nc .nc-dos > .nc-tarjeta { margin-bottom: 14px; }
+.marco-negocio .nc .nc-titulo { font-size: 14px; font-weight: 650; gap: 9px; margin-bottom: 14px; }
+.marco-negocio .nc .nc-paso { width: 24px; height: 24px; font-size: 12px; font-weight: 650; }
+.marco-negocio .nc .nc-subtitulo { font-size: 12px; }
+.marco-negocio .nc .campo, .marco-negocio .nc label { font-size: 12px; }
+.marco-negocio .nc input:not([type='checkbox']):not([type='radio']),
+.marco-negocio .nc select,
+.marco-negocio .nc textarea { font-size: 13px; }
+.marco-negocio .nc .nc-vacio { padding: 22px 16px; }
+.marco-negocio .nc .nc-barra { gap: 10px; padding: 11px 14px; margin-top: 12px; border-radius: 12px 12px 0 0; }
+.marco-negocio .nc .nc-barra-total strong { font-size: 17px; }
+.marco-negocio .nc .nc-barra-total .secundario { font-size: 11px; }
+.marco-negocio .nc .nc-barra-botones .boton { min-height: 36px; padding: 8px 13px; font-size: 12px; }
+/* WhatsApp separado físicamente de la barra de emisión, incluso en móvil. */
+.marco-negocio:has(.nc .nc-barra) .boton-ayuda { bottom: 94px; right: 18px; padding: 9px 12px; font-size: 12px; }
+/* Listado: se conservan los filtros, columnas y acciones existentes. */
+.marco-negocio .contenido:has(> .encabezado-pagina + .filtros) .encabezado-pagina { margin-bottom: 14px; }
+.marco-negocio .contenido .encabezado-pagina .titulo-pagina { font-size: 24px; font-weight: 650; letter-spacing: -.025em; }
+.marco-negocio .contenido .filtros { gap: 10px; padding: 14px; border-radius: 12px; }
+.marco-negocio .contenido .filtros label { font-size: 12px; }
+.marco-negocio .contenido .filtros input,
+.marco-negocio .contenido .filtros select { font-size: 13px; min-height: 36px; }
+.marco-negocio .contenido .tabla th { font-size: 11px; font-weight: 650; }
+.marco-negocio .contenido .tabla td { font-size: 12px; padding-top: 10px; padding-bottom: 10px; }
+.marco-negocio .contenido .tabla .principal { font-size: 12.5px; }
+.marco-negocio .contenido .tabla .secundario { font-size: 11px; }
+@media (max-width: 960px) {
+  .marco-negocio .nc .nc-dos { grid-template-columns: 1fr; gap: 0; }
+  .marco-negocio:has(.nc .nc-barra) .boton-ayuda { bottom: 128px; }
+}
+@media (max-width: 640px) {
+  .marco-negocio .nc .nc-tarjeta { padding: 15px; }
+  .marco-negocio .nc .nc-encabezado { align-items: flex-start; }
+  .marco-negocio .nc .nc-barra { padding: 10px; }
+  .marco-negocio:has(.nc .nc-barra) .boton-ayuda { bottom: 154px; right: 12px; }
+}
+
+/* v18: componentes visuales reales para las dos pantallas de facturación. */
+.marco-negocio .rb-page-intro { display:flex;align-items:center;gap:12px;margin:0 0 12px; }
+.marco-negocio .rb-page-symbol { display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#e1f4ec;color:#00864e;font-size:25px;flex:none; }
+.marco-negocio .rb-page-intro h1 { margin:0 0 2px;font-size:22px;line-height:1.25;font-weight:700;letter-spacing:-.03em;color:#142235; }
+.marco-negocio .rb-page-intro p { margin:0;color:#607086;font-size:12px; }
+.marco-negocio .rb-section-label { color:#607086;font-size:12px;font-weight:600; }
+.marco-negocio .rb-stats { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 14px; }
+.marco-negocio .rb-stat { border:1px solid #dce5ea;border-radius:12px;background:#fff;padding:13px 16px;display:flex;align-items:center;gap:12px;min-width:0; }
+.marco-negocio .rb-stat-icon { display:grid;place-items:center;flex:none;width:35px;height:35px;border-radius:10px;background:#e6f5ee;color:#007b49;font-size:23px; }
+.marco-negocio .rb-stat-amber .rb-stat-icon { background:#fff3e3;color:#ae7000; }
+.marco-negocio .rb-stat-red .rb-stat-icon { background:#fff0ef;color:#b83c39; }
+.marco-negocio .rb-stat div { display:flex;flex-direction:column;gap:1px; }
+.marco-negocio .rb-stat span:not(.rb-stat-icon) { font-size:12px;font-weight:600;color:#40516a; }
+.marco-negocio .rb-stat strong { font-size:23px;line-height:1.25;color:#007b49; }
+.marco-negocio .rb-stat-amber strong { color:#a56c08; }
+.marco-negocio .rb-stat-red strong { color:#b83c39; }
+.marco-negocio .rb-stat small { font-size:11px;color:#708198; }
+.marco-negocio .rb-wizard-heading { display:flex;align-items:center;justify-content:center;gap:16px;margin:8px 0 17px;color:#68798d;font-size:12px; }
+.marco-negocio .rb-wizard-heading > span:not(.rb-wizard-line) { display:flex;align-items:center;gap:8px;white-space:nowrap; }
+.marco-negocio .rb-wizard-heading b { display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#e7ebee;color:#4a5b6d;font-size:12px; }
+.marco-negocio .rb-wizard-heading .rb-wizard-current { color:#007b49;font-weight:650; }
+.marco-negocio .rb-wizard-heading .rb-wizard-current b { background:#008b50;color:#fff; }
+.marco-negocio .rb-wizard-line { width:52px;height:1px;background:#d1dae1; }
+.marco-negocio .rb-document-summary { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-bottom:16px;border:1px solid #dce5e9;border-radius:12px;background:#fff;overflow:hidden; }
+.marco-negocio .rb-document-summary span { display:flex;flex-direction:column;gap:5px;padding:12px 15px;font-size:12px;min-width:0;overflow-wrap:anywhere; }
+.marco-negocio .rb-document-summary span+span { border-left:1px solid #e7edf0; }
+.marco-negocio .rb-document-summary b { color:#708096;font-size:10px;font-weight:600; }
+.marco-negocio .nc .segmentado.nc-tipo { gap:10px;background:transparent;border:0;padding:0; }
+.marco-negocio .nc .segmentado.nc-tipo button { min-height:63px;border:1px solid #d7e0e7;border-radius:11px;background:#fff;font-size:13px;font-weight:650; }
+.marco-negocio .nc .segmentado.nc-tipo button::before { content:'▤';font-size:19px;color:#587086;margin-right:10px;vertical-align:middle; }
+.marco-negocio .nc .segmentado.nc-tipo button.elegido { background:#ecf8f2;border-color:#008b50;color:#007b49;box-shadow:inset 0 0 0 1px #008b50; }
+.marco-negocio .nc .segmentado.nc-tipo button.elegido::before { color:#008b50; }
+@media(max-width:900px){.marco-negocio .rb-document-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.marco-negocio .rb-document-summary span:nth-child(3){border-left:0;border-top:1px solid #e7edf0}.marco-negocio .rb-document-summary span:nth-child(4){border-top:1px solid #e7edf0}}
+@media(max-width:650px){.marco-negocio .rb-stats{grid-template-columns:1fr}.marco-negocio .rb-wizard-heading{gap:6px;font-size:10px;flex-wrap:wrap}.marco-negocio .rb-wizard-line{width:15px}.marco-negocio .rb-page-intro h1{font-size:20px}}
+
+/* DISEÑO 15 NOV: «.aviso» (el recuadro grande) le ponía su relleno a la
+   etiqueta «.etiqueta.aviso» (la pastilla chica, p. ej. «prueba» en la lista
+   de comprobantes) y la encimaba sobre el número. Se le devuelve su tamaño. */
+.etiqueta.aviso { display: inline-block; padding: 1px 7px; margin: 0; border: 0; border-radius: 5px;
+  font-size: 10.5px; line-height: 1.5; vertical-align: middle; }
+
+/* DISEÑO 15 NOV: fichas de cliente y producto en secciones (título a la
+   izquierda, campos a la derecha). Solo aspecto. */
+.dlg-secciones { display: block; }
+.dlg-sec { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 18px; padding: 16px 0; border-bottom: 1px solid var(--borde-sutil, #eef2f3); }
+.dlg-sec:first-child { padding-top: 4px; }
+.dlg-sec:last-of-type { border-bottom: 0; }
+.dlg-sec-t b { display: block; font-size: 13.5px; font-weight: 650; color: var(--tinta); }
+.dlg-sec-t small { display: block; margin-top: 3px; font-size: 12px; line-height: 1.45; color: var(--tinta-3); }
+.dlg-sec-c { min-width: 0; display: grid; gap: 12px; }
+.dlg-sec-c > .campo, .dlg-sec-c > .pareja, .dlg-sec-c > .aviso, .dlg-sec-c > .nota { margin: 0; }
+.dlg-sec-c .casilla { margin: 0; }
+.dlg-secciones > .nota { margin: 12px 0 0; }
+@media (max-width: 720px) {
+  .dlg-sec { grid-template-columns: 1fr; gap: 8px; }
+}
+.dlg-sec-c .campo, .dlg-sec-c .pareja > .campo { margin-bottom: 0; }
+.dlg-sec-c .pareja { margin-bottom: 0; }
+
+/* =============================================================================
+   e255 — CABECERA EN EL VERDE OSCURO DE LA MARCA (como el Punto de venta).
+   La zona del logo queda blanca, alineada con el menú lateral (el logo es
+   verde y sobre verde no se vería). «Mes gratis» va en la misma línea.
+   ========================================================================== */
+.cabecera { background: #0a4f4c !important; border-bottom-color: #0a4f4c !important; color: #e6f2f1; }
+.cabecera.en-empresa { box-shadow: none; }
+.cabecera .logo.reyban-logo-marca { background: #fff; align-self: stretch; border-right: 1px solid var(--borde) !important; border-bottom: 1px solid var(--borde); }
+.cabecera .boton-menu { color: #fff; background: transparent; border-color: #2a706c; }
+.cabecera .selector-boton,
+.cabecera .selector-boton.modo-empresa,
+.cabecera .selector-boton.modo-estudio { background: rgba(255, 255, 255, .08) !important; border-color: #2a706c !important; color: #fff !important; }
+.cabecera .selector-boton:hover, .cabecera .selector-boton.abierto { background: rgba(255, 255, 255, .14) !important; border-color: #6fbcb5 !important; }
+.cabecera .selector-boton strong, .cabecera .selector-boton .selector-icono { color: #fff !important; }
+.cabecera .selector-boton .selector-etiqueta, .cabecera .selector-boton .selector-flecha { color: #bfe0dc !important; }
+.cabecera .sucursal-fija { color: #e6f2f1; }
+.cabecera .campanita-boton { color: #e6f2f1; }
+.cabecera .campanita-boton:hover { background: #0d625e; }
+.cabecera button.quien, .cabecera .quien .nombre { color: #fff; }
+.cabecera .quien:hover, .cabecera button.quien:hover { background: #0d625e; }
+.cabecera .quien .empresa, .marco-negocio .cabecera .quien .empresa { color: #bfe0dc; }
+.cabecera .quien .flecha-quien { color: #bfe0dc; }
+.cabecera .quien .rol { background: rgba(255, 255, 255, .12); color: #e6f2f1; }
+.cabecera .quien .rol.cuenta { background: #f4e3c1; color: #7a5200; }
+.cabecera .avatar-inicial { background: #1d6a66; color: #e6f2f1; }
+.cabecera button.quien::before { background: rgba(255, 255, 255, .12); }
+.cabecera button.quien::after { border-color: #bfe0dc; }
+.cabecera .quien:focus-visible, .cabecera .selector-boton:focus-visible, .cabecera .campanita-boton:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.mes-gratis-cabecera { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; min-width: 0;
+  background: rgba(255, 255, 255, .1); border: 1px solid #2a706c; color: #e6f2f1; font-size: 12px; white-space: nowrap; }
+.mes-gratis-cabecera .icono-mes-gratis { width: 14px; height: 14px; flex: none; color: #9fe0c8; }
+.mes-gratis-cabecera b { color: #fff; font-weight: 600; }
+.mes-gratis-cabecera .mes-gratis-texto { overflow: hidden; text-overflow: ellipsis; }
+.mes-gratis-cabecera a { color: #fff; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 1280px) { .mes-gratis-cabecera .mes-gratis-largo { display: none; } }
+@media (max-width: 1000px) { .mes-gratis-cabecera .mes-gratis-texto { display: none; } }
+/* En el teléfono/tablet no hay menú lateral al lado: el logo va en un recuadro blanco. */
+@media (max-width: 900px) {
+  .cabecera .logo.reyban-logo-marca { align-self: center; background: #fff; border: 0 !important; border-radius: 9px; padding: 4px 10px; margin-right: 4px; }
+  .cabecera .logo.reyban-logo-marca img { width: 112px; }
+}
+
+/* e264: la Cuenta Profesional comparte este diseño; su cabecera lleva además
+   «Trabajando en», así que el nombre no se parte y el selector se acorta. */
+.marco-negocio .cabecera .selector-empresa { min-width: 0; flex: 0 1 auto; }
+.marco-negocio .cabecera .selector-empresa .selector-boton { max-width: 330px; min-width: 0; }
+.marco-negocio .cabecera .selector-empresa .selector-boton > span, .marco-negocio .cabecera .selector-empresa .selector-boton > svg { flex: none; }
+.marco-negocio .cabecera .selector-empresa .selector-boton strong { min-width: 0; flex: 0 1 auto; }
+.marco-negocio .cabecera .quien .nombre { flex-wrap: nowrap; white-space: nowrap; }
+/* Dentro de una empresa la cabecera va llena: el nivel (Dueño…) se ve en el menú del nombre. */
+.marco-negocio .cabecera.en-empresa .quien .rol:not(.cuenta) { display: none; }
+.marco-negocio .cabecera.en-empresa .mes-gratis-cabecera { min-width: 0; max-width: 300px; }

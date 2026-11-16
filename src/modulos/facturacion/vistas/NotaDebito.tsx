@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Asterisco } from '../../../componentes/Campo'
@@ -38,6 +38,10 @@ const AFECTACIONES: [string, string][] = [
   ['20', 'Exonerado'],
 ]
 
+/** Diseño 15 nov: un ícono por motivo. */
+const ICONO: Record<Motivo, string> = { '01': '◷', '02': '↑', '03': '!', '10': '⇄', '11': '◇' }
+const miles = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
 function nuevaClave() {
   try { return crypto.randomUUID().replace(/-/g, '') }
   catch { return `${Date.now()}${Math.random().toString(16).slice(2)}` }
@@ -46,6 +50,9 @@ function nuevaClave() {
 export function NotaDebito() {
   const { id } = useParams()
   const navegar = useNavigate()
+  // 15 nov: «Volver» y «Cancelar» regresan a donde se vino: la bandeja de
+  // «Nueva nota» (si se entró por el menú) o el detalle del comprobante.
+  const desde = (useLocation().state as { volverA?: string } | null)?.volverA
 
   const [previa, setPrevia] = useState<PreviaNotaDebito>()
   const [error, setError] = useState<string>()
@@ -111,11 +118,11 @@ export function NotaDebito() {
   }
 
   const simbolo = previa.moneda === 'PEN' ? 'S/' : previa.moneda === 'USD' ? 'US$' : previa.moneda
-  const pendiente = !motivo ? 'Elige por qué cobras más.'
-    : descripcion.trim().length < 5 ? 'Falta explicar en una línea por qué.'
-    : !(Number(monto.replace(',', '.')) > 0) ? 'Falta el monto.'
-    : calculo?.problema ? calculo.problema
-    : undefined
+  const dinero = (n: number) => `${simbolo} ${miles.format(n)}`
+  const debia = previa.importeTotal - previa.creditos + previa.debitos
+  const anteriores = previa.debitos - previa.creditos
+  const conMonto = Number(monto.replace(',', '.')) > 0
+  const motivoElegido = MOTIVOS.find(m => m.codigo === motivo)
 
   return (
     <div className="nc nota">
@@ -123,7 +130,7 @@ export function NotaDebito() {
       <div className="nc-encabezado">
         <div>
           <p className="vc-tipo">Nota de débito</p>
-          <h1 className="titulo-pagina">Para {previa.numero}</h1>
+          <h1 className="titulo-pagina">Para la {previa.tipo === '01' ? 'factura' : 'boleta'} {previa.numero}</h1>
           <p className="nc-bajada">
             <span className="nc-pastilla">{previa.tipo === '01' ? 'Factura' : 'Boleta'}</span>
             <span>{previa.cliente?.razonSocial}</span>
@@ -133,25 +140,22 @@ export function NotaDebito() {
             {previa.ambiente === 'beta' && <span className="nc-pastilla gris">prueba</span>}
           </p>
         </div>
-        <Boton estilo="secundario" onClick={() => navegar(`/facturacion/comprobantes/${previa.id}`)}>
+        <Boton estilo="secundario" onClick={() => navegar(desde ?? `/facturacion/comprobantes/${previa.id}`)}>
           Volver
         </Boton>
       </div>
 
       {!previa.puede && <Aviso>{previa.problema}</Aviso>}
 
+      <div className={previa.puede ? 'nc-cuerpo con-resumen' : 'nc-cuerpo'}>
+      <div className="nc-principal">
       {/* --- 1. El comprobante ------------------------------------------- */}
       <section className="bloque nc-tarjeta">
-        <h2 className="nc-titulo"><span className="nc-paso">1</span>Comprobante al que cobras más</h2>
-        <div className="cifras-nota">
-          <div><span>Total del comprobante</span><strong className="mono">{simbolo} {previa.importeTotal.toFixed(2)}</strong></div>
-          <div><span>Notas anteriores</span><strong className="mono">{(previa.debitos - previa.creditos).toFixed(2)}</strong></div>
-          <div><span>Hoy se debe</span><strong className="mono">{simbolo} {(previa.importeTotal - previa.creditos + previa.debitos).toFixed(2)}</strong></div>
-          <div>
-            <span>Serie de la nota</span>
-            <strong className="mono">{previa.serieNota}</strong>
-            {previa.serieNueva && <span>se crea al emitir esta</span>}
-          </div>
+        <h2 className="nc-titulo"><span className="nc-paso">1</span>La {previa.tipo === '01' ? 'factura' : 'boleta'} a la que cobras más</h2>
+        <div className="nt-cifras">
+          <div><span>Total {previa.tipo === '01' ? 'de la factura' : 'de la boleta'}</span><strong>{dinero(previa.importeTotal)}</strong></div>
+          <div><span>Notas anteriores</span><strong>{anteriores === 0 ? '—' : `${anteriores < 0 ? '−' : '+'} ${dinero(Math.abs(anteriores))}`}</strong></div>
+          <div className="queda"><span>Hoy se debe</span><strong>{dinero(debia)}</strong></div>
         </div>
         {previa.notas.length > 0 && (
           <details className="nota-anteriores">
@@ -173,27 +177,22 @@ export function NotaDebito() {
           {/* --- 2. ¿Por qué? -------------------------------------------------- */}
           <section className="bloque nc-tarjeta">
             <h2 className="nc-titulo"><span className="nc-paso">2</span>¿Por qué cobras más?</h2>
-            <div className="motivos-nota">
+            <div className="motivos-nota nt-motivos">
               {MOTIVOS.filter(m => !previa.motivos || previa.motivos.some(x => x.codigo === m.codigo)).map(m => {
                 const bloqueado = m.codigo === '02' && lineasPosibles.length === 0
                 return (
                   <button key={m.codigo} type="button" disabled={bloqueado}
-                          className={`opcion-cuenta${motivo === m.codigo ? ' elegida' : ''}`}
+                          className={`opcion-cuenta nt-motivo${motivo === m.codigo ? ' elegida' : ''}`}
                           onClick={() => { setMotivo(m.codigo); setFalloEmitir(undefined) }}>
-                    <strong>{m.titulo}</strong>
-                    <span>{bloqueado ? 'Ningún producto del comprobante admite un aumento.' : m.texto}</span>
+                    <span className="nt-icono" aria-hidden="true">{ICONO[m.codigo]}</span>
+                    <span className="nt-motivo-texto">
+                      <strong>{m.titulo}</strong>
+                      <span>{bloqueado ? 'No se puede: ningún producto del comprobante admite un aumento.' : m.texto}</span>
+                    </span>
                   </button>
                 )
               })}
             </div>
-
-            <label className="campo">
-              <span className="etiqueta">Explica en una línea (sale en el PDF y va a SUNAT)<Asterisco /></span>
-              <input value={descripcion} maxLength={250} onChange={e => setDescripcion(e.target.value)}
-                     placeholder="Ej.: intereses por 15 días de atraso en el pago"
-                     aria-invalid={!!motivo && descripcion.trim().length > 0 && descripcion.trim().length < 5 ? true : undefined} />
-              <span className="pista">Al menos 5 letras. Es el motivo que leerá SUNAT y tu cliente.</span>
-            </label>
           </section>
 
           {/* --- 3. ¿Cuánto? --------------------------------------------------- */}
@@ -246,57 +245,71 @@ export function NotaDebito() {
             </section>
           )}
 
-          {/* --- 4. Revisar ---------------------------------------------------- */}
-          {motivo && (
-            <section className="bloque nc-tarjeta">
-              <h2 className="nc-titulo"><span className="nc-paso">4</span>Revisa antes de emitir</h2>
-
-              <div className="cifras-nota">
-                <div><span>Comprobante original</span><strong className="mono">{previa.importeTotal.toFixed(2)}</strong></div>
-                <div><span>Notas anteriores</span>
-                  <strong className="mono">{(previa.debitos - previa.creditos).toFixed(2)}</strong></div>
-                <div className="destacada"><span>Esta nota de débito</span><strong className="mono">+ {calculo?.total?.toFixed(2) ?? '—'}</strong></div>
-                <div><span>Total a cobrar</span><strong className="mono">{totalACobrar.toFixed(2)}</strong></div>
-              </div>
-
-              {calculo?.problema && <Aviso>{calculo.problema}</Aviso>}
-
-              {calculo && !calculo.problema && (
-                <p className="secundario">
-                  Nota de débito <strong className="mono">{calculo.serie}</strong> (el número lo pone el sistema) ·
-                  modifica {previa.numero} · al mismo cliente · en {previa.moneda} ·
-                  «{calculo.descripcionLinea}» · {calculo.igv ? `gravado ${calculo.gravado?.toFixed(2)} · IGV ${calculo.igv.toFixed(2)}` : 'sin IGV'}
-                </p>
-              )}
-
-              {descripcion.trim().length < 5 && <p className="nota">Falta explicar en una línea por qué.</p>}
-              {falloEmitir && <Aviso>{falloEmitir}</Aviso>}
-              <p className="nota">
-                {previa.serieNueva
-                  ? <>No tienes serie de notas de débito configurada: se crea {previa.serieNota} al emitir esta.</>
-                  : <>Sale con tu serie {previa.serieNota}.</>}
-                {' '}Se envía al cliente por correo, como una factura.
-              </p>
-            </section>
-          )}
-
-          {/* --- La barra de abajo ------------------------------------------- */}
-          <div className="nc-barra">
-            <div className="nc-barra-total">
-              <span className="secundario">Total a cobrar</span>
-              <strong className="mono">{simbolo} {totalACobrar.toFixed(2)}</strong>
-              {calculando && <span className="secundario">calculando…</span>}
-            </div>
-            {pendiente && <span className="nc-barra-falta" title={pendiente}>{pendiente}</span>}
-            <div className="nc-barra-botones">
-              <Boton estilo="secundario" onClick={() => navegar(`/facturacion/comprobantes/${previa.id}`)}>Cancelar</Boton>
-              <Boton onClick={() => void emitir()} disabled={!listo} ocupado={emitiendo} textoOcupado="Emitiendo…">
-                Emitir nota de débito
-              </Boton>
-            </div>
-          </div>
+          {/* --- La explicación (antes iba bajo los motivos) ------------------- */}
+          <section className="bloque nc-tarjeta">
+            <label className="campo">
+              <span className="etiqueta">Explica en una línea (sale en el PDF y va a SUNAT)<Asterisco /></span>
+              <input value={descripcion} maxLength={250} onChange={e => setDescripcion(e.target.value)}
+                     placeholder="Ej.: intereses por 15 días de atraso en el pago"
+                     aria-invalid={!!motivo && descripcion.trim().length > 0 && descripcion.trim().length < 5 ? true : undefined} />
+              <span className="pista">Al menos 5 letras. Es el motivo que leerá SUNAT y tu cliente.</span>
+            </label>
+          </section>
         </>
       )}
+      </div>
+
+      {/* DISEÑO 15 NOV: EL RESUMEN DE LA DERECHA. Reemplaza «Revisa antes de
+          emitir» y la barra de abajo: mismas cifras (las calcula el back) y el
+          mismo botón Emitir, con sus mismas reglas. */}
+      {previa.puede && (
+        <aside className="nc-resumen" aria-label="Resumen de la nota">
+          <div className="nc-resumen-cab">
+            <small>Vas a emitir</small>
+            <strong className="mono">{calculo?.serie ?? previa.serieNota}-…</strong>
+            <span className="nc-pastilla">Nota de débito · el número lo pone el sistema</span>
+          </div>
+          <dl className="nc-resumen-datos">
+            <div><dt>Modifica</dt><dd className="mono">{previa.numero}</dd></div>
+            <div><dt>Cliente</dt><dd>{previa.cliente?.razonSocial ?? '—'}</dd></div>
+            <div><dt>Motivo</dt><dd>{motivoElegido?.titulo ?? '—'}</dd></div>
+          </dl>
+          <dl className="nc-resumen-totales">
+            {calculo && !calculo.problema && (calculo.igv
+              ? <>
+                  <div><dt>Valor</dt><dd className="mono">{dinero(calculo.gravado ?? 0)}</dd></div>
+                  <div><dt>IGV</dt><dd className="mono">{dinero(calculo.igv)}</dd></div>
+                </>
+              : <div><dt>IGV</dt><dd>sin IGV</dd></div>)}
+            <div className="total"><dt>Esta nota</dt><dd className="mono">{calculo?.total != null ? `+ ${dinero(calculo.total)}` : '—'}</dd></div>
+            <div><dt>El cliente debía</dt><dd className="mono">{dinero(debia)}</dd></div>
+            <div className="neto"><dt>Ahora debe</dt><dd className="mono">{dinero(totalACobrar)}</dd></div>
+          </dl>
+          <ul className="nc-resumen-falta" aria-label="Qué falta">
+            <li className={motivo ? 'si' : 'no'}>{motivo ? 'Motivo elegido' : 'Elige por qué cobras más'}</li>
+            <li className={conMonto ? 'si' : 'no'}>{conMonto ? 'Monto escrito' : 'Falta el monto'}</li>
+            <li className={descripcion.trim().length >= 5 ? 'si' : 'no'}>
+              {descripcion.trim().length >= 5 ? 'Explicación escrita' : 'Falta explicar en una línea por qué'}
+            </li>
+            {calculo?.problema && <li className="no">{calculo.problema}</li>}
+            {calculando && <li className="espera">Calculando…</li>}
+          </ul>
+          {falloEmitir && <div className="nc-resumen-aviso"><Aviso>{falloEmitir}</Aviso></div>}
+          <div className="nc-resumen-botones">
+            <Boton onClick={() => void emitir()} disabled={!listo} ocupado={emitiendo} textoOcupado="Emitiendo…">
+              Emitir nota de débito
+            </Boton>
+            <Boton estilo="secundario" onClick={() => navegar(desde ?? `/facturacion/comprobantes/${previa.id}`)}>Cancelar</Boton>
+          </div>
+          <p className="nc-resumen-nota">
+            {previa.serieNueva
+              ? <>No tienes serie de notas de débito: se crea {previa.serieNota} al emitir esta.</>
+              : <>Sale con tu serie {previa.serieNota}.</>}
+            {' '}Se envía al cliente por correo, como una factura.
+          </p>
+        </aside>
+      )}
+      </div>
     </div>
   )
 }

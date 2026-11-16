@@ -13,6 +13,7 @@ import { Barras, Cifra, Dona, GraficoLinea, dinero } from '../componentes/Grafic
 import { topYOtros } from '../componentes/topYOtros'
 import { ResumenDetalle } from '../componentes/ResumenDetalle'
 import { TablaDatos } from '../../../componentes/TablaDatos'
+import '../reportes.css'
 import {
   reportesServicio, type Filtros, type NombreReporte, type ReporteClientes, type ReporteMiDia,
   type ReporteProductos, type ReporteSucursales, type ReporteVendedores, type ReporteVentas,

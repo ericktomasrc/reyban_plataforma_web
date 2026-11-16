@@ -15,6 +15,7 @@ import {
   type ClaseTransporte, type ConductorGuardado, type PersonaDelPersonal, type Transporte, type TransportistaGuardado, type VehiculoGuardado,
 } from '../servicios/guiasServicio'
 import '../guias.css'
+import '../../facturacion/comprobantes-lista.css'
 
 /**
  * 050 — TRANSPORTE GUARDADO (maestras por empresa).
@@ -85,7 +86,7 @@ export function TransporteGuardado() {
   const n = (xs: { activo: boolean }[]) => xs.filter(x => x.activo).length
 
   const acciones = (clase: ClaseTransporte, id: string, activo: boolean, editar: () => void) => gestiona && (
-    <td className="acciones">
+    <td className="acciones lst-acciones">
       {activo && <Boton estilo="plano" onClick={editar}>Corregir</Boton>}
       <Boton estilo="plano" onClick={() => void activar(clase, id, !activo)}>{activo ? 'Desactivar' : 'Reactivar'}</Boton>
     </td>
@@ -96,20 +97,22 @@ export function TransporteGuardado() {
 
   return (
     <>
-      <div className="encabezado-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Transporte guardado</h1>
-          <p className="secundario">Se guarda solo al emitir una guía. Aquí se corrige o se desactiva (nada se borra).</p>
+          <p className="bajada-pagina">Vehículos, conductores y empresas de transporte. Se guardan solos al emitir una guía; aquí se corrigen o se desactivan.</p>
         </div>
         {gestiona && <Boton onClick={() => abrir(NUEVO[pestana])}>Agregar {TITULOS[pestana]}</Boton>}
       </div>
 
-      <div className="filtros-guias">
-        <div className="segmentado" role="tablist">
-          <button type="button" className={pestana === 'vehiculos' ? 'elegido' : ''} onClick={() => setPestana('vehiculos')}>Vehículos ({n(t.vehiculos)})</button>
-          <button type="button" className={pestana === 'conductores' ? 'elegido' : ''} onClick={() => setPestana('conductores')}>Conductores ({n(t.conductores)})</button>
-          <button type="button" className={pestana === 'transportistas' ? 'elegido' : ''} onClick={() => setPestana('transportistas')}>Empresas de transporte ({n(t.transportistas)})</button>
-        </div>
+      {/* Diseño 15 nov: pastillas, filtros y tabla en una sola caja. */}
+      <div className="lst-caja">
+      <div className="cmp-chips" role="tablist">
+          <button type="button" role="tab" aria-selected={pestana === 'vehiculos'} className={pestana === 'vehiculos' ? 'cmp-chip elegido' : 'cmp-chip'} onClick={() => setPestana('vehiculos')}>Vehículos<span className="cmp-chip-n">{n(t.vehiculos)}</span></button>
+          <button type="button" role="tab" aria-selected={pestana === 'conductores'} className={pestana === 'conductores' ? 'cmp-chip elegido' : 'cmp-chip'} onClick={() => setPestana('conductores')}>Conductores<span className="cmp-chip-n">{n(t.conductores)}</span></button>
+          <button type="button" role="tab" aria-selected={pestana === 'transportistas'} className={pestana === 'transportistas' ? 'cmp-chip elegido' : 'cmp-chip'} onClick={() => setPestana('transportistas')}>Empresas de transporte<span className="cmp-chip-n">{n(t.transportistas)}</span></button>
+      </div>
+      <div className="lst-filtros gr-transporte-filtros">
         <input className="buscar-bandeja" value={q} onChange={e => setQ(e.target.value)} aria-label="Buscar en transporte guardado"
                placeholder={pestana === 'vehiculos' ? 'Placa o descripción' : pestana === 'conductores' ? 'Nombre, documento o licencia' : 'Razón social o RUC'} />
         <label className="casilla">
@@ -117,9 +120,9 @@ export function TransporteGuardado() {
         </label>
       </div>
 
-      <div className="bloque sin-relleno">
+      <div className="bloque sin-relleno lst-tabla">
         {pestana === 'vehiculos' && (vehiculos.paginacion.total === 0 ? <div className="relleno"><Vacio>Todavía no hay vehículos. Se guardan solos al emitir una guía con tu vehículo.</Vacio></div> : (
-          <table className="tabla">
+          <table className="tabla lst">
             <thead><tr><th>Placa</th><th>Descripción</th><th>Certificado (TUC)</th><th>Uso</th>{gestiona && <th aria-label="Acciones" />}</tr></thead>
             <tbody>
               {vehiculos.visibles.map((v: VehiculoGuardado) => (
@@ -136,7 +139,7 @@ export function TransporteGuardado() {
         ))}
 
         {pestana === 'conductores' && (conductores.paginacion.total === 0 ? <div className="relleno"><Vacio>Todavía no hay conductores. Se guardan solos al emitir; también puedes elegir a alguien de tu personal.</Vacio></div> : (
-          <table className="tabla">
+          <table className="tabla lst">
             <thead><tr><th>Conductor</th><th>Documento</th><th>Licencia</th><th>Uso</th>{gestiona && <th aria-label="Acciones" />}</tr></thead>
             <tbody>
               {conductores.visibles.map((c: ConductorGuardado) => (
@@ -153,7 +156,7 @@ export function TransporteGuardado() {
         ))}
 
         {pestana === 'transportistas' && (empresas.paginacion.total === 0 ? <div className="relleno"><Vacio>Todavía no hay empresas de transporte. Se guardan solas al emitir una guía con transporte público.</Vacio></div> : (
-          <table className="tabla">
+          <table className="tabla lst">
             <thead><tr><th>Empresa</th><th>RUC</th><th>Registro MTC</th><th>Uso</th>{gestiona && <th aria-label="Acciones" />}</tr></thead>
             <tbody>
               {empresas.visibles.map((x: TransportistaGuardado) => (
@@ -169,19 +172,30 @@ export function TransporteGuardado() {
           </table>
         ))}
       </div>
+      </div>
       <Paginacion {...(pestana === 'vehiculos' ? vehiculos : pestana === 'conductores' ? conductores : empresas).paginacion} />
 
       {edicion && (
-        <Dialogo titulo={`${edicion.id ? 'Corregir' : 'Agregar'} ${TITULOS[edicion.clase]}`} abierto onCerrar={() => setEdicion(undefined)}
+        <Dialogo titulo={`${edicion.id ? 'Corregir' : 'Agregar'} ${TITULOS[edicion.clase]}`} abierto onCerrar={() => setEdicion(undefined)} ancho="grande"
           acciones={<>
             <Boton estilo="secundario" onClick={() => setEdicion(undefined)}>Cancelar</Boton>
             <Boton onClick={() => void guardar()} ocupado={guardando}>Guardar</Boton>
           </>}>
+          {/* 16 nov: los mismos campos, en secciones. */}
+          <div className="dlg-secciones">
           {edicion.clase === 'vehiculos' && (
             <>
+              <div className="dlg-sec">
+                <div className="dlg-sec-t"><b>Vehículo</b><small>La placa como figura en la tarjeta de propiedad.</small></div>
+                <div className="dlg-sec-c"><div className="pareja">
               <Campo etiqueta="Placa" obligatorio value={edicion.placa} className="mono" pista="Sin guion. Ej.: ABC123"
                      onChange={e => setEdicion({ ...edicion, placa: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} />
               <Campo etiqueta="Descripción" value={edicion.descripcion} placeholder="Furgón Hyundai" onChange={e => setEdicion({ ...edicion, descripcion: e.target.value })} />
+                </div></div>
+              </div>
+              <div className="dlg-sec">
+                <div className="dlg-sec-t"><b>Permisos</b><small>Solo si los tiene o la carga los pide.</small></div>
+                <div className="dlg-sec-c">
               <Campo etiqueta="Certificado de habilitación (TUC)" value={edicion.tuc} pista="Obligatorio en la guía del transportista."
                      onChange={e => setEdicion({ ...edicion, tuc: e.target.value.toUpperCase() })} />
               <div className="pareja">
@@ -194,12 +208,16 @@ export function TransporteGuardado() {
                 </div>
                 {edicion.entidad && <Campo etiqueta="N.° de autorización" value={edicion.autorizacion} onChange={e => setEdicion({ ...edicion, autorizacion: e.target.value })} />}
               </div>
+                </div>
+              </div>
             </>
           )}
           {edicion.clase === 'conductores' && (
             <>
               {!edicion.id && personal && personal.length > 0 && (
-                <div className="campo">
+                <div className="dlg-sec">
+                <div className="dlg-sec-t"><b>De tu personal</b><small>Opcional: llena los datos solo.</small></div>
+                <div className="dlg-sec-c"><div className="campo">
                   <label htmlFor="del-personal">Elegir de tu personal</label>
                   <select id="del-personal" value="" onChange={e => {
                     const u = personal.find(x => x.usuarioId === e.target.value)
@@ -208,8 +226,12 @@ export function TransporteGuardado() {
                     <option value="">Escribir a mano…</option>
                     {personal.map(u => <option key={u.usuarioId} value={u.usuarioId}>{u.nombres} {u.apellidos} · {u.numeroDoc}{u.cargo ? ` · ${u.cargo}` : ''}</option>)}
                   </select>
+                </div></div>
                 </div>
               )}
+              <div className="dlg-sec">
+                <div className="dlg-sec-t"><b>Conductor</b><small>Como figura en su documento.</small></div>
+                <div className="dlg-sec-c">
               <div className="pareja">
                 <div className="campo">
                   <label htmlFor="tdoc">Documento</label>
@@ -223,17 +245,35 @@ export function TransporteGuardado() {
                 <Campo etiqueta="Nombres" obligatorio value={edicion.nombres} onChange={e => setEdicion({ ...edicion, nombres: e.target.value })} />
                 <Campo etiqueta="Apellidos" obligatorio value={edicion.apellidos} onChange={e => setEdicion({ ...edicion, apellidos: e.target.value })} />
               </div>
+                </div>
+              </div>
+              <div className="dlg-sec">
+                <div className="dlg-sec-t"><b>Licencia</b><small>Una letra y el número del brevete.</small></div>
+                <div className="dlg-sec-c">
               <Campo etiqueta="Licencia de conducir" obligatorio value={edicion.licencia} className="mono" placeholder="Q41025874"
                      onChange={e => setEdicion({ ...edicion, licencia: e.target.value.toUpperCase().replace(/\s/g, '') })} />
+                </div>
+              </div>
             </>
           )}
           {edicion.clase === 'transportistas' && (
             <>
+              <div className="dlg-sec">
+                <div className="dlg-sec-t"><b>Empresa</b><small>La que lleva tu carga (transporte público).</small></div>
+                <div className="dlg-sec-c"><div className="pareja gr-ruc">
               <Campo etiqueta="RUC" obligatorio value={edicion.ruc} inputMode="numeric" onChange={e => setEdicion({ ...edicion, ruc: e.target.value.replace(/\D/g, '').slice(0, 11) })} />
               <Campo etiqueta="Razón social" obligatorio value={edicion.razonSocial} onChange={e => setEdicion({ ...edicion, razonSocial: e.target.value })} />
+                </div></div>
+              </div>
+              <div className="dlg-sec">
+                <div className="dlg-sec-t"><b>Registro MTC</b><small>Opcional.</small></div>
+                <div className="dlg-sec-c">
               <Campo etiqueta="Registro MTC" value={edicion.mtc} onChange={e => setEdicion({ ...edicion, mtc: e.target.value.toUpperCase() })} />
+                </div>
+              </div>
             </>
           )}
+          </div>
           {fallo && <Aviso>{fallo}</Aviso>}
         </Dialogo>
       )}

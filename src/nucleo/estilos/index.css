@@ -6,3 +6,6 @@
 @import './componentes.css';
 @import './tablas.css';
 @import './disposicion.css';
+
+/* Capa exclusivamente visual: no altera componentes ni procesos. */
+@import './refinamiento.css';

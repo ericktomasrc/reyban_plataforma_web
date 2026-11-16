@@ -17,6 +17,9 @@ import { EXPLICA_ALCANCE, NOMBRE_ALCANCE } from '../../usuarios/tipos'
 import type { TipoAlcance } from '../../usuarios/tipos'
 import { carteraServicio, NOMBRE_NIVEL } from '../servicios/carteraServicio'
 import type { AccesoEquipo, DatosAccesoEquipo, EmpresaEquipo, Nivel, PersonaEquipo } from '../servicios/carteraServicio'
+import '../../facturacion/comprobantes-lista.css'
+import '../../usuarios/personal.css'
+import '../cartera.css'
 
 const JEFE = '55555555-5555-5555-5555-555555555555'
 const FACTURADOR = '22222222-2222-2222-2222-222222222222'
@@ -119,11 +122,10 @@ export function Colaboradores() {
   }
 
   return (
-    <div className="mi-equipo">
-      <div className="cabecera-bandeja">
+    <div className="per-pagina mi-equipo">
+      <div className="encabezado-pagina cmp-encab">
         <div>
-          <span className="marca-estudio">MI ESTUDIO · SOLO CUENTA PROFESIONAL</span>
-          <h1 className="titulo-pagina titulo-serif">Mi equipo</h1>
+          <h1 className="titulo-pagina">Mi equipo{personas.length > 0 && <span className="lst-cuenta">{personas.length} {personas.length === 1 ? 'persona' : 'personas'}</span>}</h1>
           <p className="bajada-pagina">
             Las personas que trabajan en tu estudio. Misma ficha que el personal; cada una con un acceso por empresa de tu
             cartera.

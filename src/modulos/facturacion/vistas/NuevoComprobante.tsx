@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { fecha } from '../../../nucleo/formato/fechas'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
 import { Asterisco, Campo } from '../../../componentes/Campo'
@@ -186,6 +187,7 @@ export function NuevoComprobante() {
   const { pedir, dialogo: confirmacion } = useConfirmar()
   const mensaje = useMensaje()
 
+  const [etapaVisual, setEtapaVisual] = useState<0 | 1 | 2>(0)
   const [cargando, setCargando] = useState(true)
   const [catalogos, setCatalogos] = useState<CatalogosSunat>()
 
@@ -292,6 +294,8 @@ export function NuevoComprobante() {
   const [entregaDespues, setEntregaDespues] = useState<boolean | null>(null)
 
   const [ordenCompra, setOrdenCompra] = useState('')
+  // Diseño 15 nov: «Orden de compra y otros datos» va plegado; se abre al pulsarlo.
+  const [verOpcional, setVerOpcional] = useState(false)
 
   // 040: contado o crédito, y la detracción. Solo facturas.
   const [pago, setPago] = useState<PagoEnEdicion>(pagoInicial())
@@ -1335,6 +1339,60 @@ export function NuevoComprobante() {
   const primeraDe = new Map<string, string>()
   for (const l of lineas) if (l.productoId && !primeraDe.has(l.productoId)) primeraDe.set(l.productoId, l.clave)
 
+  // DISEÑO 15 NOV: los pasos y el resumen de la derecha. Solo leen lo que ya
+  // hay en la pantalla; no cambian cómo se guarda ni cómo se emite.
+  const numeroVisible = siguiente ?? serie.trim().toUpperCase()
+  const lineasConValor = lineas.filter(l => l.descripcion.trim() && valorDeVenta(l) > 0).length
+  const formaPago = esFactura && pago.forma === 'credito'
+    ? `Al crédito · ${pago.cuotas.length} cuota${pago.cuotas.length === 1 ? '' : 's'}`
+    : 'Al contado'
+  const pasos = [
+    { titulo: 'Comprobante y cliente', hecho: !!cliente,
+      detalle: `${tipo === '01' ? 'Factura' : 'Boleta'} ${numeroVisible} · ${cliente?.razonSocial ?? 'falta el cliente'}` },
+    { titulo: 'Productos y servicios', hecho: lineas.length > 0 && lineasConValor === lineas.length,
+      detalle: lineas.length === 0 ? 'Aún no agregas nada' : `${lineas.length} ${lineas.length === 1 ? 'línea' : 'líneas'} · ${simbolo} ${dinero(totales.total)}` },
+    { titulo: esFactura ? 'Pago y envío' : 'Envío', hecho: false,
+      detalle: esFactura ? `${formaPago}${det.activa ? ' · con detracción' : ''}` : (cliente ? 'Correo y WhatsApp' : 'Opcional') },
+  ]
+  const irA = (n: 0 | 1 | 2) => { setEtapaVisual(n); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+
+  // Los mismos tres botones de siempre (con sus mismas reglas), para la barra
+  // de abajo y para el resumen de la derecha.
+  const botonesAccion = (
+    <>
+      {borradorId && estadoDoc === 'borrador' && (
+        <Boton
+          estilo="plano"
+          onClick={() => void descartar()}
+          ocupado={descartando}
+          textoOcupado="Descartando…"
+          disabled={guardando || emitiendo}
+        >
+          Descartar
+        </Boton>
+      )}
+
+      <Boton
+        estilo="secundario"
+        onClick={() => void guardar()}
+        ocupado={guardando}
+        textoOcupado="Guardando…"
+        disabled={emitiendo}
+      >
+        Guardar borrador
+      </Boton>
+
+      <Boton
+        onClick={() => void emitir()}
+        ocupado={emitiendo || capa !== undefined}
+        textoOcupado="Emitiendo…"
+        disabled={!cliente || guardando}
+      >
+        Emitir {tipo === '01' ? 'factura' : 'boleta'}
+      </Boton>
+    </>
+  )
+
   return (
     <div className="nc">
       {/* --- Encabezado ---------------------------------------------------- */}
@@ -1355,6 +1413,20 @@ export function NuevoComprobante() {
         </Boton>
       </div>
 
+      {/* DISEÑO 15 NOV: cada paso dice lo que ya se eligió. Solo se ve: no valida
+          ni bloquea nada (eso lo sigue haciendo «Emitir», igual que antes). */}
+      <nav className="rb-wizard-heading rb-wizard-real nc-pasos" aria-label="Etapas del comprobante">
+        {pasos.map((p, indice) => (
+          <button key={p.titulo} type="button"
+            className={[etapaVisual === indice ? 'rb-wizard-current' : '', p.hecho && etapaVisual !== indice ? 'nc-paso-hecho' : ''].join(' ').trim() || undefined}
+            aria-current={etapaVisual === indice ? 'step' : undefined}
+            onClick={() => irA(indice as 0 | 1 | 2)}>
+            <b>{p.hecho && etapaVisual !== indice ? '✓' : indice + 1}</b>
+            <span>{p.titulo}<small>{p.detalle}</small></span>
+          </button>
+        ))}
+      </nav>
+
       {errorCarga && <Aviso>{errorCarga}</Aviso>}
       {copiaDe && (
         <Aviso tono="info">
@@ -1363,12 +1435,14 @@ export function NuevoComprobante() {
         </Aviso>
       )}
 
+      <div className={etapaVisual === 1 ? 'nc-cuerpo' : 'nc-cuerpo con-resumen'}>
+      <div className="nc-principal">
       {/* --- 1 y 2: el comprobante y el cliente, lado a lado ------------------ */}
-      <div className="nc-dos">
-        <section className="bloque nc-tarjeta">
-          <h2 className="nc-titulo"><span className="nc-paso">1</span>Comprobante</h2>
+      <div className="nc-dos" hidden={etapaVisual !== 0}>
+        <section className="bloque nc-tarjeta nc-sec-comprobante">
+          <h2 className="nc-titulo"><span className="nc-paso">1</span>¿Qué vas a emitir?</h2>
 
-          <div className={sucursales.length > 1 ? 'pareja' : undefined}>
+          <div className={sucursales.length > 1 ? 'pareja nc-fila-tipo' : 'nc-fila-tipo'}>
             {/* 044: DESDE QUÉ SUCURSAL. Solo si trabajas en más de una. Sale en el
                 XML (código de establecimiento) y su dirección en el PDF. */}
             {sucursales.length > 1 && (
@@ -1386,19 +1460,23 @@ export function NuevoComprobante() {
             )}
 
             <div className="campo">
-              <span className="etiqueta">Tipo<Asterisco /></span>
+              <span className="etiqueta solo-lector">Tipo<Asterisco /></span>
               <div className="segmentado nc-tipo" role="radiogroup" aria-label="Tipo de comprobante">
                 {([['01', 'Factura'], ['03', 'Boleta']] as const).map(([v, t]) => (
                   <button key={v} type="button" role="radio" aria-checked={tipo === v}
-                          className={tipo === v ? 'elegido' : undefined} onClick={() => cambiarTipo(v)}>
-                    {t}
+                          className={tipo === v ? 'nc-tipo-op elegido' : 'nc-tipo-op'} onClick={() => cambiarTipo(v)}>
+                    <span className={`nc-tipo-sigla t${v}`} aria-hidden="true">{v === '01' ? 'F' : 'B'}</span>
+                    <span className="nc-tipo-texto">
+                      <b>{t}</b>
+                      <small className="nc-tipo-pista">{v === '01' ? 'Para empresas o personas con RUC' : 'Para personas con DNI o sin documento'}</small>
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="pareja">
+          <div className="pareja nc-fila-datos">
             {/* 21 OCT: LA SERIE Y EL NÚMERO, de la configuración de la empresa. */}
             {seriesDelTipo.length > 0 ? (
               <label className="campo">
@@ -1450,15 +1528,17 @@ export function NuevoComprobante() {
           </div>
 
           {fechaMal && fechaEmision < fechaMinima && (
+            <div className="nc-fila-ancha">
             <Aviso tono="ojo">
               <p>{fechaMal}</p>
               <Boton estilo="secundario" onClick={() => setFechaEmision(hoy)}>
                 Poner la fecha de hoy
               </Boton>
             </Aviso>
+            </div>
           )}
 
-          <div className="pareja">
+          <div className="pareja nc-fila-datos">
             <label className="campo">
               <span className="etiqueta">Moneda<Asterisco /></span>
               <select value={moneda} onChange={e => setMoneda(e.target.value)}>
@@ -1488,8 +1568,8 @@ export function NuevoComprobante() {
           </div>
         </section>
 
-        <section className="bloque nc-tarjeta">
-          <h2 className="nc-titulo"><span className="nc-paso">2</span>Cliente</h2>
+        <section className="bloque nc-tarjeta nc-sec-cliente">
+          <h2 className="nc-titulo"><span className="nc-paso">2</span>{tipo === '01' ? '¿A quién le facturas?' : '¿A quién le vendes?'}</h2>
 
           <BuscadorCliente elegido={cliente} onElegir={c => { setCliente(c); setPorWhatsapp(null) }} />
 
@@ -1531,17 +1611,24 @@ export function NuevoComprobante() {
             </p>
           )}
 
-          <Campo
-            etiqueta="Orden de compra"
-            value={ordenCompra}
-            onChange={e => setOrdenCompra(e.target.value)}
-            placeholder="Opcional"
-            pista="Se imprime en el comprobante; no viaja a SUNAT."
-          />
+          {verOpcional || ordenCompra ? (
+            <Campo
+              etiqueta="Orden de compra"
+              value={ordenCompra}
+              onChange={e => { setOrdenCompra(e.target.value); setVerOpcional(true) }}
+              placeholder="Opcional"
+              pista="Se imprime en el comprobante; no viaja a SUNAT."
+            />
+          ) : (
+            <button type="button" className="enlace nc-ver-opcional" onClick={() => setVerOpcional(true)}>
+              + Orden de compra (opcional)
+            </button>
+          )}
         </section>
       </div>
 
       {/* --- 3: lo que se vende -------------------------------------------- */}
+      <div hidden={etapaVisual !== 1}>
       <section className="bloque nc-tarjeta">
         <div className="nc-titulo-fila">
           <h2 className="nc-titulo"><span className="nc-paso">3</span>Productos y servicios</h2>
@@ -1623,7 +1710,7 @@ export function NuevoComprobante() {
               <span role="columnheader" className="der">Cantidad</span>
               <span role="columnheader">Unidad</span>
               <span role="columnheader" className="der">{conIgvModo ? <>Precio <small>con IGV</small></> : <>V. unitario <small>sin IGV</small></>}</span>
-              <span role="columnheader" className="der">Descuento <small>sin IGV</small></span>
+              <span role="columnheader" className="der">Desc. <small>sin IGV</small></span>
               <span role="columnheader" className="der">Importe{conIgvModo && <> <small>con IGV</small></>}</span>
               <span role="columnheader"><span className="solo-lector">Quitar</span></span>
             </div>
@@ -1886,6 +1973,8 @@ export function NuevoComprobante() {
         </div>
       </section>
 
+      </div>
+      <div hidden={etapaVisual !== 2}>
       {/* --- 4: forma de pago y detracción (solo facturas) ----------------- */}
       {esFactura && (
         <PagoYDetraccion
@@ -1960,8 +2049,52 @@ export function NuevoComprobante() {
         </section>
       )}
 
+      </div>
+      </div>
+
+      {/* DISEÑO 15 NOV: EL RESUMEN DE LA DERECHA (pasos 1 y 3). En el paso 2 la
+          grilla necesita todo el ancho y el resumen va en la barra de abajo. */}
+      {etapaVisual !== 1 && (
+        <aside className="nc-resumen" aria-label="Resumen del comprobante">
+          <div className="nc-resumen-cab">
+            <small>Vas a emitir</small>
+            <strong className="mono">{numeroVisible}</strong>
+            <span className="nc-pastilla">{nombreTipo} · {moneda === 'PEN' ? 'Soles' : 'Dólares'}</span>
+          </div>
+          <dl className="nc-resumen-datos">
+            <div><dt>Cliente</dt><dd>{cliente?.razonSocial ?? '—'}</dd></div>
+            <div><dt>Fecha</dt><dd>{fecha(fechaEmision)}</dd></div>
+            <div><dt>Productos</dt><dd>{lineas.length} {lineas.length === 1 ? 'línea' : 'líneas'}</dd></div>
+            {esFactura && <div><dt>Pago</dt><dd>{formaPago}</dd></div>}
+          </dl>
+          <dl className="nc-resumen-totales">
+            <div><dt>Op. gravadas</dt><dd className="mono">{simbolo} {dinero(totales.gravado)}</dd></div>
+            <div><dt>IGV</dt><dd className="mono">{simbolo} {dinero(totales.igv)}</dd></div>
+            <div className="total"><dt>Total</dt><dd className="mono">{simbolo} {dinero(totales.total)}</dd></div>
+            {detSoles != null && <div><dt>Detracción</dt><dd className="mono">− S/ {detSoles.toFixed(2)}</dd></div>}
+            {esFactura && pago.forma === 'credito' && detSoles != null && (
+              <div className="neto"><dt>Neto a cobrar</dt><dd className="mono">{simbolo} {neto.toFixed(2)}</dd></div>
+            )}
+          </dl>
+          <ul className="nc-resumen-falta" aria-label="Qué falta">
+            <li className={cliente ? 'si' : 'no'}>{cliente ? 'Cliente elegido' : 'Falta elegir el cliente'}</li>
+            <li className={lineas.length > 0 ? 'si' : 'no'}>
+              {lineas.length > 0 ? `${lineas.length} ${lineas.length === 1 ? 'línea' : 'líneas'}` : 'Falta agregar al menos un producto'}
+            </li>
+            {/* Lo demás que falta (la misma frase de la barra), cuando ya hay cliente y líneas. */}
+            {pendiente && cliente && lineas.length > 0 && <li className="no">{pendiente}</li>}
+          </ul>
+          <div className="nc-resumen-botones">
+            {etapaVisual === 0 && <button type="button" className="boton" onClick={() => irA(1)}>Continuar a productos</button>}
+            {botonesAccion}
+          </div>
+          <p className="nc-resumen-nota">Al emitir se revisan las mismas reglas de siempre.</p>
+        </aside>
+      )}
+      </div>
+
       {/* --- La barra de abajo: el total y los botones, siempre a la vista -- */}
-      <div className="nc-barra">
+      <div className="nc-barra" hidden={etapaVisual !== 1}>
         <div className="nc-barra-total">
           <span className="secundario">Total estimado</span>
           <strong className="mono">{simbolo} {dinero(totales.total)}</strong>
@@ -1971,36 +2104,9 @@ export function NuevoComprobante() {
         </div>
         {pendiente && <span className="nc-barra-falta" title={pendiente}>{pendiente}</span>}
         <div className="nc-barra-botones">
-          {borradorId && estadoDoc === 'borrador' && (
-            <Boton
-              estilo="plano"
-              onClick={() => void descartar()}
-              ocupado={descartando}
-              textoOcupado="Descartando…"
-              disabled={guardando || emitiendo}
-            >
-              Descartar
-            </Boton>
-          )}
-
-          <Boton
-            estilo="secundario"
-            onClick={() => void guardar()}
-            ocupado={guardando}
-            textoOcupado="Guardando…"
-            disabled={emitiendo}
-          >
-            Guardar borrador
-          </Boton>
-
-          <Boton
-            onClick={() => void emitir()}
-            ocupado={emitiendo || capa !== undefined}
-            textoOcupado="Emitiendo…"
-            disabled={!cliente || guardando}
-          >
-            Emitir {tipo === '01' ? 'factura' : 'boleta'}
-          </Boton>
+          <button type="button" className="boton secundario" onClick={() => irA(0)}>Anterior</button>
+          <button type="button" className="boton secundario" onClick={() => irA(2)}>{esFactura ? 'Pago y envío' : 'Envío'} →</button>
+          {botonesAccion}
         </div>
       </div>
 

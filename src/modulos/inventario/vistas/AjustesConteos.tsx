@@ -17,6 +17,7 @@ import {
   type Categoria, type EstadoInventario, type MinimoEnSucursal, type RevisionStockInicial,
 } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 type Pestana = 'ajuste' | 'inicial' | 'conteo' | 'historial'
 const numero = (s: string) => { const n = Number(s.replace(',', '.')); return Number.isFinite(n) ? n : NaN }
@@ -48,14 +49,14 @@ export function AjustesConteos() {
   )
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="inv-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Ajustes y conteos</h1>
-          <p className="secundario">Lo que se rompió o se encontró, el stock con el que empiezas y el conteo físico.</p>
+          <p className="bajada-pagina">Lo que se rompió o se encontró, el stock con el que empiezas y el conteo físico.</p>
         </div>
       </div>
-      <div className="segmentado" role="tablist" aria-label="Ajustes y conteos">
+      <div className="segmentado inv-pestanas" role="tablist" aria-label="Ajustes y conteos">
         {puedeAjustar && boton('ajuste', 'Ajuste')}
         {puedeAjustar && boton('inicial', 'Stock inicial')}
         {puedeContar && boton('conteo', 'Conteo físico')}
@@ -66,7 +67,7 @@ export function AjustesConteos() {
       {pestana === 'inicial' && <StockInicial estado={estado} onHecho={() => setRecargar(n => n + 1)} />}
       {pestana === 'conteo' && <NuevoConteo estado={estado} />}
       {pestana === 'historial' && <ListaOperaciones tipo="ajuste" recargar={recargar} />}
-    </>
+    </div>
   )
 }
 

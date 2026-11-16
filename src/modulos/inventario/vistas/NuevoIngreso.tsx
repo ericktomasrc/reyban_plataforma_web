@@ -13,6 +13,7 @@ import { InventarioApagado } from '../componentes/InventarioApagado'
 import { useEstadoInventario, useSucursalesDeTrabajo } from '../componentes/usoInventario'
 import { cantidad, inventarioServicio, type Almacen, type MinimoEnSucursal } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 interface Linea { producto: ProductoEnLista; cantidad: string; costo: string; antes?: number
   /** 061: comprado en una presentación (CAJA X 12): cantidad y costo son por caja. */
@@ -144,12 +145,12 @@ export function NuevoIngreso() {
   const nombreSucursal = sucursales.find(s => s.id === sucursalElegida)
 
   return (
-    <>
+    <div className="inv-pagina">
       <Link to="/inventario/ingresos" className="enlace-volver">← Ingresos por compra</Link>
-      <div className="encabezado-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
-          <h1 className="titulo-pagina">Ingreso por compra</h1>
-          <p className="secundario">La mercadería que llegó de un proveedor. Suma al físico de la sucursal que elijas. No es un comprobante electrónico: solo se anota la factura del proveedor.</p>
+          <h1 className="titulo-pagina">Nuevo ingreso por compra</h1>
+          <p className="bajada-pagina">La mercadería que llegó de un proveedor. Suma al físico de la sucursal que elijas. No es un comprobante electrónico: solo se anota la factura del proveedor.</p>
         </div>
       </div>
 
@@ -305,6 +306,6 @@ export function NuevoIngreso() {
         <strong>¿Se equivocaron en un ingreso?</strong>
         <p className="nota">No se edita ni se borra: en el ingreso aparece «Anular ingreso», que crea el movimiento contrario con el motivo, y queda en la bitácora. Si ya se vendió parte, antes te dice cuánto quedaría.</p>
       </div>
-    </>
+    </div>
   )
 }

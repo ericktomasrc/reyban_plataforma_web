@@ -62,17 +62,22 @@ export function RegistrarEvento({ guiaId, numero, abierto, onCerrar, onHecho }: 
   }
 
   return (
-    <Dialogo titulo="Registrar evento hecho en SOL" abierto={abierto} onCerrar={onCerrar}
+    <Dialogo titulo="Registrar evento hecho en SOL" abierto={abierto} onCerrar={onCerrar} ancho="grande"
       acciones={<>
         <Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
         <Boton onClick={() => void registrar()} ocupado={ocupado} disabled={!numeroSol.trim()}>Registrar evento</Boton>
       </>}>
-      <p>
+      <p className="gr-dlg-nota">
         Primero emite la <strong>GRE por evento</strong> en SOL (Clave SOL › Guía de remisión electrónica › Emisión de GRE por evento),
         relacionada con la guía <span className="mono">{numero ?? ''}</span>, antes de reiniciar el traslado. Aquí solo queda anotada.
       </p>
       <p className="nota se-aplica">Se aplica: SUNAT recibe la GRE por evento solo en SOL; los sistemas propios emiten la del remitente y la del transportista.</p>
 
+      {/* 16 nov: los mismos campos, en secciones. */}
+      <div className="dlg-secciones">
+      <div className="dlg-sec">
+        <div className="dlg-sec-t"><b>El evento</b><small>Qué pasó y el número que te dio SOL.</small></div>
+        <div className="dlg-sec-c">
       <div className="campo">
         <label htmlFor="ev-tipo">¿Qué pasó?</label>
         <select id="ev-tipo" value={tipo} onChange={e => setTipo(e.target.value as TipoEventoGuia)}>
@@ -94,27 +99,36 @@ export function RegistrarEvento({ guiaId, numero, abierto, onCerrar, onHecho }: 
         </div>
       </div>
 
-      <h3 className="rotulo">Dónde se reinicia el traslado</h3>
+        </div>
+      </div>
+      <div className="dlg-sec">
+        <div className="dlg-sec-t"><b>Dónde se reinicia</b><small>El punto desde donde sigue el traslado.</small></div>
+        <div className="dlg-sec-c">
       <div className="campo">
         <label htmlFor="ev-reinicio">Dirección</label>
         <input id="ev-reinicio" value={reinicioDir} maxLength={200} onChange={e => setReinicioDir(e.target.value)} placeholder="Ej.: Km 40 Panamericana Norte" />
       </div>
       <SelectorUbigeo ubigeo={reinicioUbigeo} onCambio={u => setReinicioUbigeo(u.ubigeo)} />
+        </div>
+      </div>
 
       {conLlegada && (
-        <>
-          <h3 className="rotulo">Nueva llegada (mismo destinatario)</h3>
+        <div className="dlg-sec">
+          <div className="dlg-sec-t"><b>Nueva llegada</b><small>Mismo destinatario.</small></div>
+          <div className="dlg-sec-c">
           <div className="campo">
             <label htmlFor="ev-llegada">Dirección</label>
             <input id="ev-llegada" value={llegadaDir} maxLength={200} onChange={e => setLlegadaDir(e.target.value)} />
           </div>
           <SelectorUbigeo ubigeo={llegadaUbigeo} onCambio={u => setLlegadaUbigeo(u.ubigeo)} />
-        </>
+          </div>
+        </div>
       )}
 
       {conVehiculo && (
-        <>
-          <h3 className="rotulo">Vehículo y conductor nuevos</h3>
+        <div className="dlg-sec">
+          <div className="dlg-sec-t"><b>Vehículo y conductor nuevos</b><small>Los que siguen con la carga.</small></div>
+          <div className="dlg-sec-c">
           <div className="pareja">
             <div className="campo">
               <label htmlFor="ev-placa">Placa</label>
@@ -141,12 +155,19 @@ export function RegistrarEvento({ guiaId, numero, abierto, onCerrar, onHecho }: 
             <label htmlFor="ev-licencia">Licencia</label>
             <input id="ev-licencia" className="mono" value={licencia} maxLength={10} onChange={e => setLicencia(e.target.value.toUpperCase())} />
           </div>
-        </>
+          </div>
+        </div>
       )}
+      <div className="dlg-sec">
+        <div className="dlg-sec-t"><b>Observación</b><small>Opcional.</small></div>
+        <div className="dlg-sec-c">
 
       <div className="campo">
         <label htmlFor="ev-obs">Observación (opcional)</label>
         <input id="ev-obs" value={observacion} maxLength={250} onChange={e => setObservacion(e.target.value)} placeholder="Ej.: falla mecánica en Huacho" />
+      </div>
+        </div>
+      </div>
       </div>
       {fallo && <Aviso>{fallo}</Aviso>}
     </Dialogo>

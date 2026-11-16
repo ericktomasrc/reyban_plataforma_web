@@ -10,6 +10,7 @@ import { useCargar } from '../../../nucleo/hooks/useCargar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { guiasServicio, type ConfiguracionGuias as Config } from '../servicios/guiasServicio'
 import '../guias.css'
+import '../../facturacion/comprobantes-lista.css'
 
 /**
  * 050 — CONFIGURACIÓN DE GUÍAS (maqueta «Config» del 24 oct).
@@ -58,13 +59,35 @@ export function ConfiguracionGuias() {
 
   return (
     <>
-      <div className="encabezado-pagina">
-        <h1 className="titulo-pagina">Configuración de guías</h1>
+      <div className="encabezado-pagina cmp-encab">
+        <div>
+          <h1 className="titulo-pagina">Configuración de guías</h1>
+          <p className="bajada-pagina">Lo que las guías necesitan para salir: credenciales, series y, si llevas carga de otros, tu registro MTC.</p>
+        </div>
       </div>
 
-      <div className="tarjetas-guia dos">
-        <section className="bloque">
-          <h2 className="subtitulo">1 · Credenciales de guías (API SUNAT)</h2>
+      {/* 16 nov: de un vistazo, cómo está cada cosa. Solo muestra. */}
+      <div className="cmp-mes estatico gr-estado" aria-label="Estado de las guías">
+        <div className={`cmp-mes-dato${c.ambiente === 'beta' ? ' ojo' : ' bien'}`}>
+          <span>Las guías van a</span><strong>{c.ambiente === 'beta' ? 'Prueba' : 'SUNAT real'}</strong>
+          <small>{c.ambiente === 'beta' ? 'simulador de SUNAT, sin valor legal' : 'con valor legal'}</small>
+        </div>
+        <div className={`cmp-mes-dato${!c.gre.leido ? '' : c.gre.habilitado && c.gre.tieneSecreto ? ' bien' : c.ambiente === 'beta' ? '' : ' mal'}`}>
+          <span>Credenciales de guías</span>
+          <strong>{!c.gre.leido ? 'Sin consultar' : c.gre.habilitado && c.gre.tieneSecreto ? 'Guardadas' : 'Faltan'}</strong>
+          <small>{c.gre.habilitado && c.gre.tieneSecreto ? `ID ${c.gre.clientId}` : c.ambiente === 'beta' ? 'en prueba no hacen falta' : 'sin ellas no salen guías'}</small>
+        </div>
+        <div className={`cmp-mes-dato${c.transportaCarga ? ' bien' : ''}`}>
+          <span>Guía del transportista</span><strong>{c.transportaCarga ? 'Activa' : 'No usa'}</strong>
+          <small>{c.transportaCarga ? (c.registroMtc ? `MTC ${c.registroMtc}` : 'falta el registro MTC') : 'solo si llevas carga de otros'}</small>
+        </div>
+      </div>
+
+      {/* Diseño 15 nov: una sola ficha en secciones (título a la izquierda). Mismos campos. */}
+      <div className="bloque dlg-secciones gr-config">
+        <section className="dlg-sec">
+          <div className="dlg-sec-t"><b>Credenciales de guías</b><small>API de SUNAT. Distintas de tu clave SOL.</small></div>
+          <div className="dlg-sec-c">
           <p className="secundario">
             Las guías van por otro canal que las facturas y piden sus propias credenciales, además de tu clave SOL.
             Se sacan en SOL: <strong>Credenciales de API SUNAT › Gestión de credenciales</strong>, registrando una aplicación
@@ -82,26 +105,34 @@ export function ConfiguracionGuias() {
           )}
           {c.puedeGestionar ? (
             <>
+              <div className="pareja">
               <Campo etiqueta="ID (client_id)" obligatorio value={clientId} className="mono" onChange={e => setClientId(e.target.value.trim())} autoComplete="off" />
               <Campo etiqueta="Clave (client_secret)" obligatorio type="password" value={secreto} onChange={e => setSecreto(e.target.value)}
                      autoComplete="new-password" pista="Se guarda cifrada en el servicio de facturación; no se vuelve a mostrar." />
+              </div>
               {fallo?.donde === 'gre' && <Aviso>{fallo.texto}</Aviso>}
-              <Boton onClick={() => void guardarGre()} ocupado={ocupado === 'gre'} disabled={!clientId || !secreto}>Guardar credenciales</Boton>
+              <div><Boton onClick={() => void guardarGre()} ocupado={ocupado === 'gre'} disabled={!clientId || !secreto}>Guardar credenciales</Boton></div>
             </>
           ) : (
             <p className="nota">Las pone el administrador de la empresa.</p>
           )}
+          </div>
         </section>
 
-        <section className="bloque">
-          <h2 className="subtitulo">2 · Series por sucursal</h2>
+        <section className="dlg-sec">
+          <div className="dlg-sec-t"><b>Series por sucursal</b><small>T001 para el remitente, V001 para el transportista.</small></div>
+          <div className="dlg-sec-c">
           <p className="secundario">
             La guía del remitente usa series <strong className="mono">T001</strong>, <strong className="mono">T002</strong>…; la del transportista,
             <strong className="mono"> V001</strong>… Cada sucursal tiene las suyas, como las de facturas. Se crean en{' '}
             <Link to="/facturacion/sucursales">Sucursales</Link>, o solas al emitir la primera guía.
           </p>
+          </div>
+        </section>
 
-          <h2 className="subtitulo">3 · ¿Tu empresa también transporta carga de otros?</h2>
+        <section className="dlg-sec">
+          <div className="dlg-sec-t"><b>Transporte de carga</b><small>¿Tu empresa también lleva carga de otros?</small></div>
+          <div className="dlg-sec-c">
           <label className="casilla">
             <input type="checkbox" checked={transporta} disabled={!c.puedeGestionar} onChange={e => setTransporta(e.target.checked)} />
             {' '}Sí: llevamos carga ajena por encargo (activa la guía del transportista)
@@ -109,7 +140,8 @@ export function ConfiguracionGuias() {
           <Campo etiqueta="Registro MTC de tu empresa" value={mtc} disabled={!c.puedeGestionar} className="mono"
                  placeholder="Solo si transportas carga de otros" onChange={e => setMtc(e.target.value.toUpperCase())} />
           {fallo?.donde === 'mtc' && <Aviso>{fallo.texto}</Aviso>}
-          {c.puedeGestionar && <Boton estilo="secundario" onClick={() => void guardarTransporte()} ocupado={ocupado === 'mtc'}>Guardar</Boton>}
+          {c.puedeGestionar && <div><Boton estilo="secundario" onClick={() => void guardarTransporte()} ocupado={ocupado === 'mtc'}>Guardar</Boton></div>}
+          </div>
         </section>
       </div>
 

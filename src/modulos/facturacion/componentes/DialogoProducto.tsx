@@ -219,6 +219,7 @@ export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuar
       titulo={editando ? `Editar ${producto.codigo}` : 'Nuevo producto'}
       abierto
       onCerrar={onCerrar}
+      ancho="grande"
       acciones={
         <>
           <Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
@@ -228,8 +229,14 @@ export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuar
         </>
       }
     >
-      <form id="producto" onSubmit={enviar}>
+      {/* Diseño 15 nov: la ficha en secciones (título a la izquierda). Mismos
+          campos y reglas; solo cambia el orden: lo básico arriba, lo de
+          inventario y los casos especiales abajo. */}
+      <form id="producto" onSubmit={enviar} className="dlg-secciones">
 
+        <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Datos básicos</b><small>Con el código lo buscas al facturar.</small></div>
+        <div className="dlg-sec-c">
         <div className="pareja">
           <Campo
             etiqueta="Código"
@@ -259,6 +266,36 @@ export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuar
           pista="Es lo que sale impreso en la factura."
         />
 
+        {/* 052: inventario */}
+        {categorias.length > 0 && (
+          <label className="campo">
+            <span className="etiqueta">Categoría (opcional)</span>
+            <select value={categoriaId} onChange={e => setCategoriaId(e.target.value)}>
+              <option value="">Sin categoría</option>
+              {/* e161: las desactivadas no se ofrecen, salvo la que ya tiene el producto. */}
+              {categorias.filter(c => c.activo !== false || c.id === categoriaId).map(c => (
+                <option key={c.id} value={c.id}>{c.nombre}{c.activo === false ? ' (desactivada)' : ''}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {/* NO ES UN CÓDIGO QUE SE INVENTE: sale de una lista oficial de SUNAT
+            (catálogo 25) que nadie se sabe. Por eso no se escribe: se busca
+            por lo que es el producto y se elige. Ver BuscadorCodigoSunat. */}
+        <BuscadorCodigoSunat valor={codSunat} onCambiar={setCodSunat} descripcion={desc} />
+
+        <p className="nota">
+          Desde el <strong>1 de enero de 2027</strong>, si lo pones tiene que ser
+          uno de la lista de SUNAT: uno que no está hace rechazar el
+          comprobante. Por eso aquí solo se puede elegir de ella.
+        </p>
+
+        </div>
+        </section>
+
+        <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Precio e IGV</b><small>Escribe el precio como lo cobras.</small></div>
+        <div className="dlg-sec-c">
         <label className="campo">
           <span className="etiqueta">Afectación del IGV<Asterisco /></span>
           <select value={afectacion} onChange={e => setAfectacion(e.target.value)}>
@@ -320,6 +357,75 @@ export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuar
           pista="Lo que te cuesta a ti. Sirve para ver tu margen. Con inventario, el costo real sale de tus compras."
         />
 
+        </div>
+        </section>
+
+        {encendido && (
+        <>
+        <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Inventario</b><small>Solo si tu empresa lleva inventario.</small></div>
+        <div className="dlg-sec-c">
+        {/* e174: sin inventario la casilla no se ve. Por dentro un bien sigue
+            marcado, así el día que se active el inventario ya está listo. */}
+        {encendido && !kit && !modelo && <label className={`casilla${esServicio ? ' deshabilitada' : ''}`}>
+          <input type="checkbox" checked={!esServicio && controla} disabled={esServicio} onChange={e => setControla(e.target.checked)} />
+          <span>
+            <strong>Controla stock</strong>
+            <em>{esServicio
+              ? 'Los servicios no tienen stock.'
+              : 'Marcado de fábrica en los productos que no son servicio. Desmárcalo si no quieres contarlo (por ejemplo, algo que pides a pedido).'}</em>
+          </span>
+        </label>}
+        {/* 064: lotes y vencimientos (farmacias, alimentos). */}
+        {encendido && controla && !esServicio && !kit && !modelo && (
+          <label className="casilla">
+            <input type="checkbox" checked={lotes} onChange={e => setLotes(e.target.checked)} />
+            <span>
+              <strong>Maneja lotes y vencimientos</strong>
+              <em>Al comprar escribes el lote y su vencimiento; al vender sale primero lo que vence antes. Lo que ya hay queda «sin lote».</em>
+            </span>
+          </label>
+        )}
+        {/* 065: números de serie (celulares, motores, electrodomésticos). */}
+        {encendido && controla && !esServicio && !kit && !modelo && (
+          <label className="casilla">
+            <input type="checkbox" checked={conSeries} onChange={e => setConSeries(e.target.checked)} />
+            <span>
+              <strong>Maneja números de serie</strong>
+              <em>Al comprar escribes el número de cada unidad; al vender eliges cuáles. Sirve para las garantías.</em>
+            </span>
+          </label>
+        )}
+        {editando && encendido && controla && !esServicio && minimos.length > 0 && (
+          <>
+            <span className="etiqueta">Stock mínimo por sucursal (opcional)</span>
+            <div className="pareja">
+              {minimos.map(m => (
+                <label key={m.sucursalId} className="campo">
+                  <span className="etiqueta">{m.codigo} {m.nombre}</span>
+                  <input className="mono" inputMode="decimal" value={minimosTexto[m.sucursalId] ?? ''} placeholder="sin mínimo"
+                         onChange={e => setMinimosTexto(x => ({ ...x, [m.sucursalId]: e.target.value }))} />
+                  <span className="pista">Hay {m.disponible.toLocaleString('es-PE', { maximumFractionDigits: 4 })} disponibles</span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+        {encendido && editando && producto.controlaStock && !controla && !esServicio && (
+          <p className="nota se-aplica">Se aplica: si desmarcas un producto que ya tiene movimientos, su kardex se guarda pero deja de contarse y de bloquear.</p>
+        )}
+
+        </div>
+        </section>
+
+        </>
+        )}
+
+        {!esServicio && (
+        <>
+        <section className="dlg-sec">
+        <div className="dlg-sec-t"><b>Más opciones</b><small>Presentaciones, variantes y kits.</small></div>
+        <div className="dlg-sec-c">
         {/* 063: modelo con variantes. */}
         {!esServicio && !kit && !producto?.padreId && (
           <label className="casilla">
@@ -461,79 +567,11 @@ export function DialogoProducto({ producto, inicial, catalogos, onCerrar, onGuar
           </div>
         )}
 
-        {/* NO ES UN CÓDIGO QUE SE INVENTE: sale de una lista oficial de SUNAT
-            (catálogo 25) que nadie se sabe. Por eso no se escribe: se busca
-            por lo que es el producto y se elige. Ver BuscadorCodigoSunat. */}
-        <BuscadorCodigoSunat valor={codSunat} onCambiar={setCodSunat} descripcion={desc} />
+        </div>
+        </section>
 
-        {/* 052: inventario */}
-        {categorias.length > 0 && (
-          <label className="campo">
-            <span className="etiqueta">Categoría (opcional)</span>
-            <select value={categoriaId} onChange={e => setCategoriaId(e.target.value)}>
-              <option value="">Sin categoría</option>
-              {/* e161: las desactivadas no se ofrecen, salvo la que ya tiene el producto. */}
-              {categorias.filter(c => c.activo !== false || c.id === categoriaId).map(c => (
-                <option key={c.id} value={c.id}>{c.nombre}{c.activo === false ? ' (desactivada)' : ''}</option>
-              ))}
-            </select>
-          </label>
+        </>
         )}
-        {/* e174: sin inventario la casilla no se ve. Por dentro un bien sigue
-            marcado, así el día que se active el inventario ya está listo. */}
-        {encendido && !kit && !modelo && <label className={`casilla${esServicio ? ' deshabilitada' : ''}`}>
-          <input type="checkbox" checked={!esServicio && controla} disabled={esServicio} onChange={e => setControla(e.target.checked)} />
-          <span>
-            <strong>Controla stock</strong>
-            <em>{esServicio
-              ? 'Los servicios no tienen stock.'
-              : 'Marcado de fábrica en los productos que no son servicio. Desmárcalo si no quieres contarlo (por ejemplo, algo que pides a pedido).'}</em>
-          </span>
-        </label>}
-        {/* 064: lotes y vencimientos (farmacias, alimentos). */}
-        {encendido && controla && !esServicio && !kit && !modelo && (
-          <label className="casilla">
-            <input type="checkbox" checked={lotes} onChange={e => setLotes(e.target.checked)} />
-            <span>
-              <strong>Maneja lotes y vencimientos</strong>
-              <em>Al comprar escribes el lote y su vencimiento; al vender sale primero lo que vence antes. Lo que ya hay queda «sin lote».</em>
-            </span>
-          </label>
-        )}
-        {/* 065: números de serie (celulares, motores, electrodomésticos). */}
-        {encendido && controla && !esServicio && !kit && !modelo && (
-          <label className="casilla">
-            <input type="checkbox" checked={conSeries} onChange={e => setConSeries(e.target.checked)} />
-            <span>
-              <strong>Maneja números de serie</strong>
-              <em>Al comprar escribes el número de cada unidad; al vender eliges cuáles. Sirve para las garantías.</em>
-            </span>
-          </label>
-        )}
-        {editando && encendido && controla && !esServicio && minimos.length > 0 && (
-          <>
-            <span className="etiqueta">Stock mínimo por sucursal (opcional)</span>
-            <div className="pareja">
-              {minimos.map(m => (
-                <label key={m.sucursalId} className="campo">
-                  <span className="etiqueta">{m.codigo} {m.nombre}</span>
-                  <input className="mono" inputMode="decimal" value={minimosTexto[m.sucursalId] ?? ''} placeholder="sin mínimo"
-                         onChange={e => setMinimosTexto(x => ({ ...x, [m.sucursalId]: e.target.value }))} />
-                  <span className="pista">Hay {m.disponible.toLocaleString('es-PE', { maximumFractionDigits: 4 })} disponibles</span>
-                </label>
-              ))}
-            </div>
-          </>
-        )}
-        {encendido && editando && producto.controlaStock && !controla && !esServicio && (
-          <p className="nota se-aplica">Se aplica: si desmarcas un producto que ya tiene movimientos, su kardex se guarda pero deja de contarse y de bloquear.</p>
-        )}
-
-        <p className="nota">
-          Desde el <strong>1 de enero de 2027</strong>, si lo pones tiene que ser
-          uno de la lista de SUNAT: uno que no está hace rechazar el
-          comprobante. Por eso aquí solo se puede elegir de ella.
-        </p>
 
         {editando && (
           <p className="nota">

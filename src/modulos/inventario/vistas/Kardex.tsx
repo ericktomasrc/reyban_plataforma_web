@@ -9,6 +9,7 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { cantidad, inventarioServicio, NOMBRE_MOVIMIENTO, type FilaKardex, type Kardex as DatosKardex } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 const enLima = (iso: string) =>
   new Date(iso).toLocaleString('es-PE', { timeZone: 'America/Lima', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -57,15 +58,14 @@ export function Kardex() {
   const variasSucursales = (datos?.sucursales.length ?? 0) > 1
 
   return (
-    <>
+    <div className="inv-pagina">
       <Link to="/inventario" className="enlace-volver">← Stock</Link>
-      <div className="encabezado-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Kardex{p ? ` · ${p.descripcion}` : ''}</h1>
           {p && (
-            <p className="secundario">
-              <span className="mono">{p.codigo}</span> · {p.unidadMedida} · cada entrada y salida, con el documento que la causó.
-              Nada se borra: un error se corrige con otro movimiento.
+            <p className="bajada-pagina">
+              {p.codigo} · {p.unidadMedida} · cada entrada y salida, con el documento que la causó. Nada se borra: un error se corrige con otro movimiento.
             </p>
           )}
         </div>
@@ -74,6 +74,15 @@ export function Kardex() {
 
       {error && <Aviso>{error}</Aviso>}
       {p && !p.controlaStock && <Aviso tono="ojo">Este producto ya no controla stock: su kardex se guarda, pero no se mueve.</Aviso>}
+
+      {/* Diseño 16 nov: los saldos en una franja (antes, apretados entre los filtros). */}
+      {datos && (
+        <div className="cmp-mes estatico tres">
+          <div className="cmp-mes-dato"><span>Físico</span><strong>{cantidad(datos.fisico)}</strong><small>lo que hay ahora</small></div>
+          <div className="cmp-mes-dato ojo"><span>Reservado</span><strong>{cantidad(datos.reservado)}</strong><small>facturado, espera su guía</small></div>
+          <div className="cmp-mes-dato bien"><span>Disponible</span><strong>{cantidad(datos.disponible)}</strong><small>lo que se puede vender</small></div>
+        </div>
+      )}
 
       <div className="filtros-lista">
         {variasSucursales && (
@@ -97,13 +106,6 @@ export function Kardex() {
             <option value="devoluciones">Devoluciones</option>
           </select>
         </label>
-        {datos && (
-          <div className="inv-resumen">
-            <span>Físico <strong>{cantidad(datos.fisico)}</strong></span>
-            <span>Reservado <strong className="inv-reservado">{cantidad(datos.reservado)}</strong></span>
-            <span>Disponible <strong className="inv-bien">{cantidad(datos.disponible)}</strong></span>
-          </div>
-        )}
       </div>
 
       <div className="bloque sin-relleno">
@@ -137,7 +139,7 @@ export function Kardex() {
         Se aplica: kardex de cantidades. El costo (kardex valorizado, promedio ponderado) llega con «Inventario valorizado»;
         los costos que se anotan desde hoy en las compras ya quedan guardados para eso.
       </p>
-    </>
+    </div>
   )
 }
 
@@ -166,9 +168,9 @@ function FilaMovimiento({ f, conSucursal }: { f: FilaKardex; conSucursal: boolea
       </td>
       <td>{documento}</td>
       <td>{f.usuario ?? 'sistema'}</td>
-      <td className="num mono">{f.cantidad > 0 ? cantidad(f.cantidad) : ''}</td>
-      <td className="num mono">
-        {f.cantidad < 0 ? cantidad(-f.cantidad) : ''}
+      <td className="num inv-entra">{f.cantidad > 0 ? `+${cantidad(f.cantidad)}` : ''}</td>
+      <td className="num inv-sale">
+        {f.cantidad < 0 ? `−${cantidad(-f.cantidad)}` : ''}
         {soloReserva && <span className="inv-reservado">({f.reservado > 0 ? '' : '−'}{cantidad(Math.abs(f.reservado))})</span>}
       </td>
       <td className={`num mono${f.saldoFisico < 0 ? ' inv-mal' : ''}`}><strong>{cantidad(f.saldoFisico)}</strong></td>

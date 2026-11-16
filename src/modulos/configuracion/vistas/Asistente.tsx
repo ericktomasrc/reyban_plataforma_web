@@ -19,6 +19,8 @@ import { SelectorUbigeo, buscarUbigeo } from '../../../nucleo/ubigeo/SelectorUbi
 import { noActiva, noHabida, useFichaRuc } from '../../../nucleo/sunat/useFichaRuc'
 import { useConexionSunat } from '../../../nucleo/sunat/conexionSunat'
 import type { RevisionPedido } from '../../cartera/servicios/pedidosServicio'
+import '../../facturacion/comprobantes-lista.css'
+import '../configuracion.css'
 
 /**
  * EL ASISTENTE «AGREGA TU EMPRESA» (fase 2).
@@ -78,7 +80,7 @@ export function Asistente() {
   if (!estado.empresa && !estado.puedeAgregar) {
     return (
       <>
-        <h1 className="titulo-pagina titulo-serif">Agrega tu empresa</h1>
+        <h1 className="titulo-pagina">Configura tu empresa</h1>
         <Aviso tono="ojo">{estado.motivo ?? 'No puedes agregar una empresa ahora.'}</Aviso>
         <Link to="/" className="boton secundario">← Volver al inicio</Link>
       </>
@@ -95,44 +97,50 @@ export function Asistente() {
     setPaso(p => Math.min(6, p + 1))
   }
 
-  return (
-    <>
-      <div><Link to="/" className="volver-arriba">← Volver al inicio</Link></div>
+  const enPrueba = (estado.empresa?.ambiente ?? 'beta') === 'beta'
 
-      <div className="bienvenida-cabecera">
-        <h1 className="titulo-pagina titulo-serif">
-          {estado.empresa?.razonSocial ?? 'Agrega tu empresa'}
-        </h1>
-        <p className="bajada-pagina">
-          {estado.empresa
-            ? <>RUC <span className="mono">{estado.empresa.ruc}</span>{' '}
-                <span className="etiqueta acento">{estado.empresa.ambiente ?? 'beta'}</span></>
-            : 'Seis pasos. Puedes salir y volver: lo que guardes se queda.'}
-        </p>
+  return (
+    <div className="cfg-pagina">
+      <Link to="/" className="enlace-volver">← Volver al inicio</Link>
+
+      {/* Diseño 16 nov: título sobrio y los pasos arriba, en una barra. */}
+      <div className="encabezado-pagina cmp-encab">
+        <div>
+          <h1 className="titulo-pagina">
+            {estado.empresa?.razonSocial ?? 'Configura tu empresa'}
+            {estado.empresa && (
+              <span className="lst-cuenta">RUC {estado.empresa.ruc} · {enPrueba ? 'modo prueba (beta)' : 'producción'}</span>
+            )}
+          </h1>
+          <p className="bajada-pagina">
+            {estado.empresa
+              ? 'Puedes salir y volver cuando quieras: lo que guardes se queda.'
+              : 'Unos minutos y quedas lista para emitir. Puedes salir y volver: lo que guardes se queda.'}
+          </p>
+        </div>
       </div>
 
       {estado.servicio && !estado.servicio.alcanzado && (
         <Aviso tono="ojo">{estado.servicio.error}</Aviso>
       )}
 
-      <div className="asistente">
-        <aside className="bloque asistente-pasos">
-          <ol className="lista-pasos">
-            {NOMBRES.map((nombre, i) => {
-              const n = i + 1
-              const clase = n === paso ? 'actual' : hechos[n] ? 'hecho' : undefined
-              return (
-                <li key={nombre} className={clase}>
-                  <button type="button" className="paso-boton" onClick={() => irA(n)}
-                          disabled={!estado.empresa && n !== 1}>
-                    {nombre}
-                  </button>
-                </li>
-              )
-            })}
-          </ol>
-        </aside>
+      <ol className="cfg-pasos" aria-label="Pasos">
+        {NOMBRES.map((nombre, i) => {
+          const n = i + 1
+          const clase = n === paso ? 'actual' : hechos[n] ? 'hecho' : undefined
+          return (
+            <li key={nombre} className={clase}>
+              <button type="button" className="paso-boton" onClick={() => irA(n)}
+                      disabled={!estado.empresa && n !== 1} aria-current={n === paso ? 'step' : undefined}>
+                <i aria-hidden="true">{hechos[n] && n !== paso ? '✓' : n}</i>
+                <span>{nombre}{n === 5 && enPrueba && <small>opcional en prueba</small>}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ol>
 
+      <div className="cfg-cuerpo">
         <section className="bloque asistente-paso">
           {paso === 1 && <PasoEmpresa estado={estado} alTerminar={async () => {
             nueva.current = false
@@ -146,14 +154,14 @@ export function Asistente() {
           {paso === 5 && <PasoSunat estado={estado} atras={() => setPaso(4)} alTerminar={siguiente} />}
           {paso === 6 && <PasoListo estado={estado} atras={() => setPaso(5)} irA={irA} recargar={() => cargar(false)} />}
         </section>
+        <AyudaPaso paso={paso} enPrueba={enPrueba} />
       </div>
-    </>
+    </div>
   )
 }
 
 const NOMBRES = [
-  'La empresa', 'Certificado digital', 'Series', 'Correo y marca',
-  'SUNAT (para producción)', 'Lista para emitir',
+  'Tu empresa', 'Firma digital', 'Numeración', 'Envío a clientes', 'SUNAT', 'Listo',
 ]
 
 function pasosHechos(e: EstadoConfiguracion): Record<number, boolean> {
@@ -235,6 +243,10 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
   // 18 OCT: si el RUC está libre en Reyban, se trae su ficha de SUNAT. Va
   // DESPUÉS de revisar, para no gastar una consulta en una empresa que ya está.
   const [libre, setLibre] = useState<string | null>(null)
+  // Diseño 16 nov: primero solo el RUC; el resto aparece con la ficha de SUNAT
+  // (o a mano). «Corregir» abre los campos de siempre.
+  const [aMano, setAMano] = useState(false)
+  const [corregir, setCorregir] = useState(false)
 
   useEffect(() => {
     if (!rucCompleto) { setRevision(null); setLibre(null); return }
@@ -267,7 +279,7 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
     const dir = estado.emisor?.direccion
     return (
       <>
-        <h2>1 · La empresa</h2>
+        <h2>Tu empresa</h2>
         <dl className="datos">
           <div className="fila"><dt>RUC</dt><dd className="mono">{estado.empresa.ruc}</dd></div>
           <div className="fila"><dt>Razón social</dt><dd>{estado.empresa.razonSocial}</dd></div>
@@ -296,6 +308,14 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
 
   const ruc = d.ruc.trim()
   const rucBien = ruc.length === 11 && rucValido(ruc)
+
+  const conFicha = !!ficha && !noActiva(ficha)
+  const buscoSunat = rucCompleto && libre === rucEscrito && !buscandoSunat
+  const hayError = Object.values(errores).some(Boolean)
+  const verResto = aMano || conFicha || buscoSunat || hayError
+  const errorDeDatos = ['razonSocial', 'direccion', 'ubigeo', 'distrito', 'provincia', 'departamento'].some(k => errores[k])
+  const fichaCompleta = !!d.razonSocial.trim() && !!d.direccion.trim() && /^\d{6}$/.test(d.ubigeo)
+  const camposAMano = aMano || corregir || !conFicha || !fichaCompleta || errorDeDatos
 
   const enviar = async (ev: FormEvent | null, confirmoCupo = false) => {
     ev?.preventDefault()
@@ -347,20 +367,17 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
 
   return (
     <form onSubmit={enviar} noValidate>
-      <h2>1 · Los datos de la empresa</h2>
+      <h2>Empieza con tu RUC</h2>
+      <p className="texto-paso">Con el RUC traemos de SUNAT la razón social y la dirección fiscal. No tienes que copiarlas.</p>
 
       {general && <Aviso>{general}</Aviso>}
 
-      <div className="pareja ruc-razon">
-        <Campo etiqueta="RUC" obligatorio inputMode="numeric" maxLength={11} className="mono"
-               value={d.ruc} onChange={poner('ruc')} mal={!!errores.ruc}
+      <div className="cfg-ruc">
+        <Campo etiqueta="RUC de la empresa" obligatorio inputMode="numeric" maxLength={11} className="mono"
+               value={d.ruc} onChange={poner('ruc')} mal={!!errores.ruc} autoFocus
                pista={errores.ruc || (buscandoSunat ? 'Buscando en SUNAT…'
                  : ficha && !noActiva(ficha) ? '✓ Datos traídos de SUNAT'
                  : rucBien ? '✓ RUC válido' : '11 dígitos.')} />
-        {!revision && (
-          <Campo etiqueta="Razón social" obligatorio value={d.razonSocial} onChange={poner('razonSocial')}
-                 mal={!!errores.razonSocial} pista={errores.razonSocial || 'Tal cual la ficha RUC.'} />
-        )}
       </div>
 
       {revision ? <EmpresaYaEnReyban ruc={ruc} revision={revision} /> : <>
@@ -378,35 +395,63 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
         </Aviso>
       )}
 
-      <Campo etiqueta="Nombre comercial (opcional)" value={d.nombreComercial} onChange={poner('nombreComercial')}
-             mal={!!errores.nombreComercial} pista={errores.nombreComercial || undefined} />
+      {/* Lo que trajo SUNAT, para leer. «Corregir» abre los campos. */}
+      {verResto && !camposAMano && (
+        <div className="cfg-sunat">
+          <div className="cfg-sunat-t">
+            <span>Según tu ficha RUC{ficha?.estado && <span className="etiqueta acento">{ficha.estado}{ficha.condicion ? ` · ${ficha.condicion}` : ''}</span>}</span>
+            <button type="button" className="enlace" onClick={() => setCorregir(true)}>Corregir</button>
+          </div>
+          <dl>
+            <dt>Razón social</dt><dd><strong>{d.razonSocial}</strong></dd>
+            <dt>Dirección fiscal</dt><dd>{d.direccion}</dd>
+            <dt>Distrito</dt><dd>{d.distrito} · {d.provincia} · {d.departamento} <span className="secundario">({d.ubigeo})</span></dd>
+          </dl>
+        </div>
+      )}
 
-      <Aviso tono="ojo">
-        La dirección fiscal sale en cada comprobante. <strong>Cópiala tal cual de tu ficha RUC.</strong>
-      </Aviso>
+      {verResto && camposAMano && <>
+        <Campo etiqueta="Razón social" obligatorio value={d.razonSocial} onChange={poner('razonSocial')}
+               mal={!!errores.razonSocial} pista={errores.razonSocial || 'Tal cual la ficha RUC.'} />
 
-      <Campo etiqueta="Dirección fiscal" obligatorio value={d.direccion} onChange={poner('direccion')}
-             mal={!!errores.direccion} pista={errores.direccion || undefined} />
+        <p className="cfg-ojo">La dirección fiscal sale en cada comprobante: escríbela <strong>tal cual tu ficha RUC</strong>.</p>
 
-      {/* Departamento ▸ provincia ▸ distrito: el ubigeo se pone solo (17 oct). */}
-      <SelectorUbigeo
-        ubigeo={d.ubigeo}
-        onCambio={u => {
-          setD(v => ({ ...v, ...u }))
-          setErrores(v => ({ ...v, ubigeo: '', distrito: '', provincia: '', departamento: '' }))
-        }}
-        error={errores.ubigeo || errores.distrito || errores.provincia || errores.departamento || undefined}
-      />
+        <Campo etiqueta="Dirección fiscal" obligatorio value={d.direccion} onChange={poner('direccion')}
+               mal={!!errores.direccion} pista={errores.direccion || undefined} />
 
-      <Campo etiqueta="Correo del titular" obligatorio required type="email" autoComplete="off"
-             placeholder="correo del dueño de la empresa" value={d.correoTitular}
-             onChange={poner('correoTitular')} mal={!!errores.correoTitular}
-             pista={errores.correoTitular ||
-               'El del dueño de la empresa. Es la llave para recuperarla si algún día la gestiona otra persona.'} />
+        {/* Departamento ▸ provincia ▸ distrito: el ubigeo se pone solo (17 oct). */}
+        <SelectorUbigeo
+          ubigeo={d.ubigeo}
+          onCambio={u => {
+            setD(v => ({ ...v, ...u }))
+            setErrores(v => ({ ...v, ubigeo: '', distrito: '', provincia: '', departamento: '' }))
+          }}
+          error={errores.ubigeo || errores.distrito || errores.provincia || errores.departamento || undefined}
+        />
+      </>}
 
-      <Pie>
-        <Boton type="submit" ocupado={ocupado} textoOcupado="Creando la empresa…">Guardar y seguir</Boton>
-      </Pie>
+      {verResto && <>
+        <div className="pareja">
+          <Campo etiqueta="Nombre comercial (opcional)" value={d.nombreComercial} onChange={poner('nombreComercial')}
+                 placeholder="Cómo te conocen tus clientes"
+                 mal={!!errores.nombreComercial} pista={errores.nombreComercial || undefined} />
+          <Campo etiqueta="Correo del dueño de la empresa" obligatorio required type="email" autoComplete="off"
+                 placeholder="dueño@empresa.pe" value={d.correoTitular}
+                 onChange={poner('correoTitular')} mal={!!errores.correoTitular}
+                 pista={errores.correoTitular ||
+                   'Sirve para recuperar la empresa si un día la maneja otra persona.'} />
+        </div>
+
+        <Pie>
+          <Boton type="submit" ocupado={ocupado} textoOcupado="Creando la empresa…">Crear la empresa y seguir</Boton>
+        </Pie>
+      </>}
+
+      {!verResto && (
+        <div className="cfg-a-mano">
+          <button type="button" className="enlace" onClick={() => setAMano(true)}>Prefiero llenar los datos a mano</button>
+        </div>
+      )}
       </>}
 
       <Dialogo titulo="Te pasas del cupo de tu Cartera" abierto={!!pasaCupo} onCerrar={() => setPasaCupo(null)}
@@ -519,6 +564,10 @@ function PasoCertificado({ estado, atras, alTerminar }: {
   // 030: en producción (conexión fija en real) no hay certificado de prueba.
   const conexion = useConexionSunat()
   const beta = (estado.empresa?.ambiente ?? 'beta') === 'beta' && !conexion?.fija
+  // Diseño 16 nov: dos caminos (tengo mi certificado / quiero probar).
+  const elegirCamino = beta && !cargado
+  const [camino, setCamino] = useState<'tengo' | 'prueba' | null>(null)
+  const via = elegirCamino ? camino : 'tengo'
 
   const elegir = (f: File | null | undefined) => {
     setArchivo(f ?? null)
@@ -565,10 +614,10 @@ function PasoCertificado({ estado, atras, alTerminar }: {
 
   return (
     <>
-      <h2>2 · Certificado digital</h2>
+      <h2>Firma digital (certificado)</h2>
       <p className="texto-paso">
-        Firma cada comprobante. Es el archivo <strong>.pfx</strong> (o .p12) que te dio la empresa
-        certificadora, con su contraseña.
+        Cada factura y boleta va firmada con tu certificado digital: el archivo <strong>.pfx</strong> (o .p12)
+        con su contraseña.{elegirCamino && ' ¿Ya lo tienes?'}
       </p>
 
       {cargado && vence && (
@@ -578,6 +627,30 @@ function PasoCertificado({ estado, atras, alTerminar }: {
         </div>
       )}
 
+      {elegirCamino && (
+        <div className="cfg-opciones" role="radiogroup" aria-label="¿Tienes certificado digital?">
+          <button type="button" role="radio" aria-checked={camino === 'tengo'}
+                  className={'cfg-opcion' + (camino === 'tengo' ? ' elegida' : '')}
+                  onClick={() => { setCamino('tengo'); setError(null) }}>
+            <i aria-hidden="true" />
+            <strong>Sí, tengo mi certificado</strong>
+            <span>Un archivo .pfx o .p12 con su contraseña. Te lo da SUNAT o una empresa certificadora.</span>
+          </button>
+          <button type="button" role="radio" aria-checked={camino === 'prueba'}
+                  className={'cfg-opcion' + (camino === 'prueba' ? ' elegida' : '')}
+                  onClick={() => { setCamino('prueba'); setError(null) }}>
+            <i aria-hidden="true" />
+            <strong>Todavía no: quiero probar</strong>
+            <span>Usamos un certificado de prueba. Sirve para emitir en modo prueba, no ante SUNAT.</span>
+          </button>
+        </div>
+      )}
+
+      {via === 'prueba' && (
+        <p className="cfg-nota">Con el de prueba ya puedes emitir comprobantes de prueba. Cuando tengas el tuyo, vuelves a este paso y lo subes.</p>
+      )}
+
+      {via === 'tengo' && <>
       <label
         className={'zona-archivo' + (arrastrando ? ' encima' : '')}
         onDragOver={e => { e.preventDefault(); setArrastrando(true) }}
@@ -594,6 +667,7 @@ function PasoCertificado({ estado, atras, alTerminar }: {
       <Campo etiqueta="Contraseña del certificado" type="password" autoComplete="off"
              value={clave} onChange={e => setClave(e.target.value)}
              pista="No es tu clave SOL: es la del archivo. Se guarda cifrada." />
+      </>}
 
       {/* 18 oct: sin casilla. Un certificado de otro RUC sale aquí, en rojo. */}
       {error && <Aviso>{error}</Aviso>}
@@ -601,18 +675,16 @@ function PasoCertificado({ estado, atras, alTerminar }: {
       {/* e236: la guía para sacar el certificado (gratis en SUNAT, o comprado). */}
       {!cargado && <GuiaCertificado />}
 
-      {beta && (
-        <div className="aviso ojo fila-aviso">
-          <span>¿Todavía no tienes certificado? En <strong>beta</strong> puedes probar con uno de prueba.</span>
-          <Boton estilo="secundario" onClick={() => void dePrueba()} disabled={ocupado}>Usar uno de prueba</Boton>
-        </div>
-      )}
-
       <Pie atras={atras}>
-        <Boton onClick={() => void guardar()} ocupado={ocupado} textoOcupado="Guardando…"
-               disabled={!!error && !!archivo}>
-          {archivo || !cargado ? 'Guardar y seguir' : 'Seguir'}
-        </Boton>
+        {via === 'prueba' ? (
+          <Boton onClick={() => void dePrueba()} ocupado={ocupado} textoOcupado="Creando…">Usar uno de prueba y seguir</Boton>
+        ) : (
+          <Boton onClick={() => void guardar()} ocupado={ocupado} textoOcupado="Guardando…"
+                 disabled={(!!error && !!archivo) || via === null}
+                 title={via === null ? 'Elige una de las dos opciones' : undefined}>
+            {archivo || !cargado ? 'Guardar y seguir' : 'Seguir'}
+          </Boton>
+        )}
       </Pie>
     </>
   )
@@ -659,6 +731,26 @@ function PasoSeries({ estado, atras, alCambiar, alTerminar }: {
     setTipo(t); setSerie(s); setUltimo('0'); setConfirmado(false); setError(null)
   }
 
+  // Diseño 16 nov: primero una pregunta. «Empiezo de cero» agrega las series
+  // de siempre con el último número en 0 (la misma llamada que «Agregar»).
+  const deOtroSistema = (s: { serie: string; tipoComprobante: string; ultimoCorrelativo: number }) =>
+    s.ultimoCorrelativo > 0 || !RAPIDAS.some(([t, x]) => x === s.serie && t === s.tipoComprobante)
+  const [yaEmitia, setYaEmitia] = useState(() => series.some(deOtroSistema))
+  const [agregando, setAgregando] = useState<string | null>(null)
+  const agregarDeCero = async (t: string, s: string) => {
+    setError(null)
+    setAgregando(s)
+    try {
+      const r = await configuracionServicio.agregarSerie(t, s, 0, false)
+      mensaje.bien(r.mensaje)
+      await alCambiar()
+    } catch (err) {
+      setError(textoDe(err, 'No se pudo agregar la serie.'))
+    } finally {
+      setAgregando(null)
+    }
+  }
+
   // 22 OCT: QUITAR UNA SERIE AGREGADA POR ERROR. Solo si nunca se usó: último
   // número 0 y ningún comprobante. Si no, el botón queda apagado y dice por qué.
   const [quitando, setQuitando] = useState<string | null>(null)
@@ -698,12 +790,56 @@ function PasoSeries({ estado, atras, alCambiar, alTerminar }: {
 
   return (
     <>
-      <h2>3 · Series</h2>
-      <p className="texto-paso">
-        Cada tipo de comprobante necesita su serie. Si ya emitías con otro sistema, pon el{' '}
-        <strong>último número que usaste</strong>; si empiezas de cero, déjalo en 0.
-      </p>
+      <h2>Numeración de tus comprobantes</h2>
+      <p className="texto-paso">¿Ya emitías facturas o boletas electrónicas con otro sistema?</p>
 
+      <div className="cfg-opciones" role="radiogroup" aria-label="¿Ya emitías con otro sistema?">
+        <button type="button" role="radio" aria-checked={!yaEmitia}
+                className={'cfg-opcion' + (!yaEmitia ? ' elegida' : '')} onClick={() => { setYaEmitia(false); setError(null) }}>
+          <i aria-hidden="true" />
+          <strong>No, empiezo de cero</strong>
+          <span>Tus comprobantes empiezan en el número 1.</span>
+        </button>
+        <button type="button" role="radio" aria-checked={yaEmitia}
+                className={'cfg-opcion' + (yaEmitia ? ' elegida' : '')} onClick={() => { setYaEmitia(true); setError(null) }}>
+          <i aria-hidden="true" />
+          <strong>Sí, ya emitía</strong>
+          <span>Escribe tu serie y el último número que usaste, para seguir desde ahí.</span>
+        </button>
+      </div>
+
+      {!yaEmitia && (
+        <div className="cfg-series">
+          {RAPIDAS.map(([t, s, nombre], i) => {
+            const x = series.find(y => y.serie === s && y.tipoComprobante === t)
+            return (
+              <div key={s}>
+                {i === 2 && <div className="cfg-series-sub">Opcional: notas de crédito</div>}
+                <div className="cfg-serie">
+                  <strong>{s}</strong>
+                  <span className="cfg-serie-d">{nombre}</span>
+                  <span className="cfg-serie-n">{x ? `la siguiente será ${numero(s, x.ultimoCorrelativo + 1)}` : `empezaría en ${numero(s, 1)}`}</span>
+                  {x ? (
+                    <>
+                      <span className="etiqueta acento">lista</span>
+                      {sinUsar(x) && (
+                        <Boton estilo="plano" ocupado={quitando === x.id} textoOcupado="Quitando…"
+                               disabled={quitando !== null} title={`Quitar la ${s} (nunca se usó)`}
+                               onClick={() => void quitar(x.id)}>Quitar</Boton>
+                      )}
+                    </>
+                  ) : (
+                    <Boton estilo="secundario" ocupado={agregando === s} textoOcupado="Agregando…"
+                           disabled={agregando !== null} onClick={() => void agregarDeCero(t, s)}>Agregar</Boton>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {yaEmitia && <>
       <div className="chips">
         <span className="chips-etiqueta">Agregar rápido:</span>
         {RAPIDAS.map(([t, s, nombre]) => (
@@ -769,6 +905,7 @@ function PasoSeries({ estado, atras, alCambiar, alTerminar }: {
           </label>
         </div>
       )}
+      </>}
 
       {error && <Aviso>{error}</Aviso>}
 
@@ -868,7 +1005,7 @@ function PasoCorreo({ estado, atras, alTerminar }: {
 
   return (
     <>
-      <h2>4 · Correo y marca</h2>
+      <h2>Envío a tus clientes</h2>
       <p className="texto-paso">
         Así llega cada comprobante a tus clientes: un correo con el PDF y el XML, y un enlace para descargarlos.
       </p>
@@ -889,6 +1026,9 @@ function PasoCorreo({ estado, atras, alTerminar }: {
         <span>Mandarme una copia de cada comprobante a {correo || 'ese correo'}</span>
       </label>
 
+      {/* Diseño 16 nov: la marca en su propio bloque (opcional, a la vista). */}
+      <div className="cfg-marca">
+      <div className="cfg-marca-t"><strong>Tu marca</strong><span>Opcional: se ve bien sin cambiar nada.</span></div>
       <div className="pareja">
         <div className="campo">
           <span className="etiqueta">Logo (opcional)</span>
@@ -947,7 +1087,7 @@ function PasoCorreo({ estado, atras, alTerminar }: {
       )}
 
       <div className="vista-correo">
-        <div className="vista-correo-titulo">Vista previa del correo</div>
+        <div className="vista-correo-titulo">Vista previa del correo · así lo verá tu cliente. Es solo una muestra: el botón funciona en el correo real.</div>
         <div className="vista-correo-cuerpo">
           <div className="vista-correo-marca">
             {vista
@@ -958,6 +1098,7 @@ function PasoCorreo({ estado, atras, alTerminar }: {
           <span>Hola, te enviamos la <strong>Factura F001-00000001</strong> por S/ 1,180.00.</span>
           <span><span className="boton-muestra" style={{ background: color }}>Descargar PDF y XML</span></span>
         </div>
+      </div>
       </div>
 
       {error && <Aviso>{error}</Aviso>}
@@ -1008,12 +1149,12 @@ function PasoSunat({ estado, atras, alTerminar }: {
 
   return (
     <>
-      <h2>5 · SUNAT <span className="detalle-paso">(para producción)</span></h2>
+      <h2>SUNAT <span className="detalle-paso">(para emitir de verdad)</span></h2>
 
       {beta && (
         <div className="aviso bien">
-          <strong>Estás en beta: este paso puedes dejarlo para después.</strong> En beta tus comprobantes van al
-          entorno de pruebas de SUNAT y no tienen valor tributario. Para emitir de verdad, completa esto.
+          <strong>Estás en modo prueba: puedes saltar este paso.</strong> Tus comprobantes van al entorno de
+          pruebas de SUNAT y no tienen valor tributario. Para emitir de verdad, completa esto.
         </div>
       )}
 
@@ -1044,11 +1185,17 @@ function PasoSunat({ estado, atras, alTerminar }: {
       {error && <Aviso>{error}</Aviso>}
 
       <Pie atras={atras}>
-        <Boton estilo="secundario" onClick={() => void alTerminar()}>Lo hago después</Boton>
-        <Boton onClick={() => void guardar()} ocupado={ocupado} textoOcupado="Guardando…"
-               disabled={!!usuario.trim() !== !!clave}>
-          Guardar y seguir
-        </Boton>
+        {beta && !guardado && !usuario.trim() && !clave ? (
+          <Boton onClick={() => void alTerminar()}>Saltar por ahora</Boton>
+        ) : (
+          <>
+            <Boton estilo="secundario" onClick={() => void alTerminar()}>Lo hago después</Boton>
+            <Boton onClick={() => void guardar()} ocupado={ocupado} textoOcupado="Guardando…"
+                   disabled={!!usuario.trim() !== !!clave}>
+              Guardar y seguir
+            </Boton>
+          </>
+        )}
       </Pie>
     </>
   )
@@ -1100,23 +1247,23 @@ function PasoListo({ estado, atras, irA, recargar }: {
   const series = e?.listo?.series ?? []
 
   const filas: [number, boolean, string, string][] = [
-    [1, !!estado.empresa, 'La empresa',
+    [1, !!estado.empresa, 'Tu empresa',
       `RUC ${estado.empresa?.ruc ?? ''}${dir ? ` · ${dir.direccion}, ${dir.distrito}` : ''}`],
-    [2, !!p?.certificado, 'Certificado digital',
+    [2, !!p?.certificado, 'Firma digital',
       e?.certificadoValidoHasta ? `Válido hasta el ${fecha(e.certificadoValidoHasta)}` : 'Falta cargarlo.'],
-    [3, !!p?.series, 'Series', series.length ? series.join(' · ') : 'Falta al menos una.'],
-    [4, !!p?.correo, 'Correo y marca',
+    [3, !!p?.series, 'Numeración', series.length ? series.join(' · ') : 'Falta al menos una.'],
+    [4, !!p?.correo, 'Envío a clientes',
       e?.portal?.correoRespuesta ? `Respuestas a ${e.portal.correoRespuesta}`
         : 'Sin esto tus clientes no reciben el correo con su comprobante.'],
-    [5, !!p?.sol, 'SUNAT (para producción)',
-      p?.sol ? 'Usuario SOL guardado.' : 'Falta tu usuario SOL. No impide probar en beta.'],
+    [5, !!p?.sol, 'SUNAT',
+      p?.sol ? 'Usuario SOL guardado.' : 'Para emitir de verdad. No hace falta para probar.'],
   ]
 
   return (
     <>
       {activa ? (
         <div className="cabecera-listo">
-          <h2 className="titulo-serif">¡Lista para emitir!</h2>
+          <h2>¡Lista para emitir!</h2>
           <span className="texto-paso">
             {estado.empresa?.razonSocial} ya puede emitir
             {(estado.empresa?.ambiente ?? 'beta') === 'beta' ? <> en <strong>beta</strong> (pruebas SUNAT)</> : null}.
@@ -1124,13 +1271,13 @@ function PasoListo({ estado, atras, irA, recargar }: {
           </span>
         </div>
       ) : (
-        <h2>6 · Lista para emitir</h2>
+        <h2>Lista para emitir</h2>
       )}
 
       <ul className="lista-listo">
         {filas.map(([n, ok, titulo, detalle]) => (
           <li key={n}>
-            <span className={ok ? 'marca-listo bien' : 'marca-listo ojo'} aria-hidden="true">{ok ? '✓' : '!'}</span>
+            <span className={ok ? 'marca-listo bien' : n === 5 ? 'marca-listo opcional' : 'marca-listo ojo'} aria-hidden="true">{ok ? '✓' : n === 5 ? '–' : '!'}</span>
             <span className="lista-listo-texto">
               <strong>{titulo}</strong>
               <span>{detalle}</span>
@@ -1166,6 +1313,61 @@ function PasoListo({ estado, atras, irA, recargar }: {
 
       <p className="nota">Todo esto lo puedes cambiar después volviendo a este asistente.</p>
     </>
+  )
+}
+
+/**
+ * Diseño 16 nov — LA AYUDA DE CADA PASO (columna derecha). Solo texto.
+ */
+function AyudaPaso({ paso, enPrueba }: { paso: number; enPrueba: boolean }) {
+  const ayuda: Record<number, { titulo: string; puntos: ReactNode[] }> = {
+    1: { titulo: 'Qué vas a necesitar', puntos: [
+      <>El <strong>RUC</strong> de la empresa. Con él traemos de SUNAT la razón social, la dirección fiscal y el distrito.</>,
+      <>Revisa que la dirección sea la de tu ficha RUC: sale impresa en cada comprobante.</>,
+      <>El <strong>correo del dueño</strong> de la empresa (no el del contador). Si un día la maneja otra persona, con ese correo se recupera.</>,
+      <>Si el RUC ya está en Reyban, te ofrecemos pedirle acceso a su titular.</>,
+    ] },
+    2: { titulo: 'Sobre la firma digital', puntos: [
+      <>El certificado es un archivo <strong>.pfx</strong> o <strong>.p12</strong> con una contraseña. Firma cada comprobante para que SUNAT sepa que es tuyo.</>,
+      <>Puede ser <strong>gratis</strong>: SUNAT lo da a empresas con renta de 3ra categoría (abajo, «Así lo sacas»). Si no calificas, se compra a una entidad acreditada.</>,
+      <>La contraseña es la del archivo, no tu clave SOL. Lo guardamos cifrado y te avisamos antes de que venza.</>,
+      ...(enPrueba ? [<>¿Aún no lo tienes? Elige <strong>Quiero probar</strong> y emite comprobantes de prueba desde hoy.</>] : []),
+    ] },
+    3: { titulo: '¿Qué es una serie?', puntos: [
+      <>Son las 4 letras antes del número: <strong>F001</strong>-00000001. Las facturas empiezan con F y las boletas con B.</>,
+      <>Si empiezas de cero, con F001 y B001 basta. Las notas de crédito (FC01, BC01) se agregan cuando las necesites.</>,
+      <>Si ya emitías con otro sistema, pon el <strong>último número</strong> que usaste: si repites uno, SUNAT lo rechaza.</>,
+      <>¿Varias tiendas? Cada sucursal puede tener su serie; se agregan después en <strong>Sucursales</strong>.</>,
+    ] },
+    4: { titulo: 'Cómo llega a tu cliente', puntos: [
+      <>Tu cliente recibe un correo con el PDF y el XML, y un botón para descargarlos.</>,
+      <>Si responde ese correo, la respuesta te llega al <strong>correo para respuestas</strong>.</>,
+      <>La <strong>página de descargas</strong> es tu dirección en Reyban: se pone una sola vez porque va en los correos enviados.</>,
+      <>Logo: PNG o JPG de hasta 300 KB. <strong>Moderno</strong> lleva tu logo; <strong>Clásico</strong> se parece al del portal de SUNAT. Pulsa «Ver ejemplo» para compararlos.</>,
+    ] },
+    5: { titulo: 'Para emitir de verdad', puntos: [
+      ...(enPrueba ? [<>En modo prueba <strong>no hace falta</strong>: puedes saltarlo y volver cuando quieras emitir de verdad.</>] : []),
+      <>Entra a <strong>SUNAT Operaciones en Línea</strong> con tu clave SOL principal y crea un <strong>usuario secundario</strong> con el perfil de envío de comprobantes electrónicos.</>,
+      <>Aquí pones solo ese usuario y su clave. Nunca tu clave SOL principal.</>,
+      <>La clave se guarda cifrada: nadie de Reyban puede verla.</>,
+    ] },
+    6: { titulo: 'Qué pasa al activar', puntos: [
+      <>Se enciende <strong>Facturación</strong> en tu menú y quedas como Administrador de la empresa.</>,
+      enPrueba
+        ? <>En modo prueba tus comprobantes van al entorno de pruebas de SUNAT: no tienen valor tributario.</>
+        : <>Tus comprobantes van a SUNAT y tienen valor tributario.</>,
+      <>Lo marcado con <strong>!</strong> falta para emitir; pulsa «Completar» para ir a ese paso.</>,
+      <>Todo se puede cambiar después volviendo a Configuración.</>,
+    ] },
+  }
+  const a = ayuda[paso]
+  if (!a) return null
+  return (
+    <aside className="cfg-ayuda" aria-label="Ayuda de este paso">
+      <h3>{a.titulo}</h3>
+      <ul>{a.puntos.map((p, i) => <li key={i}>{p}</li>)}</ul>
+      <p className="cfg-ayuda-pie">¿Te trabaste? Usa <strong>¿Ayuda? Escríbenos</strong> (abajo a la derecha) y te ayudamos a terminar.</p>
+    </aside>
   )
 }
 

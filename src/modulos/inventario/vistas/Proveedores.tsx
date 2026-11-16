@@ -14,6 +14,7 @@ import { consultasServicio } from '../../facturacion/servicios/facturacionServic
 import { useEstadoInventario } from '../componentes/usoInventario'
 import { inventarioServicio, type Categoria, type PaginaDe, type Proveedor } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 type Pestana = 'proveedores' | 'categorias' | 'motivos'
 const PESTANAS: [Pestana, string][] = [['proveedores', 'Proveedores'], ['categorias', 'Categorías de producto'], ['motivos', 'Motivos de ajuste']]
@@ -34,15 +35,15 @@ export function Proveedores() {
   const { estado } = useEstadoInventario()
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="inv-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Proveedores y categorías</h1>
-          <p className="secundario">Las listas que usa el inventario: a quién le compras, cómo agrupas tus productos y por qué se ajusta el stock.</p>
+          <p className="bajada-pagina">Las listas que usa el inventario: a quién le compras, cómo agrupas tus productos y por qué se ajusta el stock.</p>
         </div>
       </div>
 
-      <div className="segmentado" role="tablist" aria-label="Maestras del inventario">
+      <div className="segmentado inv-pestanas" role="tablist" aria-label="Maestras del inventario">
         {PESTANAS.map(([v, t]) => (
           <button key={v} type="button" role="tab" aria-selected={ver === v} className={ver === v ? 'elegido' : undefined}
                   onClick={() => setParams(v === 'proveedores' ? {} : { ver: v }, { replace: true })}>
@@ -73,7 +74,7 @@ export function Proveedores() {
           <p className="nota se-aplica">Se aplica: el conteo físico y los faltantes de traslado usan sus propios motivos («Diferencia de conteo», «Faltante en traslado»).</p>
         </div>
       )}
-    </>
+    </div>
   )
 }
 
@@ -112,7 +113,7 @@ function ListaProveedores() {
       {error && <Aviso>{error}</Aviso>}
       <div className="inv-barra">
         <div className="filtros-lista">
-          <label><span>Buscar</span><input value={q} placeholder="RUC o razón social" onChange={e => { setQ(e.target.value); setPagina(1) }} /></label>
+          <label className="inv-buscar"><span>Buscar</span><input value={q} placeholder="RUC o razón social" onChange={e => { setQ(e.target.value); setPagina(1) }} /></label>
           <label>
             <span>Estado</span>
             <select value={filtroEstado} onChange={e => { setFiltroEstado(e.target.value); setPagina(1) }}>
@@ -273,7 +274,7 @@ export function Categorias() {
     <>
       <div className="inv-barra">
         <div className="filtros-lista">
-          <label><span>Buscar</span><input value={q} placeholder="Nombre de la categoría" onChange={e => { setQ(e.target.value); setPagina(1) }} /></label>
+          <label className="inv-buscar"><span>Buscar</span><input value={q} placeholder="Nombre de la categoría" onChange={e => { setQ(e.target.value); setPagina(1) }} /></label>
           <label>
             <span>Estado</span>
             <select value={filtro} onChange={e => { setFiltro(e.target.value as typeof filtro); setPagina(1) }}>

@@ -7,6 +7,7 @@ import { InventarioApagado } from '../componentes/InventarioApagado'
 import { useEstadoInventario } from '../componentes/usoInventario'
 import { inventarioServicio, type FilaSerie } from '../servicios/inventarioServicio'
 import '../inventario.css'
+import '../../facturacion/comprobantes-lista.css'
 
 const ESTADO: Record<string, { texto: string; clase: string }> = {
   en_stock: { texto: 'En stock', clase: 'inv-bien' },
@@ -43,11 +44,11 @@ export function Series() {
   if (!estado.encendido) return <InventarioApagado titulo="Números de serie" />
 
   return (
-    <>
-      <div className="encabezado-pagina">
+    <div className="inv-pagina">
+      <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Números de serie</h1>
-          <p className="secundario">
+          <p className="bajada-pagina">
             De los productos que «Manejan números de serie». Entran con la compra y se eligen al vender. Busca uno para
             saber dónde está o a quién se vendió (garantías).
           </p>
@@ -55,7 +56,7 @@ export function Series() {
       </div>
       {error && <Aviso>{error}</Aviso>}
       <div className="filtros-lista">
-        <label className="campo">
+        <label className="campo inv-buscar">
           <span className="solo-lector">Buscar</span>
           <input className="mono" value={q} onChange={e => setQ(e.target.value)} placeholder="Número de serie o producto…" autoFocus />
         </label>
@@ -84,6 +85,6 @@ export function Series() {
           </table>
         )}
       </div>
-    </>
+    </div>
   )
 }
