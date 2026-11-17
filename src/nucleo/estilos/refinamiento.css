@@ -1252,3 +1252,9 @@ button, input, select, textarea {
 .cabecera .campanita-panel .campanita-texto > span { color: var(--tinta-2); }
 .cabecera .campanita-panel .campanita-texto small, .cabecera .campanita-panel .campanita-vacia { color: var(--tinta-3); }
 .cabecera .campanita-panel li.leido .campanita-texto strong { color: var(--tinta-2); }
+
+/* 16 nov: una sola sucursal (cajero, vendedor): como el selector, sin caja blanca. */
+.cabecera .sucursal-fija { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1px solid rgba(255,255,255,.18);
+  color: #fff; font-size: 13.5px; padding: 7px 14px; border-radius: 10px; }
+.cabecera .sucursal-fija .selector-etiqueta { color: #bfe0dc; }
+.cabecera .sucursal-fija strong { color: #fff; font-weight: 600; }

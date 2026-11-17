@@ -42,7 +42,7 @@ export function SelectorSucursal() {
 
   // Una sola posible: el nombre, sin menú.
   if (!todas && alcance.sucursales.length === 1) {
-    return <span className="sucursal-fija" title="Tu sucursal">{alcance.sucursales[0].nombre}</span>
+    return <span className="sucursal-fija" title="Tu sucursal"><span className="selector-etiqueta">Sucursal:</span> <strong>{alcance.sucursales[0].nombre}</strong></span>
   }
 
   const elegir = async (id: string | null) => {
