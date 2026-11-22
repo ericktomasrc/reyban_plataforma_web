@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso } from '../../../componentes/Aviso'
 import { Boton } from '../../../componentes/Boton'
@@ -8,7 +8,7 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { fecha, fechaYHora } from '../../../nucleo/formato/fechas'
 import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
-import { abrirCheckout, autenticar3ds } from '../../../nucleo/pagos/culqi'
+import { abrirCheckout, autenticar3ds, huellaDispositivo } from '../../../nucleo/pagos/culqi'
 import { soles } from '../../../nucleo/planes/planes'
 import {
   NOMBRE_ESTADO_COBRO, NOMBRE_ESTADO_PAGO, NOMBRE_MEDIO, TARJETAS_SIMULADAS, cobrosServicio,
@@ -220,11 +220,13 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
   const [simulada, setSimulada] = useState(false)
   const [ocupado, setOcupado] = useState<string | null>(null)
   const montoCentimos = Math.round((d.mensual?.monto ?? 0) * 100)
+  // e269: la huella del navegador para el antifraude de Culqi (se pide al abrir el formulario).
+  const huella = useRef<string | null>(null)
 
   async function enviar(token: string, auth?: Autenticacion3ds): Promise<void> {
     setOcupado('agregar')
     try {
-      const r = await cobrosServicio.tarjeta(token, auth)
+      const r = await cobrosServicio.tarjeta(token, auth, huella.current)
       if (r.requiere3ds && !auth) {
         let datos: Autenticacion3ds | null
         if (d.modo === 'simulado') {
@@ -253,6 +255,7 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
     if (d.modo === 'simulado') { setSimulada(true); return }
     if (!d.culqi) return
     try {
+      huella.current = await huellaDispositivo(d.culqi.llavePublica)
       await abrirCheckout({
         llavePublica: d.culqi.llavePublica, correo: d.datos.correo, montoCentimos,
         onToken: t => void enviar(t),

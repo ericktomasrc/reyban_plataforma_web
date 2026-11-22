@@ -166,8 +166,9 @@ const q = (o: Record<string, string | undefined>) => {
 export const cobrosServicio = {
   mio: () => api.obtener<MisPagos>('/api/cobros/mio'),
   datos: (d: DatosPago) => api.cambiar<Mensaje>('/api/cobros/datos', d),
-  tarjeta: (token: string, autenticacion?: Autenticacion3ds) =>
-    api.crear<RespuestaTarjeta>('/api/cobros/tarjetas', { token, autenticacion }),
+  /** e269: `dispositivo` = la huella del navegador que da Culqi3DS (antifraude de Culqi). */
+  tarjeta: (token: string, autenticacion?: Autenticacion3ds, dispositivo?: string | null) =>
+    api.crear<RespuestaTarjeta>('/api/cobros/tarjetas', { token, autenticacion, dispositivo: dispositivo || undefined }),
   quitarTarjeta: (id: string) => api.borrar<Mensaje>(`/api/cobros/tarjetas/${id}`),
   principal: (id: string) => api.crear<Mensaje>(`/api/cobros/tarjetas/${id}/principal`),
   pagar: (tarjetaId: string, periodo: Periodo) => api.crear<RespuestaPago>('/api/cobros/pagar', { tarjetaId, periodo }),

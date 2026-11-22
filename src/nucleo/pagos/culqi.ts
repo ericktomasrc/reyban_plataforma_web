@@ -91,6 +91,27 @@ export async function abrirCheckout(o: OpcionesCheckout): Promise<void> {
   culqi.open()
 }
 
+/**
+ * e269 — LA HUELLA DEL DISPOSITIVO (device_finger_print_id).
+ *
+ * Culqi la pide al guardar la tarjeta para su antifraude (así lo hacen sus
+ * ejemplos oficiales con Checkout v4 + Culqi3DS). Es un código que identifica
+ * el navegador, no un dato de la tarjeta. Si no se puede obtener, se sigue sin
+ * ella: Culqi decide.
+ */
+export async function huellaDispositivo(llavePublica: string): Promise<string | null> {
+  try {
+    await cargar(TRES_DS)
+    const c3 = (window as any).Culqi3DS
+    if (!c3?.generateDevice) return null
+    c3.publicKey = llavePublica
+    const id = await c3.generateDevice()
+    return typeof id === 'string' && id.length > 0 && id.length <= 100 ? id : null
+  } catch {
+    return null
+  }
+}
+
 export interface Datos3ds {
   eci?: string; xid?: string; cavv?: string; protocolVersion?: string; directoryServerTransactionId?: string
 }
@@ -109,6 +130,8 @@ export async function autenticar3ds(llavePublica: string, token: string, correo:
 
   return new Promise<Datos3ds | null>(resolver => {
     const alRecibir = (e: MessageEvent) => {
+      // e269: solo de esta página o de Culqi3DS (otra ventana no puede «confirmar»).
+      if (e.origin !== window.location.origin && e.origin !== TRES_DS) return
       const d = e.data as any
       if (!d || typeof d !== 'object') return
       if (d.parameters3DS) { quitar(); resolver(d.parameters3DS as Datos3ds) }
