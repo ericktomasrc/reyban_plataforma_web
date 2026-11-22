@@ -10,6 +10,8 @@ import { fecha } from '../../../nucleo/formato/fechas'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import { cantidad, inventarioServicio, PREFIJO_OPERACION, type Operacion } from '../servicios/inventarioServicio'
+import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
+import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import '../inventario.css'
 import '../../facturacion/comprobantes-lista.css'
 
@@ -32,6 +34,7 @@ export function VerOperacion() {
   const [motivo, setMotivo] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [contado, setContado] = useState<Record<string, string>>({})
+  const { pedir, dialogo } = useConfirmar()   // e276
 
   useEffect(() => {
     let vivo = true
@@ -68,6 +71,23 @@ export function VerOperacion() {
 
   async function guardarConteo(cerrar: boolean) {
     if (malConteo) { mensaje.error('Lo contado tiene que ser un número (0 o más).'); return }
+    if (cerrar) {
+      // e276: antes de cerrar, las diferencias que se van a ajustar (con el stock de hoy).
+      const difs = o!.lineas
+        .map(l => ({ l, c: contado[l.productoId]?.trim() ? numero(contado[l.productoId]) : l.contado }))
+        .filter(x => x.c != null && x.c !== x.l.fisicoAhora)
+        .map(x => ({ nombre: x.l.descripcion ?? x.l.codigo ?? '', valor: `${x.c! - x.l.fisicoAhora > 0 ? '+' : ''}${cantidad(x.c! - x.l.fisicoAhora)} (hay ${cantidad(x.l.fisicoAhora)}, contaste ${cantidad(x.c!)})` }))
+      if (!await pedir({
+        titulo: '¿Cerrar el conteo?',
+        confirmar: 'Sí, cerrar y ajustar',
+        mensaje: <>
+          {difs.length === 0
+            ? <p>Lo que contaste <strong>coincide</strong> con el sistema: no se ajusta nada.</p>
+            : <><p>El stock se corrige así:</p><ListaConfirmar filas={difs} /></>}
+          <p className="secundario">Lo que dejaste sin contar queda como está. Un conteo cerrado ya no se cambia.</p>
+        </>,
+      })) return
+    }
     setOcupado(true)
     try {
       await inventarioServicio.guardarConteo(o!.id, lineasConteo())
@@ -82,6 +102,12 @@ export function VerOperacion() {
   }
 
   async function descartar() {
+    if (!await pedir({
+      titulo: '¿Descartar este conteo?',
+      confirmar: 'Sí, descartar',
+      tono: 'peligro',
+      mensaje: <p>El conteo se cierra <strong>sin cambiar el stock</strong>. Lo que escribiste queda guardado en el historial, pero no se aplica.</p>,
+    })) return
     setOcupado(true)
     try {
       const r = await inventarioServicio.descartarConteo(o!.id)
@@ -93,6 +119,7 @@ export function VerOperacion() {
 
   return (
     <div className="inv-pagina">
+      {dialogo}
       <Link to={volver.a} className="enlace-volver">← {volver.texto}</Link>
       <div className="encabezado-pagina cmp-encab">
         <div>

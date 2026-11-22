@@ -101,7 +101,16 @@ export interface FilaCaja {
   ventas: number; vendido: number; esperado: number | null; contado: number | null; diferencia: number | null
 }
 
+/** e278 (093): las cajas de cada sucursal, para crearlas, nombrarlas o desactivarlas. */
+export interface CajaConfig { id: string; nombre: string; activo: boolean; creadoEn: string; abiertaPor: string | null; aperturas: number; ultimoUso: string | null }
+export interface SucursalCajas { id: string; codigo: string; nombre: string; cajas: CajaConfig[] }
+export interface ConfigCajas { puedeCambiar: boolean; sucursales: SucursalCajas[] }
+
 export const posServicio = {
+  configCajas: () => api.obtener<ConfigCajas>('/api/pos/config-cajas'),
+  crearCaja: (sucursalId: string, nombre: string) => api.crear<{ id: string; mensaje: string }>('/api/pos/config-cajas', { sucursalId, nombre }),
+  renombrarCaja: (id: string, nombre: string) => api.cambiar<{ mensaje: string }>(`/api/pos/config-cajas/${id}`, { nombre }),
+  activarCaja: (id: string, activo: boolean) => api.crear<{ mensaje: string }>(`/api/pos/config-cajas/${id}/activo`, { activo }),
   estado: () => api.obtener<EstadoPos>('/api/pos/estado'),
   abrir: (d: { sucursalId: string; fondo: number; nota?: string; cajaId?: string }) =>
     api.crear<{ sesion: SesionCaja; mensaje: string }>('/api/pos/abrir', d),

@@ -23,6 +23,8 @@ import { ElegirSeries } from '../../inventario/componentes/ElegirSeries'
 import { ElegirLote } from '../../inventario/componentes/ElegirLote'
 import '../pos.css'
 import { CapaOcupado } from '../../../componentes/CapaOcupado'
+import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
+import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 
 /**
  * e173 (055) — EL PUNTO DE VENTA.
@@ -202,12 +204,23 @@ function AbrirCaja({ estado, onAbierta }: { estado: EstadoPos; onAbierta: () => 
   const [nota, setNota] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [fallo, setFallo] = useState<string>()
+  const { pedir, dialogo } = useConfirmar()   // e276
 
   if (sucursales.length === 0) return (
     <div className="pos-centro"><Aviso>No trabajas en ninguna sucursal activa: pide al administrador que te asigne una.</Aviso></div>
   )
 
   const abrir = async () => {
+    if (!await pedir({
+      titulo: '¿Abrir la caja?',
+      confirmar: 'Sí, abrir y vender',
+      mensaje: <>
+        <ListaConfirmar filas={[{ nombre: 'Caja', valor: caja?.nombre ?? 'Caja nueva', fuerte: true },
+                                { nombre: 'Sucursal', valor: sucursal ? `${sucursal.codigo} ${sucursal.nombre}` : '' },
+                                { nombre: 'Sencillo con el que empiezas', valor: `S/ ${dinero(num(fondo) || 0)}` }]} />
+        <p className="secundario">Cuenta el sencillo del cajón antes de empezar: al cerrar, el sistema lo compara con lo que vendiste.</p>
+      </>,
+    })) return
     setOcupado(true); setFallo(undefined)
     try {
       // Sin ventana de «listo»: se pasa directo a vender.
@@ -222,6 +235,7 @@ function AbrirCaja({ estado, onAbierta }: { estado: EstadoPos; onAbierta: () => 
   return (
     <div className="pos-centro">
       {/* 16 nov: dos paneles; las cajas como lista (libres se eligen; ocupadas dicen quién). */}
+      {dialogo}
       <div className="pos-abrir">
         <div className="pos-abrir-izq">
           <div>
@@ -836,8 +850,18 @@ function Movimiento({ onCerrar }: { onCerrar: (mensaje?: string) => void }) {
   const [fallo, setFallo] = useState<string>()
   const motivos = tipo === 'retiro' ? MOTIVOS_RETIRO : MOTIVOS_INGRESO
   const motivoFinal = motivo === 'Otro' ? otro.trim() : motivo
+  const { pedir, dialogo } = useConfirmar()   // e276
 
   const registrar = async () => {
+    if (!await pedir({
+      titulo: tipo === 'retiro' ? '¿Sacar plata de la caja?' : '¿Poner plata en la caja?',
+      confirmar: tipo === 'retiro' ? 'Sí, registrar el retiro' : 'Sí, registrar el ingreso',
+      mensaje: <>
+        <ListaConfirmar filas={[{ nombre: tipo === 'retiro' ? 'Sale de la caja' : 'Entra a la caja', valor: `S/ ${dinero(num(monto) || 0)}`, fuerte: true },
+                                { nombre: 'Motivo', valor: motivoFinal }]} />
+        <p className="secundario">Queda anotado con tu nombre y la hora. Al cerrar la caja, el sistema ya lo descuenta (o lo suma).</p>
+      </>,
+    })) return
     setOcupado(true); setFallo(undefined)
     try {
       const r = await posServicio.movimiento({ tipo, monto: num(monto), motivo: motivoFinal, detalle: detalle.trim() || undefined })
@@ -846,7 +870,8 @@ function Movimiento({ onCerrar }: { onCerrar: (mensaje?: string) => void }) {
     finally { setOcupado(false) }
   }
 
-  return (
+  return (<>
+    {dialogo}
     <Dialogo titulo="Movimiento de caja" abierto onCerrar={() => onCerrar()}
              acciones={<>
                <Boton estilo="secundario" onClick={() => onCerrar()}>Cancelar</Boton>
@@ -872,7 +897,7 @@ function Movimiento({ onCerrar }: { onCerrar: (mensaje?: string) => void }) {
         {fallo && <Aviso>{fallo}</Aviso>}
       </div>
     </Dialogo>
-  )
+  </>)
 }
 
 
@@ -932,6 +957,7 @@ function CerrarCaja({ onVolver, onCerrada }: { onVolver: () => void; onCerrada: 
   const [deja, setDeja] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [contando, setContando] = useState(false)
+  const { pedir, dialogo } = useConfirmar()   // e276
 
   useEffect(() => {
     posServicio.resumen().then(r => { setD(r); setDeja(r.sesion.fondo.toFixed(2)) })
@@ -948,6 +974,18 @@ function CerrarCaja({ onVolver, onCerrada }: { onVolver: () => void; onCerrada: 
   const listo = contado.trim() !== '' && (diferencia === 0 || observacion.trim().length >= 3)
 
   const cerrar = async () => {
+    if (!await pedir({
+      titulo: '¿Cerrar la caja?',
+      confirmar: 'Sí, cerrar la caja',
+      mensaje: <>
+        <ListaConfirmar filas={[{ nombre: 'Debería haber', valor: `S/ ${dinero(d.esperado)}` },
+                                { nombre: 'Contaste', valor: `S/ ${dinero(contadoN)}`, fuerte: true },
+                                { nombre: 'Diferencia', valor: diferencia === 0 ? 'cuadra' : `${(diferencia ?? 0) > 0 ? 'sobra' : 'falta'} S/ ${dinero(Math.abs(diferencia ?? 0))}` },
+                                { nombre: 'Dejas en la caja', valor: `S/ ${dinero(dejaN)}` },
+                                { nombre: 'Entregas', valor: `S/ ${dinero(entrega)}` }]} />
+        <p className="conf-ojo">Una caja cerrada <strong>ya no se cambia</strong>. Si te equivocaste al contar, cuenta otra vez antes de cerrar.</p>
+      </>,
+    })) return
     setOcupado(true); setFallo(undefined)
     try {
       const r = await posServicio.cerrar({ contado: contadoN, observacion: observacion.trim() || undefined, dejaEnCaja: dejaN, entrega })
@@ -958,6 +996,7 @@ function CerrarCaja({ onVolver, onCerrada }: { onVolver: () => void; onCerrada: 
 
   return (
     <div className="pos-cierre">
+      {dialogo}
       <div className="pos-cierre-cab">
         <div><h1 className="pos-titulo">Cerrar {d.sesion.caja}</h1><p className="pos-sub">Cuenta el efectivo. El sistema compara con lo que debería haber.</p></div>
         <Boton estilo="secundario" onClick={onVolver}>Volver a vender</Boton>

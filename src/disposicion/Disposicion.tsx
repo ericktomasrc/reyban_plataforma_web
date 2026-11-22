@@ -431,6 +431,8 @@ export function Disposicion() {
                   grupos={[{ titulo: '', items: conCandado([
                     { ruta: '/pos', nombre: 'Vender', exacto: true },
                     { ruta: '/pos/cajas', nombre: puede(Permisos.Pos.CajasVer) ? 'Cajas y arqueos' : 'Mis cajas' },
+                    // e278 (093): crear y nombrar cajas.
+                    ...(puede(Permisos.Pos.CajasVer) ? [{ ruta: '/pos/administrar-cajas', nombre: 'Administrar cajas' }] : []),
                   ]) }]} />
               )}
 

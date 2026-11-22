@@ -15,6 +15,8 @@ import { useEstadoInventario } from '../componentes/usoInventario'
 import { inventarioServicio, type Categoria, type PaginaDe, type Proveedor } from '../servicios/inventarioServicio'
 import '../inventario.css'
 import '../../facturacion/comprobantes-lista.css'
+import { useConfirmar, type Confirmacion } from '../../../nucleo/hooks/useConfirmar'
+import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
 
 type Pestana = 'proveedores' | 'categorias' | 'motivos'
 const PESTANAS: [Pestana, string][] = [['proveedores', 'Proveedores'], ['categorias', 'Categorías de producto'], ['motivos', 'Motivos de ajuste']]
@@ -90,6 +92,7 @@ function ListaProveedores() {
   const [editando, setEditando] = useState<Proveedor | 'nuevo'>()
   const [recargar, setRecargar] = useState(0)
   const puedeEditar = puede(Permisos.Inventario.Ingresar)
+  const { pedir, dialogo } = useConfirmar()   // e276
 
   useEffect(() => {
     let vivo = true
@@ -102,6 +105,14 @@ function ListaProveedores() {
   }, [q, filtroEstado, pagina, porPagina, recargar])
 
   async function activar(p: Proveedor, activo: boolean) {
+    if (!await pedir({
+      titulo: activo ? '¿Activar este proveedor?' : '¿Desactivar este proveedor?',
+      confirmar: activo ? 'Sí, activar' : 'Sí, desactivar',
+      tono: activo ? 'normal' : 'peligro',
+      mensaje: activo
+        ? <p><strong>{p.razonSocial}</strong> vuelve a salir al registrar compras e ingresos.</p>
+        : <p><strong>{p.razonSocial}</strong> deja de salir al registrar compras e ingresos. Lo que ya le compraste se queda como está (nada se borra).</p>,
+    })) return
     try {
       const r = await inventarioServicio.activarProveedor(p.id, activo)
       mensaje.bien(r.mensaje); setRecargar(n => n + 1)
@@ -110,6 +121,7 @@ function ListaProveedores() {
 
   return (
     <>
+      {dialogo}
       {error && <Aviso>{error}</Aviso>}
       <div className="inv-barra">
         <div className="filtros-lista">
@@ -170,6 +182,7 @@ function DialogoProveedor({ proveedor, onCerrar, onHecho }: { proveedor?: Provee
   const [telefono, setTelefono] = useState(proveedor?.telefono ?? '')
   const [ocupado, setOcupado] = useState(false)
   const [consultado, setConsultado] = useState<string>()
+  const { pedir, dialogo } = useConfirmar()   // e276
 
   useEffect(() => {
     if (proveedor || tipo !== '6' || !/^(10|15|17|20)\d{9}$/.test(numero)) return
@@ -185,6 +198,16 @@ function DialogoProveedor({ proveedor, onCerrar, onHecho }: { proveedor?: Provee
   }, [numero, tipo, proveedor])
 
   async function guardar() {
+    if (!await pedir({
+      titulo: proveedor ? '¿Guardar los cambios del proveedor?' : '¿Guardar este proveedor?',
+      confirmar: 'Sí, guardar',
+      mensaje: <ListaConfirmar filas={[
+        { nombre: tipo === '6' ? 'RUC' : 'Documento', valor: numero.trim() },
+        { nombre: 'Razón social', valor: razon.trim().toUpperCase(), fuerte: true },
+        ...(direccion.trim() ? [{ nombre: 'Dirección', valor: direccion.trim() }] : []),
+        ...(telefono.trim() ? [{ nombre: 'Teléfono', valor: telefono.trim() }] : []),
+      ]} />,
+    })) return
     setOcupado(true)
     const d = { tipoDocumento: tipo, numeroDocumento: numero.trim(), razonSocial: razon.trim(), direccion: direccion.trim() || null, correo: correo.trim() || null, telefono: telefono.trim() || null }
     try {
@@ -195,7 +218,8 @@ function DialogoProveedor({ proveedor, onCerrar, onHecho }: { proveedor?: Provee
     } finally { setOcupado(false) }
   }
 
-  return (
+  return (<>
+    {dialogo}
     <Dialogo titulo={proveedor ? 'Editar proveedor' : 'Nuevo proveedor'} abierto onCerrar={onCerrar}
       acciones={<>
         <Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
@@ -222,7 +246,7 @@ function DialogoProveedor({ proveedor, onCerrar, onHecho }: { proveedor?: Provee
       </div>
       <p className="nota se-aplica">Se aplica: también se crea solo al registrar un ingreso con un RUC nuevo. No se borra; se desactiva.</p>
     </Dialogo>
-  )
+  </>)
 }
 
 /**
@@ -244,6 +268,7 @@ export function Categorias() {
   const [recargar, setRecargar] = useState(0)
   const [ocupado, setOcupado] = useState(false)
   const puedeEditar = puede(Permisos.Facturacion.ProductosGestionar)
+  const { pedir, dialogo } = useConfirmar()   // e276
 
   useEffect(() => {
     let vivo = true
@@ -251,7 +276,9 @@ export function Categorias() {
     return () => { vivo = false }
   }, [recargar])
 
-  async function hacer(accion: () => Promise<{ mensaje: string }>, limpiar = false) {
+  // e276: cada cambio pregunta antes, con lo que va a pasar.
+  async function hacer(accion: () => Promise<{ mensaje: string }>, limpiar = false, pregunta?: Confirmacion) {
+    if (pregunta && !await pedir(pregunta)) return
     setOcupado(true)
     try {
       const r = await accion(); mensaje.bien(r.mensaje); setRecargar(n => n + 1)
@@ -272,6 +299,7 @@ export function Categorias() {
 
   return (
     <>
+      {dialogo}
       <div className="inv-barra">
         <div className="filtros-lista">
           <label className="inv-buscar"><span>Buscar</span><input value={q} placeholder="Nombre de la categoría" onChange={e => { setQ(e.target.value); setPagina(1) }} /></label>
@@ -283,7 +311,8 @@ export function Categorias() {
           </label>
         </div>
         {puedeEditar && (
-          <form className="inv-nueva" onSubmit={e => { e.preventDefault(); if (nombre.trim()) void hacer(() => inventarioServicio.crearCategoria(nombre.trim()), true) }}>
+          <form className="inv-nueva" onSubmit={e => { e.preventDefault(); if (nombre.trim()) void hacer(() => inventarioServicio.crearCategoria(nombre.trim()), true,
+            { titulo: '¿Agregar esta categoría?', confirmar: 'Sí, agregar', mensaje: <p>Se crea la categoría <strong>{nombre.trim().toUpperCase()}</strong>. Luego la eliges al crear o editar un producto.</p> }) }}>
             <input value={nombre} maxLength={60} placeholder="Nueva categoría (ej.: Pinturas)" aria-label="Nueva categoría" onChange={e => setNombre(e.target.value)} />
             <Boton type="submit" disabled={!nombre.trim()} ocupado={ocupado && !!nombre.trim()}>Agregar</Boton>
           </form>
@@ -301,7 +330,8 @@ export function Categorias() {
                 <tr key={c.id} className={c.activo === false ? 'inactivo' : undefined}>
                   <td>
                     {renombrando?.id === c.id ? (
-                      <form className="inv-nueva" onSubmit={e => { e.preventDefault(); if (renombrando.nombre.trim()) void hacer(() => inventarioServicio.renombrarCategoria(c.id, renombrando.nombre.trim())) }}>
+                      <form className="inv-nueva" onSubmit={e => { e.preventDefault(); if (renombrando.nombre.trim()) void hacer(() => inventarioServicio.renombrarCategoria(c.id, renombrando.nombre.trim()), false,
+                        { titulo: '¿Cambiar el nombre?', confirmar: 'Sí, cambiar', mensaje: <p><strong>{c.nombre}</strong> pasa a llamarse <strong>{renombrando.nombre.trim().toUpperCase()}</strong> en sus {c.productos} producto(s).</p> }) }}>
                         <input value={renombrando.nombre} maxLength={60} aria-label="Nuevo nombre" autoFocus
                                onChange={e => setRenombrando({ id: c.id, nombre: e.target.value })} />
                         <Boton type="submit" estilo="secundario" disabled={!renombrando.nombre.trim()}>Guardar</Boton>
@@ -315,8 +345,10 @@ export function Categorias() {
                     {puedeEditar && renombrando?.id !== c.id && <>
                       <Boton estilo="plano" onClick={() => setRenombrando({ id: c.id, nombre: c.nombre })}>Renombrar</Boton>
                       {c.activo === false
-                        ? <Boton estilo="plano" onClick={() => void hacer(() => inventarioServicio.reactivarCategoria(c.id))}>Reactivar</Boton>
-                        : <Boton estilo="plano" onClick={() => void hacer(() => inventarioServicio.desactivarCategoria(c.id))}>Desactivar</Boton>}
+                        ? <Boton estilo="plano" onClick={() => void hacer(() => inventarioServicio.reactivarCategoria(c.id), false,
+                            { titulo: '¿Reactivar la categoría?', confirmar: 'Sí, reactivar', mensaje: <p><strong>{c.nombre}</strong> vuelve a salir para elegir en los productos.</p> })}>Reactivar</Boton>
+                        : <Boton estilo="plano" onClick={() => void hacer(() => inventarioServicio.desactivarCategoria(c.id), false,
+                            { titulo: '¿Desactivar la categoría?', confirmar: 'Sí, desactivar', tono: 'peligro', mensaje: <p><strong>{c.nombre}</strong> deja de salir para elegir. Sus {c.productos} producto(s) la conservan (nada se borra).</p> })}>Desactivar</Boton>}
                     </>}
                   </td>
                 </tr>

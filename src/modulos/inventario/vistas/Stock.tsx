@@ -103,7 +103,7 @@ export function Stock() {
       <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Stock{totalTodos !== undefined && !q && !categoria && <span className="lst-cuenta">{totalTodos} {totalTodos === 1 ? 'producto' : 'productos'}</span>}</h1>
-          <p className="bajada-pagina">Cuánto hay para vender en cada sucursal. Solo los productos con «Controla stock».</p>
+          <p className="bajada-pagina">Cuánto tienes para vender en cada sucursal, hoy. Sube con los ingresos y baja con cada venta. Solo salen los productos marcados «Controla stock».</p>
         </div>
         <div className="acciones-guia">
           {puede(Permisos.Inventario.Ajustar) && <Boton estilo="secundario" onClick={() => navegar('/inventario/ajustes')}>Ajuste</Boton>}

@@ -11,6 +11,7 @@ import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import { useEstadoInventario } from '../componentes/usoInventario'
 import { inventarioServicio, type EstadoInventario, type ModoInventario } from '../servicios/inventarioServicio'
+import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
 import '../inventario.css'
 import '../../facturacion/comprobantes-lista.css'
 
@@ -48,6 +49,19 @@ function Configuracion({ estado, onCambio }: { estado: EstadoInventario; onCambi
   const cambio = modo !== estado.modo || sinStock !== estado.permitirSinStock || avisar !== estado.avisarMinimo
 
   async function guardar() {
+    // e276: antes de guardar, lo que cambia dicho en simple.
+    const cambios: { nombre: string; valor: string }[] = []
+    if (modo !== estado.modo) cambios.push({ nombre: 'Cada factura nueva', valor: modo === 'directa' ? 'sale del stock al emitir' : 'se entrega después, con guía' })
+    if (sinStock !== estado.permitirSinStock) cambios.push({ nombre: 'Vender sin stock', valor: sinStock ? 'se permite (queda en negativo)' : 'no se permite' })
+    if (avisar !== estado.avisarMinimo) cambios.push({ nombre: 'Aviso de stock mínimo', valor: avisar ? 'encendido' : 'apagado' })
+    if (!await pedir({
+      titulo: '¿Guardar estos cambios?',
+      confirmar: 'Sí, guardar',
+      mensaje: <>
+        <ListaConfirmar filas={cambios} />
+        {sinStock && !estado.permitirSinStock && <p className="conf-ojo">Con «vender sin stock», el sistema deja emitir aunque no haya: el stock puede quedar en negativo.</p>}
+      </>,
+    })) return
     setOcupado(true)
     try {
       const r = await inventarioServicio.configurar({ encendido: estado.encendido, modo, permitirSinStock: sinStock, avisarMinimo: avisar })
@@ -82,6 +96,18 @@ function Configuracion({ estado, onCambio }: { estado: EstadoInventario; onCambi
   }
 
   async function controlar(ids: string[], si = true) {
+    if (si) {
+      const nombres = estado.sucursales.filter(s => ids.includes(s.id)).map(s => `${s.codigo} ${s.nombre}`)
+      if (!await pedir({
+        titulo: '¿Empezar a controlar el stock?',
+        confirmar: 'Sí, empezar a controlar',
+        mensaje: <>
+          <p>Desde ahora, en <strong>{nombres.join(', ')}</strong>, el sistema <strong>no deja vender más de lo que hay</strong>.</p>
+          <p>Ejemplo: si tienes 10 masas y vendes 10, la siguiente ya no se puede vender (sale «Agotado») hasta que entre más por una compra, un traslado o un ajuste.</p>
+          {!estado.permitirSinStock ? null : <p className="conf-ojo">Tienes encendido «Permitir vender sin stock»: en ese caso sí deja vender y el stock queda en negativo.</p>}
+        </>,
+      })) return
+    }
     setOcupado(true)
     try {
       const r = await inventarioServicio.controlar(ids, si)
@@ -91,6 +117,15 @@ function Configuracion({ estado, onCambio }: { estado: EstadoInventario; onCambi
   }
 
   async function marcar() {
+    if (!await pedir({
+      titulo: '¿Contar el stock de todos los bienes?',
+      confirmar: `Sí, marcar ${estado.productos.sinControl}`,
+      mensaje: <>
+        <p>Se marca «Controla stock» en <strong>{estado.productos.sinControl}</strong> producto(s) que son bienes (cosas que se tocan y se cuentan).
+          Los servicios no cambian.</p>
+        <p>Si alguno no quieres contarlo, después lo desmarcas en Productos.</p>
+      </>,
+    })) return
     setOcupado(true)
     try {
       const r = await inventarioServicio.marcarBienes()
@@ -110,7 +145,7 @@ function Configuracion({ estado, onCambio }: { estado: EstadoInventario; onCambi
       <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Configuración del inventario</h1>
-          <p className="secundario">Al encender el inventario nada se bloquea todavía. Primero cargas lo que tienes; cuando confirmes «Empezar a controlar», desde ese momento se cuenta y se bloquea lo que no hay.</p>
+          <p className="secundario">Tres pasos: <strong>1)</strong> enciendes el inventario, <strong>2)</strong> cargas lo que tienes hoy en tus estantes (stock inicial) y <strong>3)</strong> pulsas «Empezar a controlar». Antes del paso 3 el sistema solo anota y avisa; después, ya no deja vender lo que no hay.</p>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { Disposicion } from '../disposicion/Disposicion'
 import { PuntoDeVenta } from '../modulos/pos/vistas/PuntoDeVenta'
 import { Cajas, VerCaja } from '../modulos/pos/vistas/Cajas'
+import { ConfigCajas } from '../modulos/pos/vistas/ConfigCajas'
 import { Protegido } from '../nucleo/autorizacion/Protegido'
 import { Modulos, Permisos } from '../nucleo/autorizacion/permisos'
 import { ListaEmpresas } from '../modulos/administracion/vistas/ListaEmpresas'
@@ -387,6 +388,8 @@ export function Rutas() {
         {/* e231: el candado del punto de venta, dentro del marco (si el plan lo trae, vuelve a /pos). */}
         <Route path="/pos/plan" element={<Navigate to="/pos" replace />} />
         <Route path="/pos/cajas" element={<Protegido permiso={Permisos.Pos.Vender} modulo={Modulos.Pos}><Cajas /></Protegido>} />
+        {/* e278 (093): crear, nombrar y desactivar cajas. */}
+        <Route path="/pos/administrar-cajas" element={<Protegido permiso={Permisos.Pos.CajasVer} modulo={Modulos.Pos}><ConfigCajas /></Protegido>} />
         <Route path="/pos/cajas/:id" element={<Protegido permiso={Permisos.Pos.Vender} modulo={Modulos.Pos}><VerCaja /></Protegido>} />
 
         {/* 044: sucursales (locales del mismo RUC), sus series y sus usuarios. */}

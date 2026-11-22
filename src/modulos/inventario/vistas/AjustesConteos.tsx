@@ -19,6 +19,8 @@ import {
 import '../inventario.css'
 import '../../facturacion/comprobantes-lista.css'
 import { CapaOcupado } from '../../../componentes/CapaOcupado'
+import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
+import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 
 type Pestana = 'ajuste' | 'inicial' | 'conteo' | 'historial'
 const numero = (s: string) => { const n = Number(s.replace(',', '.')); return Number.isFinite(n) ? n : NaN }
@@ -54,7 +56,7 @@ export function AjustesConteos() {
       <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Ajustes y conteos</h1>
-          <p className="bajada-pagina">Lo que se rompió o se encontró, el stock con el que empiezas y el conteo físico.</p>
+          <p className="bajada-pagina">Aquí corriges el stock cuando lo que hay en tus estantes no cuadra con el sistema. Ejemplo: se rompieron 2 botellas → «Ajuste», sale 2.</p>
         </div>
       </div>
       <div className="segmentado inv-pestanas" role="tablist" aria-label="Ajustes y conteos">
@@ -88,6 +90,7 @@ function FormularioAjuste({ estado, onHecho }: { estado: EstadoInventario; onHec
   const [nota, setNota] = useState('')
   const [lineas, setLineas] = useState<LineaAjuste[]>([])
   const [guardando, setGuardando] = useState(false)
+  const { pedir, dialogo } = useConfirmar()   // e276: «¿Está bien?» antes de guardar
   const suc = sucursal || defecto
   const m = estado.motivosAjuste.find(x => x.codigo === motivo)
   const sale = m?.signo === -1 || (m?.signo === 0 && sentido === 'sale')
@@ -112,6 +115,17 @@ function FormularioAjuste({ estado, onHecho }: { estado: EstadoInventario; onHec
     if (lineas.length === 0) { mensaje.error('Agrega al menos un producto.'); return }
     if (malas) { mensaje.error('Cada cantidad tiene que ser mayor que cero.'); return }
     if (nota.trim().length < 3) { mensaje.error('Explica qué pasó (es obligatorio en un ajuste).'); return }
+    const s = sucursales.find(x => x.id === suc)
+    if (!await pedir({
+      titulo: sale ? '¿Sacar del stock?' : '¿Sumar al stock?',
+      confirmar: 'Sí, registrar el ajuste',
+      mensaje: <>
+        <p>En <strong>{s ? `${s.codigo} ${s.nombre}` : 'la sucursal'}</strong>, por <strong>{m?.nombre?.toLowerCase() ?? motivo}</strong>,
+          el stock {sale ? 'baja' : 'sube'} así:</p>
+        <ListaConfirmar filas={lineas.map(l => ({ nombre: l.producto.descripcion, valor: `${sale ? '−' : '+'}${numero(l.cantidad)}` }))} />
+        <p className="secundario">Motivo escrito: «{nota.trim()}». Un ajuste no se borra: si te equivocas, se anula con otro ajuste.</p>
+      </>,
+    })) return
     setGuardando(true)
     try {
       const r = await inventarioServicio.ajustar({
@@ -128,8 +142,9 @@ function FormularioAjuste({ estado, onHecho }: { estado: EstadoInventario; onHec
 
   return (
     <div className="bloque">
+      {dialogo}
       <h2 className="subtitulo">Ajuste de stock</h2>
-      <p className="parrafo secundario">Para lo que se rompió, se venció, se perdió o se encontró.</p>
+      <p className="parrafo secundario">Para lo que se rompió, se venció, se perdió o se encontró. Ejemplo: se vencieron 3 yogures → motivo «Vencido» y cantidad 3; el stock baja 3.</p>
       <div className="rejilla-4">
         <label className="campo">
           <span className="etiqueta">Sucursal</span>
@@ -210,6 +225,7 @@ function StockInicial({ estado, onHecho }: { estado: EstadoInventario; onHecho: 
   const [sucursal, setSucursal] = useState('')
   // 068: con lotes, una fila por lote (lote y vencimiento); con series, los números (opcionales).
   const [lineas, setLineas] = useState<{ clave: string; producto: ProductoEnLista; cantidad: string; costo: string; lote?: string; vence?: string; series?: string }[]>([])
+  const { pedir, dialogo } = useConfirmar()   // e276
   const suc = sucursal || defecto
   const seriesDe = (t?: string) => (t ?? '').split(/[\n,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean)
   const cambiar = (clave: string, c: Partial<(typeof lineas)[number]>) => setLineas(ls => ls.map(x => x.clave === clave ? { ...x, ...c } : x))
@@ -227,7 +243,16 @@ function StockInicial({ estado, onHecho }: { estado: EstadoInventario; onHecho: 
   }
 
   async function cargarExcel() {
-    if (!archivo) return
+    if (!archivo || !revision) return
+    if (!await pedir({
+      titulo: '¿Cargar el stock inicial del Excel?',
+      confirmar: `Sí, cargar ${revision.cargan}`,
+      mensaje: <>
+        <p>Se cargan <strong>{revision.cargan}</strong> cantidad(es) del archivo <strong>{archivo.name}</strong>
+          {revision.errores > 0 && <>; las <strong>{revision.errores}</strong> filas con error <strong>no entran</strong></>}.</p>
+        <p className="conf-ojo">El stock inicial se carga <strong>una sola vez</strong> por producto y sucursal. Después, lo que cambie entra por compra, traslado o ajuste.</p>
+      </>,
+    })) return
     setOcupado(true)
     try {
       const r = await inventarioServicio.importarStockInicial(archivo, false)
@@ -244,6 +269,20 @@ function StockInicial({ estado, onHecho }: { estado: EstadoInventario; onHecho: 
     if (lineas.some(l => l.producto.manejaSeries && seriesDe(l.series).length > 0 && seriesDe(l.series).length !== numero(l.cantidad))) {
       mensaje.error('Con números de serie: uno por unidad (o ninguno).'); return
     }
+    // e276: el mismo producto dos veces se sumaba sin avisar (salvo lotes distintos de un producto con lotes).
+    const claves = lineas.map(l => `${l.producto.id}|${l.producto.manejaLotes ? (l.lote ?? '').trim() : ''}`)
+    const repetido = lineas.find((_, i) => claves.indexOf(claves[i]) !== i)
+    if (repetido) { mensaje.error(`«${repetido.producto.descripcion}» está dos veces en la lista. Déjalo una sola vez con la cantidad total.`); return }
+    const s = sucursales.find(x => x.id === suc)
+    if (!await pedir({
+      titulo: '¿Cargar este stock inicial?',
+      confirmar: 'Sí, cargar el stock inicial',
+      mensaje: <>
+        <p>En <strong>{s ? `${s.codigo} ${s.nombre}` : 'la sucursal'}</strong> vas a tener hoy:</p>
+        <ListaConfirmar filas={lineas.map(l => ({ nombre: l.producto.descripcion + (l.lote?.trim() ? ` · lote ${l.lote.trim()}` : ''), valor: String(numero(l.cantidad)) }))} />
+        <p className="conf-ojo">El stock inicial se carga <strong>una sola vez</strong> por producto y sucursal. Si luego te das cuenta de un error, se corrige con un <strong>ajuste</strong>.</p>
+      </>,
+    })) return
     setOcupado(true)
     try {
       const r = await inventarioServicio.stockInicial({
@@ -262,9 +301,10 @@ function StockInicial({ estado, onHecho }: { estado: EstadoInventario; onHecho: 
   return (
     <div className="inv-dos">
       {ocupado && <CapaOcupado texto="Cargando el stock inicial…" />}
+      {dialogo}
       <div className="bloque">
         <h2 className="subtitulo">Stock inicial con Excel</h2>
-        <p className="parrafo secundario">Lo que ya tienes el día que empiezas. Una vez por producto y sucursal; después todo entra por compra, traslado o ajuste.</p>
+        <p className="parrafo secundario">Lo que tienes hoy en tus estantes, el día que empiezas a usar el inventario. Ejemplo: si hoy tienes 50 masas, pones 50. Se hace <strong>una sola vez</strong> por producto y sucursal; después, lo que llega entra por «Ingreso por compra» y lo que vendes sale solo.</p>
         <ol className="pasos">
           <li><button type="button" className="enlace" onClick={() => void plantilla()}>Descarga la plantilla</button>: ya trae tus productos con «Controla stock» y una columna por sucursal.</li>
           <li>Escribe las cantidades (y el costo, si lo sabes). Con lotes: una fila por lote, con su vencimiento; con series: los números separados por coma.</li>
@@ -341,7 +381,11 @@ function StockInicial({ estado, onHecho }: { estado: EstadoInventario; onHecho: 
               </tr>
             ))}
             <tr><td colSpan={4}>
-              <BuscadorProductoStock excluir={lineas.map(l => l.producto.id)} onElegir={p => setLineas(ls => [...ls, { clave: crypto.randomUUID(), producto: p, cantidad: '', costo: '' }])} />
+              <BuscadorProductoStock excluir={lineas.map(l => l.producto.id)} onElegir={p => {
+                // e276: si ya está (lector o Enter), no se repite: se avisa y se deja la fila que había.
+                if (lineas.some(x => x.producto.id === p.id) && !p.manejaLotes) { mensaje.ojo(`«${p.descripcion}» ya está en la lista: cambia su cantidad.`); return }
+                setLineas(ls => [...ls, { clave: crypto.randomUUID(), producto: p, cantidad: '', costo: '' }])
+              }} />
             </td></tr>
           </tbody>
         </table>
@@ -367,6 +411,7 @@ function NuevoConteo({ estado }: { estado: EstadoInventario }) {
   const [categoria, setCategoria] = useState('')
   const [nota, setNota] = useState('')
   const [ocupado, setOcupado] = useState(false)
+  const { pedir, dialogo } = useConfirmar()   // e276
   const suc = sucursal || defecto
 
   useEffect(() => {
@@ -376,6 +421,16 @@ function NuevoConteo({ estado }: { estado: EstadoInventario }) {
   }, [])
 
   async function abrir() {
+    const s = sucursales.find(x => x.id === suc)
+    const cat = categorias.find(c => c.id === categoria)
+    if (!await pedir({
+      titulo: '¿Empezar un conteo?',
+      confirmar: 'Sí, empezar el conteo',
+      mensaje: <>
+        <p>Vas a contar <strong>{cat ? `los productos de «${cat.nombre}»` : 'todos los productos'}</strong> de <strong>{s ? `${s.codigo} ${s.nombre}` : 'la sucursal'}</strong>.</p>
+        <p>Primero escribes lo que hay de verdad en los estantes. <strong>Nada cambia</strong> hasta que pulses «Cerrar el conteo»: ahí el sistema corrige la diferencia.</p>
+      </>,
+    })) return
     setOcupado(true)
     try {
       const r = await inventarioServicio.abrirConteo({ sucursalId: suc, categoriaId: categoria || null, nota: nota.trim() || null })
@@ -389,8 +444,9 @@ function NuevoConteo({ estado }: { estado: EstadoInventario }) {
   return (
     <div className="bloque">
       {ocupado && <CapaOcupado texto="Guardando el conteo…" />}
+      {dialogo}
       <h2 className="subtitulo">Conteo físico (toma de inventario)</h2>
-      <p className="parrafo secundario">Cuentas lo que hay de verdad y el sistema hace los ajustes por la diferencia, todos de una vez.</p>
+      <p className="parrafo secundario">Cuentas lo que hay de verdad en los estantes y el sistema corrige la diferencia, todo de una vez. Ejemplo: el sistema dice 20 y tú cuentas 18 → al cerrar el conteo, el stock baja 2.</p>
       <div className="rejilla-4">
         <label className="campo">
           <span className="etiqueta">Sucursal</span>

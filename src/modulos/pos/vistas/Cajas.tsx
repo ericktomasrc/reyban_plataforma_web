@@ -10,6 +10,8 @@ import { usePestana } from '../../../nucleo/hooks/usePestana'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { posServicio, type DetalleCaja, type FilaCaja } from '../servicios/posServicio'
 import { ArqueoSistemaTabla, TablaVentas } from './PuntoDeVenta'
+import { Permisos } from '../../../nucleo/autorizacion/permisos'
+import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import '../pos.css'
 
 /**
@@ -22,6 +24,7 @@ const cuando = (iso: string) => new Date(iso).toLocaleString('es-PE', { dateStyl
 
 export function Cajas() {
   const navegar = useNavigate()
+  const { puede } = useSesion()
   const [pagina, setPagina] = useState(1)
   const [datos, setDatos] = useState<{ total: number; filas: FilaCaja[] }>()
   const [fallo, setFallo] = useState<string>()
@@ -41,7 +44,11 @@ export function Cajas() {
           <h1 className="titulo-pagina">Cajas</h1>
           <p className="secundario">Aperturas y cierres. Toca una para ver su arqueo, sus ventas y sus movimientos.</p>
         </div>
-        <Link to="/pos" className="boton">Ir al punto de venta</Link>
+        <div className="pos-cab-acciones">
+          {/* e278 (093): crear y nombrar cajas. */}
+          {puede(Permisos.Pos.CajasVer) && <Link to="/pos/administrar-cajas" className="boton secundario">Administrar cajas</Link>}
+          <Link to="/pos" className="boton">Ir al punto de venta</Link>
+        </div>
       </div>
       {fallo && <Aviso>{fallo}</Aviso>}
       {!datos && !fallo && <Cargando />}

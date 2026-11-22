@@ -101,6 +101,8 @@ export const Permisos = {
     Movimientos: 'pos.movimientos',
     Descuentos:  'pos.descuentos',
     CajasVer:    'pos.cajas_ver',
+    /** e278 (093): crear, nombrar y desactivar cajas. */
+    CajasGestionar: 'pos.cajas_gestionar',
   },
 
   // 032: un permiso por reporte.

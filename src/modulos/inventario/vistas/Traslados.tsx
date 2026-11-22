@@ -15,6 +15,8 @@ import { useEstadoInventario } from '../componentes/usoInventario'
 import { cantidad, inventarioServicio, type PaginaTraslados, type Traslado } from '../servicios/inventarioServicio'
 import '../inventario.css'
 import '../../facturacion/comprobantes-lista.css'
+import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
+import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 
 const enLima = (iso: string) =>
   new Date(iso).toLocaleString('es-PE', { timeZone: 'America/Lima', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -73,7 +75,8 @@ export function Traslados() {
         <div>
           <h1 className="titulo-pagina">Traslados</h1>
           <p className="bajada-pagina">
-            Mover mercadería de una sucursal a otra. El traslado es la guía de remisión con motivo 04 (entre establecimientos de la misma empresa).
+            Para llevar mercadería de una sucursal a otra. Ejemplo: mandas 10 masas de la Tienda 1 a la Tienda 2 con una guía de remisión
+            (motivo «traslado entre establecimientos»). Al llegar, la Tienda 2 pulsa «Recibí» y su stock sube.
           </p>
         </div>
         {puede(Permisos.Guias.Emitir) && <Boton onClick={() => navegar('/guias/nueva?motivo=04')}>Nuevo traslado</Boton>}
@@ -170,6 +173,7 @@ function DialogoRecibir({ id, onCerrar, onHecho }: { id: string; onCerrar: () =>
   const [nota, setNota] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [fallo, setFallo] = useState<string>()
+  const { pedir, dialogo } = useConfirmar()   // e276
 
   useEffect(() => {
     let vivo = true
@@ -194,6 +198,16 @@ function DialogoRecibir({ id, onCerrar, onHecho }: { id: string; onCerrar: () =>
 
   async function confirmar() {
     if (!t) return
+    const faltan = t.lineas.filter(l => num(llego[l.productoId]) < l.enviado)
+    if (!await pedir({
+      titulo: '¿Confirmar lo que llegó?',
+      confirmar: 'Sí, confirmar la recepción',
+      mensaje: <>
+        <p>Entra a <strong>{t.destino}</strong>:</p>
+        <ListaConfirmar filas={t.lineas.map(l => ({ nombre: l.descripcion ?? l.codigo ?? '', valor: `${num(llego[l.productoId])} de ${l.enviado}` }))} />
+        {faltan.length > 0 && <p className="conf-ojo">Faltan unidades en {faltan.length} producto(s): quedan registradas con el motivo que elegiste.</p>}
+      </>,
+    })) return
     setOcupado(true)
     try {
       const r = await inventarioServicio.recibir(t.id,
@@ -206,7 +220,8 @@ function DialogoRecibir({ id, onCerrar, onHecho }: { id: string; onCerrar: () =>
     } finally { setOcupado(false) }
   }
 
-  return (
+  return (<>
+    {dialogo}
     <Dialogo titulo={t ? `${editable ? 'Recibí' : 'Traslado'} · ${t.guiaNumero}` : 'Traslado'} abierto onCerrar={onCerrar}
       acciones={editable ? <>
         <Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
@@ -282,5 +297,5 @@ function DialogoRecibir({ id, onCerrar, onHecho }: { id: string; onCerrar: () =>
         </>
       )}
     </Dialogo>
-  )
+  </>)
 }

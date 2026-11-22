@@ -12,6 +12,8 @@ import { ElegirProveedor, type ProveedorElegido } from '../componentes/ElegirPro
 import { InventarioApagado } from '../componentes/InventarioApagado'
 import { useEstadoInventario, useSucursalesDeTrabajo } from '../componentes/usoInventario'
 import { cantidad, inventarioServicio, type Almacen, type MinimoEnSucursal } from '../servicios/inventarioServicio'
+import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
+import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import '../inventario.css'
 import '../../facturacion/comprobantes-lista.css'
 
@@ -60,6 +62,7 @@ export function NuevoIngreso() {
   const [params] = useSearchParams()
   const compraId = params.get('compra')
   const [compra, setCompra] = useState<Compra>()
+  const { pedir, dialogo } = useConfirmar()   // e276
   useEffect(() => {
     if (!compraId) return
     let vivo = true
@@ -116,6 +119,18 @@ export function NuevoIngreso() {
   async function registrar() {
     if (lineas.length === 0) { mensaje.error('Agrega al menos un producto.'); return }
     if (malas.length > 0) { mensaje.error('Revisa las cantidades, los costos y los lotes marcados.'); return }
+    const s = sucursales.find(x => x.id === sucursalElegida)
+    const quien = proveedor && 'guardado' in proveedor ? proveedor.guardado.razonSocial : proveedor && 'nuevo' in proveedor ? proveedor.nuevo.razonSocial : null
+    if (!await pedir({
+      titulo: '¿Registrar este ingreso?',
+      confirmar: 'Sí, sumar al stock',
+      mensaje: <>
+        <p>Entra a <strong>{s ? `${s.codigo} ${s.nombre}` : 'la sucursal'}</strong>{quien && <>, comprado a <strong>{quien}</strong></>}{documento.trim() && <> (factura {documento.trim()})</>}:</p>
+        <ListaConfirmar filas={lineas.map(l => ({ nombre: l.producto.descripcion + (l.lote?.trim() ? ` · lote ${l.lote.trim()}` : ''), valor: `+${unidadesDe(l)}` }))} />
+        {total > 0 && <p>Costo total: <strong>{simbolo} {total.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>}
+        <p className="secundario">El stock sube en el acto. Si te equivocas, el ingreso se anula con su motivo (nada se borra).</p>
+      </>,
+    })) return
     setGuardando(true)
     try {
       const r = await inventarioServicio.ingresar({
@@ -146,11 +161,12 @@ export function NuevoIngreso() {
 
   return (
     <div className="inv-pagina">
+      {dialogo}
       <Link to="/inventario/ingresos" className="enlace-volver">← Ingresos por compra</Link>
       <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Nuevo ingreso por compra</h1>
-          <p className="bajada-pagina">La mercadería que llegó de un proveedor. Suma al físico de la sucursal que elijas. No es un comprobante electrónico: solo se anota la factura del proveedor.</p>
+          <p className="bajada-pagina">Anota lo que te llegó del proveedor y en qué sucursal lo guardas: el stock de esa sucursal sube. Ejemplo: 2 cajas de 12 gaseosas → entran 24. No se envía nada a SUNAT: solo se anota su factura.</p>
         </div>
       </div>
 

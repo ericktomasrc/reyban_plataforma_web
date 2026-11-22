@@ -23,7 +23,7 @@ export function Ingresos() {
       <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Ingresos por compra</h1>
-          <p className="bajada-pagina">La mercadería que llegó de un proveedor: suma al stock de la sucursal. Se anota la factura del proveedor (no es un comprobante electrónico).</p>
+          <p className="bajada-pagina">Cuando te llega mercadería de un proveedor, la anotas aquí y el stock sube. Ejemplo: llegaron 24 gaseosas → un ingreso de 24. Solo se anota la factura del proveedor: no se envía nada a SUNAT.</p>
         </div>
         <Si puede={Permisos.Inventario.Ingresar}>
           <Boton onClick={() => navegar('/inventario/ingresos/nuevo')}>+ Nuevo ingreso</Boton>

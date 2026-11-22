@@ -12,6 +12,8 @@ import { useEstadoInventario, useSucursalesDeTrabajo } from '../componentes/usoI
 import { cantidad, inventarioServicio, type Almacen, type StockPorAlmacen } from '../servicios/inventarioServicio'
 import '../inventario.css'
 import '../../facturacion/comprobantes-lista.css'
+import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
+import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 
 /**
  * 066 — ALMACENES DENTRO DE UNA SUCURSAL (tienda y depósito). El stock de la
@@ -143,7 +145,16 @@ function DialogoCrear({ sucursalId, primero, onCerrar, onHecho }: {
   const [nombre, setNombre] = useState('')
   const [principal, setPrincipal] = useState('Tienda')
   const [guardando, setGuardando] = useState(false)
+  const { pedir, dialogo } = useConfirmar()   // e276
   async function crear() {
+    if (!await pedir({
+      titulo: '¿Crear este almacén?',
+      confirmar: 'Sí, crear',
+      mensaje: <>
+        <p>Se crea el almacén <strong>{nombre.trim().toUpperCase()}</strong> en esta sucursal.</p>
+        {primero && <p>Todo lo que hay hoy queda en el principal, <strong>{(principal.trim() || 'Tienda').toUpperCase()}</strong>, que es de donde se vende.</p>}
+      </>,
+    })) return
     setGuardando(true)
     try {
       const r = await inventarioServicio.crearAlmacen({ sucursalId, nombre: nombre.trim(), principalNombre: principal.trim() || undefined })
@@ -154,7 +165,8 @@ function DialogoCrear({ sucursalId, primero, onCerrar, onHecho }: {
       setGuardando(false)
     }
   }
-  return (
+  return (<>
+    {dialogo}
     <Dialogo titulo="Nuevo almacén" abierto onCerrar={onCerrar}
              acciones={<><Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
                <Boton ocupado={guardando} disabled={!nombre.trim()} onClick={() => void crear()}>Crear</Boton></>}>
@@ -170,7 +182,7 @@ function DialogoCrear({ sucursalId, primero, onCerrar, onHecho }: {
         </label>
       )}
     </Dialogo>
-  )
+  </>)
 }
 
 function DialogoMover({ producto, almacenes, onCerrar, onHecho }: {
@@ -186,7 +198,19 @@ function DialogoMover({ producto, almacenes, onCerrar, onHecho }: {
   const hay = producto.almacenes[origen] ?? 0
   const n = Number(cant.replace(',', '.'))
   const valido = origen && destino && origen !== destino && n > 0 && n <= hay
+  const { pedir, dialogo } = useConfirmar()   // e276
   async function mover() {
+    const de = almacenes.find(a => a.id === origen), a = almacenes.find(x => x.id === destino)
+    if (!await pedir({
+      titulo: '¿Mover entre almacenes?',
+      confirmar: 'Sí, mover',
+      mensaje: <>
+        <ListaConfirmar filas={[{ nombre: producto.descripcion, valor: cantidad(n), fuerte: true },
+                                { nombre: 'Sale de', valor: `${de?.nombre ?? ''} (queda ${cantidad(hay - n)})` },
+                                { nombre: 'Entra a', valor: a?.nombre ?? '' }]} />
+        <p className="secundario">Sigue en la misma sucursal: el total no cambia.</p>
+      </>,
+    })) return
     setGuardando(true)
     try {
       const r = await inventarioServicio.moverEntreAlmacenes({ productoId: producto.productoId, origenId: origen, destinoId: destino, cantidad: n, nota: nota.trim() || null })
@@ -197,7 +221,8 @@ function DialogoMover({ producto, almacenes, onCerrar, onHecho }: {
       setGuardando(false)
     }
   }
-  return (
+  return (<>
+    {dialogo}
     <Dialogo titulo={`Mover · ${producto.descripcion}`} abierto onCerrar={onCerrar}
              acciones={<><Boton estilo="secundario" onClick={onCerrar}>Cancelar</Boton>
                <Boton ocupado={guardando} disabled={!valido} onClick={() => void mover()}>Mover</Boton></>}>
@@ -225,5 +250,5 @@ function DialogoMover({ producto, almacenes, onCerrar, onHecho }: {
         <input value={nota} maxLength={200} onChange={e => setNota(e.target.value)} />
       </label>
     </Dialogo>
-  )
+  </>)
 }
