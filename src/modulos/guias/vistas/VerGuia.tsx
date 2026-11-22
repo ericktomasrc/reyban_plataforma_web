@@ -18,6 +18,7 @@ import { PanelWhatsappGuia } from '../componentes/PanelWhatsappGuia'
 import { guiasServicio, nombreUnidad, type GuiaCompleta } from '../servicios/guiasServicio'
 import '../../facturacion/comprobante.css'
 import '../guias.css'
+import { CapaOcupado } from '../../../componentes/CapaOcupado'
 
 const TIPOS_DOC: Record<string, string> = { '6': 'RUC', '1': 'DNI', '4': 'C.E.', '7': 'Pasaporte', '0': 'Doc.' }
 
@@ -126,6 +127,7 @@ export function VerGuia() {
 
   return (
     <>
+      {!!ocupado && !anulando && <CapaOcupado texto="Un momento…" detalle="Estamos hablando con SUNAT. No cierres esta ventana." />}
       <Link to="/guias" className="enlace-volver">← Guías de remisión</Link>
 
       <div className="encabezado-pagina vc-encabezado">

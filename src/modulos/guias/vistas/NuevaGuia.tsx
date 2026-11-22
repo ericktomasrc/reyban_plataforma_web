@@ -22,6 +22,7 @@ import { Paginacion } from '../../../componentes/Paginacion'
 import { BarraLineas, usePaginaLineas, type FilaDetalle } from '../../facturacion/componentes/DetalleLineas'
 import '../../facturacion/comprobante.css'
 import '../guias.css'
+import { CapaOcupado } from '../../../componentes/CapaOcupado'
 
 /**
  * 050 — NUEVA GUÍA DE REMISIÓN (maquetas «Nueva», «Transportista» y
@@ -459,6 +460,7 @@ export function NuevaGuia({ tipo }: { tipo: '09' | '31' }) {
 
   return (
     <div className="nc guia-form">
+      {emitiendo && <CapaOcupado texto="Emitiendo la guía…" detalle="Se firma y se envía a SUNAT. No cierres esta ventana." />}
       <div className="nc-encabezado">
         <div>
           <p className="vc-tipo">{tipo === '31' ? 'Guía del transportista' : 'Guía de remisión · remitente'}</p>

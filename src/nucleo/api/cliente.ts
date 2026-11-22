@@ -1,4 +1,5 @@
 import { ErrorApi } from './errores'
+import { empezar, SIN_VELO } from './actividad'
 
 // =============================================================================
 // EL ÚNICO SITIO DEL FRONT QUE LLAMA A LA API
@@ -57,7 +58,14 @@ function cabeceras(extra?: Record<string, string>): Record<string, string> | und
   return { ...(extra ?? {}), 'X-Sucursal': sucursalVista }
 }
 
+// e273: todo lo que no es GET (guardar, cambiar, borrar, subir) enciende el velo global si tarda.
 async function llamar<T>(metodo: Metodo, ruta: string, cuerpo?: unknown): Promise<T> {
+  if (metodo === 'GET' || SIN_VELO.some(r => r.test(ruta))) return llamarSinVelo<T>(metodo, ruta, cuerpo)
+  const fin = empezar('cambio')
+  try { return await llamarSinVelo<T>(metodo, ruta, cuerpo) } finally { fin() }
+}
+
+async function llamarSinVelo<T>(metodo: Metodo, ruta: string, cuerpo?: unknown): Promise<T> {
   let respuesta: Response
 
   // UN FORMULARIO (subir un archivo) VA TAL CUAL y sin Content-Type: lo pone
@@ -132,7 +140,13 @@ function intentarJson(texto: string): any {
  * EL NOMBRE SALE DE `Content-Disposition`, que la API copia del servicio. Sin
  * él, el archivo se llamaría como el último trozo de la ruta: «pdf».
  */
+// e273: una descarga (Excel, PDF, XML) también muestra el velo si tarda.
 async function descargar(ruta: string): Promise<void> {
+  const fin = empezar('archivo')
+  try { await descargarSinVelo(ruta) } finally { fin() }
+}
+
+async function descargarSinVelo(ruta: string): Promise<void> {
   let respuesta: Response
 
   try {

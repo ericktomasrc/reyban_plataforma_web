@@ -18,6 +18,7 @@ import {
 } from '../servicios/inventarioServicio'
 import '../inventario.css'
 import '../../facturacion/comprobantes-lista.css'
+import { CapaOcupado } from '../../../componentes/CapaOcupado'
 
 type Pestana = 'ajuste' | 'inicial' | 'conteo' | 'historial'
 const numero = (s: string) => { const n = Number(s.replace(',', '.')); return Number.isFinite(n) ? n : NaN }
@@ -260,6 +261,7 @@ function StockInicial({ estado, onHecho }: { estado: EstadoInventario; onHecho: 
 
   return (
     <div className="inv-dos">
+      {ocupado && <CapaOcupado texto="Cargando el stock inicial…" />}
       <div className="bloque">
         <h2 className="subtitulo">Stock inicial con Excel</h2>
         <p className="parrafo secundario">Lo que ya tienes el día que empiezas. Una vez por producto y sucursal; después todo entra por compra, traslado o ajuste.</p>
@@ -386,6 +388,7 @@ function NuevoConteo({ estado }: { estado: EstadoInventario }) {
 
   return (
     <div className="bloque">
+      {ocupado && <CapaOcupado texto="Guardando el conteo…" />}
       <h2 className="subtitulo">Conteo físico (toma de inventario)</h2>
       <p className="parrafo secundario">Cuentas lo que hay de verdad y el sistema hace los ajustes por la diferencia, todos de una vez.</p>
       <div className="rejilla-4">

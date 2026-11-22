@@ -22,6 +22,7 @@ import { importesGravada } from '../../facturacion/importesLinea'
 import { ElegirSeries } from '../../inventario/componentes/ElegirSeries'
 import { ElegirLote } from '../../inventario/componentes/ElegirLote'
 import '../pos.css'
+import { CapaOcupado } from '../../../componentes/CapaOcupado'
 
 /**
  * e173 (055) — EL PUNTO DE VENTA.
@@ -438,6 +439,7 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
 
   return (
     <MarcoPos sesion={sesion} acciones={<>
+      {cobrando && <CapaOcupado texto="Cobrando…" detalle="Se emite el comprobante. No cierres esta ventana." />}
       {estado.puede.movimientos && <button type="button" className="pos-gh" onClick={() => setMovimiento(true)}><Ico n="mas" />Ingreso / retiro</button>}
       <button type="button" className="pos-gh" onClick={() => setVerVentas(true)}><Ico n="lista" />Ventas de esta caja</button>
       <button type="button" className="pos-gh" onClick={onCerrar}><Ico n="candado" />Cerrar caja</button>

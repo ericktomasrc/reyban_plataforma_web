@@ -21,6 +21,7 @@ import { documentosServicio, productosServicio } from '../servicios/facturacionS
 import { GuiasDelComprobante } from '../../guias/componentes/GuiasDelComprobante'
 import '../comprobante.css'
 import type { CatalogosSunat, DocumentoCompleto, ProductoEnLista } from '../tipos'
+import { CapaOcupado } from '../../../componentes/CapaOcupado'
 
 const TIPOS: Record<string, string> = { '01': 'Factura', '03': 'Boleta de venta', '07': 'Nota de crédito', '08': 'Nota de débito' }
 
@@ -223,6 +224,7 @@ export function VerComprobante() {
 
   return (
     <>
+      {ocupado && !ventana && <CapaOcupado texto="Un momento…" detalle="Estamos hablando con SUNAT. No cierres esta ventana." />}
       <div className="encabezado-pagina vc-encabezado">
         <div>
           <p className="vc-tipo">{TIPOS[d.tipo] ?? d.tipo}</p>

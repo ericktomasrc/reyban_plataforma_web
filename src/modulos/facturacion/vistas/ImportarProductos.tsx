@@ -6,6 +6,7 @@ import { ErrorApi } from '../../../nucleo/api/errores'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { productosServicio } from '../servicios/facturacionServicio'
 import type { RevisionImportacion } from '../servicios/facturacionServicio'
+import { CapaOcupado } from '../../../componentes/CapaOcupado'
 
 const RESULTADO: Record<string, { texto: string; clase: string }> = {
   nuevo: { texto: 'Nuevo', clase: 'texto-bien' },
@@ -86,6 +87,7 @@ export function ImportarProductos() {
 
   return (
     <>
+      {(ocupado === 'revisar' || ocupado === 'importar') && <CapaOcupado texto={ocupado === 'revisar' ? 'Revisando tu Excel…' : 'Importando tus productos…'} detalle="Con muchos productos puede tardar un poco. No cierres esta ventana." />}
       <div className="encabezado-pagina">
         <h1 className="titulo-pagina">Productos › Importar desde Excel</h1>
         <Boton estilo="secundario" onClick={() => navegar('/facturacion/productos')}>Volver a productos</Boton>

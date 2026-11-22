@@ -2218,3 +2218,7 @@ code.ref { font-size: 12px; word-break: break-all; }
 .clave-visible { display: flex; gap: var(--e2); align-items: stretch; }
 .clave-visible input { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
 @media (max-width: 560px) { .clave-visible { flex-wrap: wrap; } .clave-visible input { flex-basis: 100%; } }
+/* e273: el velo global (un <dialog> modal, por encima de cualquier ventana). */
+.velo-global { padding: 0; border: 0; background: transparent; max-width: none; overflow: visible; }
+.velo-global::backdrop { background: rgba(15, 23, 32, .38); }
+.velo-global:focus { outline: none; }

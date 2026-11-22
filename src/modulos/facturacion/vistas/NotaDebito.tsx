@@ -9,6 +9,7 @@ import { fecha } from '../../../nucleo/formato/fechas'
 import { notaDebitoServicio } from '../servicios/facturacionServicio'
 import type { CalculoNotaDebito, PreviaNotaDebito } from '../tipos'
 import '../comprobante.css'
+import { CapaOcupado } from '../../../componentes/CapaOcupado'
 
 /**
  * 22 OCT — NOTA DE DÉBITO (maqueta aprobada el 22 oct 2026).
@@ -126,6 +127,7 @@ export function NotaDebito() {
 
   return (
     <div className="nc nota">
+      {emitiendo && <CapaOcupado texto="Emitiendo la nota de débito…" detalle="Se firma y se envía a SUNAT. No cierres esta ventana." />}
       {/* --- Encabezado ---------------------------------------------------- */}
       <div className="nc-encabezado">
         <div>

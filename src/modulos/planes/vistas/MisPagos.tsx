@@ -79,6 +79,19 @@ export function MisPagosPagina() {
 }
 
 // =============================================================================
+/** e272: velo de espera mientras Culqi responde (el mismo del emisor de comprobantes). */
+function CapaEspera({ texto, detalle }: { texto: string; detalle: string }) {
+  return (
+    <div className="capa-ocupado" role="status" aria-live="assertive" aria-busy="true">
+      <div className="capa-ocupado-caja">
+        <div className="girador" aria-hidden="true" />
+        <p className="texto">{texto}</p>
+        <p className="detalle">{detalle}</p>
+      </div>
+    </div>
+  )
+}
+
 function BandaModo({ d }: { d: MisPagos }) {
   if (d.modo === 'simulado')
     return <div className="banda-modo simulado"><strong>Modo SIMULADO:</strong> los pagos son de prueba y no se mueve dinero. Usa las tarjetas de prueba de la lista.</div>
@@ -226,7 +239,7 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
   const abriendo = useRef(false)
 
   async function enviar(token: string, auth?: Autenticacion3ds): Promise<void> {
-    setOcupado('agregar')
+    setOcupado('guardar')
     try {
       const r = await cobrosServicio.tarjeta(token, auth, huella.current)
       if (r.requiere3ds && !auth) {
@@ -239,6 +252,7 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
           })
           datos = ok ? { cavv: 'sim_cavv_ok' } : null
         } else {
+          setOcupado('agregar')   // sin velo: encima va la ventana del banco
           datos = await autenticar3ds(d.culqi!.llavePublica, token, d.datos?.correo ?? '', montoCentimos)
         }
         if (!datos) { mensaje.error('No se confirmó con tu banco. La tarjeta no se guardó.'); return }
@@ -287,6 +301,7 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
 
   return (
     <section className="bloque paso-pago">
+      {ocupado === 'guardar' && <CapaEspera texto="Guardando tu tarjeta…" detalle="Culqi la está revisando con tu banco. No cierres esta ventana." />}
       <h2><span className={`numero-paso${d.tarjetas.length ? ' hecho' : !d.datos ? ' bloqueado' : ''}`}>{d.tarjetas.length ? '✓' : '2'}</span> Tu tarjeta</h2>
       {!d.datos ? <p className="paso-bloqueado">Primero guarda los datos de tu comprobante (paso 1). Así sabemos a nombre de quién va la factura o boleta.</p> : <>
       {d.tarjetas.length === 0
@@ -304,7 +319,7 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
             ))}
           </ul>
         )}
-      {d.puedePagar && <Boton estilo={d.tarjetas.length ? 'secundario' : 'principal'} ocupado={ocupado === 'agregar'} onClick={() => void agregar()}>{d.tarjetas.length ? '+ Agregar otra tarjeta' : '+ Agregar mi tarjeta'}</Boton>}
+      {d.puedePagar && <Boton estilo={d.tarjetas.length ? 'secundario' : 'principal'} ocupado={ocupado === 'agregar' || ocupado === 'guardar'} onClick={() => void agregar()}>{d.tarjetas.length ? '+ Agregar otra tarjeta' : '+ Agregar mi tarjeta'}</Boton>}
       <p className="nota seguridad">{d.modo === 'simulado'
         ? 'Modo simulado: solo sirven las tarjetas de prueba y el número no sale de tu navegador.'
         : 'Tu tarjeta la escribes en el formulario seguro de Culqi y la guarda Culqi, no Reyban. Nosotros solo vemos la marca y los 4 últimos números.'}</p>
@@ -394,6 +409,7 @@ function Pagar({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise<vo
 
   return (
     <section className="bloque resumen-pagar">
+      {ocupado && <CapaEspera texto="Procesando tu pago…" detalle="Puede tardar hasta un minuto. No cierres ni recargues esta ventana." />}
       <h2>Tu pago</h2>
       <div className="elige-periodo" role="radiogroup" aria-label="Periodo">
         {(['mensual', 'anual'] as const).map(p => (

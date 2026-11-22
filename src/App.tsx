@@ -18,6 +18,7 @@ import { CLAVE_TUS_DATOS_LUEGO, TusDatos } from './modulos/acceso/vistas/TusDato
 import { ConfirmarCorreo } from './modulos/perfil/vistas/ConfirmarCorreo'
 import { ProveedorMensajes } from './nucleo/mensajes/ProveedorMensajes'
 import { AvisoVersion } from './nucleo/pwa/AvisoVersion'
+import { VeloGlobal } from './componentes/VeloGlobal'
 import { ProveedorSesion, useSesion } from './nucleo/sesion/SesionContexto'
 import { Rutas } from './rutas/rutas'
 import { MarcoPublico } from './modulos/publico/vistas/Vitrina'
@@ -42,6 +43,8 @@ export default function App() {
           de cualquier diálogo abierto. Dentro de una pantalla quedaría dentro
           de su diálogo, y el navegador la pintaría detrás. */}
       <ProveedorMensajes>
+        {/* e273: el velo de espera de guardar, cambiar, borrar, subir y descargar. */}
+        <VeloGlobal />
         <BrowserRouter>
           <Routes>
             {/* Fuera de la puerta, a propósito. */}

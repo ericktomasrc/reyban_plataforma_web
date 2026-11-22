@@ -12,6 +12,7 @@ import type { CalculoNotaCredito, PreviaNotaCredito } from '../tipos'
 import { inventarioServicio, type EstadoInventario } from '../../inventario/servicios/inventarioServicio'
 import { BarraLineas, usePaginaLineas, type FilaDetalle } from '../componentes/DetalleLineas'
 import '../comprobante.css'
+import { CapaOcupado } from '../../../componentes/CapaOcupado'
 
 /** 052: las notas que devuelven productos preguntan si la mercadería volvió. */
 const DEVUELVEN = ['01', '02', '06', '07']
@@ -206,6 +207,7 @@ export function NotaCredito() {
 
   return (
     <div className="nc nota">
+      {emitiendo && <CapaOcupado texto="Emitiendo la nota de crédito…" detalle="Se firma y se envía a SUNAT. No cierres esta ventana." />}
       {/* --- Encabezado ---------------------------------------------------- */}
       <div className="nc-encabezado">
         <div>

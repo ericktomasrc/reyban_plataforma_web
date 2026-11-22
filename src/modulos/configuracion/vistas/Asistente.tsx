@@ -21,6 +21,7 @@ import { useConexionSunat } from '../../../nucleo/sunat/conexionSunat'
 import type { RevisionPedido } from '../../cartera/servicios/pedidosServicio'
 import '../../facturacion/comprobantes-lista.css'
 import '../configuracion.css'
+import { CapaOcupado } from '../../../componentes/CapaOcupado'
 
 /**
  * EL ASISTENTE «AGREGA TU EMPRESA» (fase 2).
@@ -367,6 +368,7 @@ function PasoEmpresa({ estado, alTerminar }: { estado: EstadoConfiguracion; alTe
 
   return (
     <form onSubmit={enviar} noValidate>
+      {ocupado && <CapaOcupado texto="Guardando tu empresa…" />}
       <h2>Empieza con tu RUC</h2>
       <p className="texto-paso">Con el RUC traemos de SUNAT la razón social y la dirección fiscal. No tienes que copiarlas.</p>
 
@@ -614,6 +616,7 @@ function PasoCertificado({ estado, atras, alTerminar }: {
 
   return (
     <>
+      {ocupado && <CapaOcupado texto="Revisando tu firma digital…" detalle="Comprobamos el certificado y su clave. No cierres esta ventana." />}
       <h2>Firma digital (certificado)</h2>
       <p className="texto-paso">
         Cada factura y boleta va firmada con tu certificado digital: el archivo <strong>.pfx</strong> (o .p12)
