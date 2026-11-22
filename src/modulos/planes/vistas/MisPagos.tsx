@@ -222,6 +222,8 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
   const montoCentimos = Math.round((d.mensual?.monto ?? 0) * 100)
   // e269: la huella del navegador para el antifraude de Culqi (se pide al abrir el formulario).
   const huella = useRef<string | null>(null)
+  // e271: un segundo clic mientras se prepara el formulario abría dos (y quedaba la pantalla negra).
+  const abriendo = useRef(false)
 
   async function enviar(token: string, auth?: Autenticacion3ds): Promise<void> {
     setOcupado('agregar')
@@ -253,7 +255,9 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
   async function agregar() {
     if (!d.datos) { mensaje.error('Primero completa los datos de tu comprobante (paso 1).'); return }
     if (d.modo === 'simulado') { setSimulada(true); return }
-    if (!d.culqi) return
+    if (!d.culqi || abriendo.current) return
+    abriendo.current = true
+    setOcupado('agregar')
     try {
       huella.current = await huellaDispositivo(d.culqi.llavePublica)
       await abrirCheckout({
@@ -262,6 +266,7 @@ function Tarjetas({ d, onHecho }: { d: MisPagos; onHecho: (m: string) => Promise
         onError: m => mensaje.error(m),
       })
     } catch (e) { mensaje.error(e instanceof Error ? e.message : 'No se pudo abrir el formulario de Culqi.') }
+    finally { abriendo.current = false; setOcupado(o => o === 'agregar' ? null : o) }
   }
 
   async function quitar(id: string, nombre: string) {
