@@ -1,0 +1,60 @@
+/* =============================================================================
+   e274 (091) — VENTAS y PAGOS Y COMPROBANTES. Mismas piezas que Cobros y pagos
+   (deudas.css) y Comprobantes (comprobantes-lista.css). Solo lo propio.
+   ========================================================================== */
+.vnt-pagina .encabezado-pagina { display: flex; justify-content: space-between; }
+.vnt-franja { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.vnt-franja .cmp-mes-dato { cursor: default; }
+.vnt-franja .cmp-mes-dato:hover { background: var(--superficie, #fff); }
+.vnt-pagina .vnt-franja:has(> :nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.vnt-vistas { padding: 0; margin: 0 0 12px; border: 0; }
+.vnt-pruebas { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--tinta-2); white-space: nowrap; }
+.vnt-acciones { display: flex; gap: 8px; }
+
+.vnt-filtros { flex-wrap: wrap; gap: 8px; }
+.vnt-filtros .lst-buscar { flex: 1 1 260px; }
+.vnt-filtros select { height: 36px; }
+.vnt-fecha { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tinta-3); }
+.vnt-fecha input { height: 36px; }
+.vnt-suma { margin-left: auto; font-size: 12.5px; color: var(--tinta-2); }
+.vnt-suma strong { color: var(--tinta); font-variant-numeric: tabular-nums; }
+
+.vnt-plan { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--hundido, #eef1f4); color: var(--tinta-2); }
+.vnt-ref { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vnt-archivos { display: flex; gap: 10px; margin-top: 2px; }
+.vnt-archivos .enlace { font-size: 12px; font-weight: 600; }
+
+/* Reportes. */
+.vnt-barra-acciones { display: flex; justify-content: flex-end; gap: 8px; margin: 0 0 12px; }
+.vnt-barra-acciones select { height: 36px; }
+.vnt-reportes { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; }
+.vnt-caja { border-radius: 12px; }
+.vnt-caja h2 { margin: 0; font-size: 14px; font-weight: 650; }
+.vnt-caja > .secundario { margin: 2px 0 14px; font-size: 12px; }
+.vnt-titulo-tabla { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 16px 8px; margin: 0; font-size: 14px; font-weight: 650; }
+.vnt-grafico { display: flex; align-items: flex-end; gap: 10px; height: 220px; }
+.vnt-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.vnt-col i { width: min(44px, 80%); border-radius: 6px 6px 2px 2px; background: color-mix(in srgb, var(--acento) 40%, #fff); }
+.vnt-col i.actual { background: var(--acento); }
+.vnt-valor { font-size: 11px; color: var(--tinta-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vnt-mes { font-size: 12px; color: var(--tinta-3); }
+.vnt-barra { width: 150px; margin: 0; }
+.vnt-atrasados { margin-top: 14px; }
+
+/* Pagos y comprobantes. */
+.vnt-dos { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.vnt-dos .cmp-chips select { height: 30px; font-size: 12.5px; }
+.vnt-total { display: flex; justify-content: space-between; padding: 10px 16px; border-top: 1px solid var(--borde-sutil, #e9eef2); font-size: 12.5px; color: var(--tinta-3); }
+.vnt-total strong { color: var(--tinta); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1100px) {
+  .vnt-franja { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vnt-reportes, .vnt-dos { grid-template-columns: 1fr; }
+}
+
+/* Ajustes finos. */
+.vnt-pagina .tabla td.derecha, .vnt-pagina .tabla th.derecha { white-space: nowrap; }
+.vnt-pagina .vnt-caja h2 { margin: 0; }
+.vnt-pagina .vnt-caja > p.secundario { margin: 4px 0 14px; }
+.vnt-titulo-tabla .secundario { font-size: 12px; font-weight: 400; }
+.vnt-titulo-tabla h2 { font-size: 14px; }

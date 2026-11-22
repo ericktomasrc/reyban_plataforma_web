@@ -166,11 +166,11 @@ export function Disposicion() {
   // equipo, reportes de la cartera, agregar empresa) o DENTRO de una empresa.
   // El menú enseña solo lo del modo; el selector de arriba cambia de uno a otro.
   const enEstudio = cartera && (!empresa
-    || ['/empresas', '/colaboradores', '/mi-cartera', '/mi-plan'].some(r => ruta.pathname === r || ruta.pathname.startsWith(r + '/'))
+    || ['/empresas', '/colaboradores', '/mi-cartera', '/mi-plan', '/pagos-comprobantes'].some(r => ruta.pathname === r || ruta.pathname.startsWith(r + '/'))
     || (ruta.pathname === '/configurar' && new URLSearchParams(ruta.search).has('nueva')))
 
   const pagina = nombreDePagina(ruta.pathname)
-  const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil', '/mi-plan', '/mi-plan/pagos'].includes(ruta.pathname)
+  const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil', '/mi-plan', '/mi-plan/pagos', '/pagos-comprobantes'].includes(ruta.pathname)
     && !ruta.pathname.startsWith('/admin')
 
   return (
@@ -279,6 +279,7 @@ export function Disposicion() {
             {!usuario.esSuperAdmin && cuenta?.nivel && <Link to="/mi-plan" role="menuitem">{cuenta.tipo === 'profesional' ? 'Plan Cartera' : 'Mi plan'}</Link>}
             {/* 073: tarjeta, datos del comprobante e historial de pagos. */}
             {!usuario.esSuperAdmin && cuenta?.nivel && <Link to="/mi-plan/pagos" role="menuitem">Mis pagos</Link>}
+            {!usuario.esSuperAdmin && cambiaPlan && <Link to="/pagos-comprobantes" role="menuitem">Pagos y comprobantes</Link>}
             {/* e171: la app instalable. Solo si el navegador lo permite (o en iPhone, con los pasos). */}
             {(instalarApp.puede || instalarApp.soloPasos) && (
               <button type="button" role="menuitem" onClick={() => {
@@ -362,6 +363,8 @@ export function Disposicion() {
                                prefijos={['/mi-cartera']} grupos={[{ titulo: 'Mi cartera', items: REPORTES_CARTERA }]} />
               {/* 069: cuántas empresas paga y cuáles van en Pro o Max. */}
               <NavLink to="/mi-plan" className={activo}><Icono>◈</Icono>Plan Cartera</NavLink>
+              {/* e274 (091): lo pagado a Reyban, con sus comprobantes. */}
+              {cambiaPlan && <NavLink to="/pagos-comprobantes" className={activo}><Icono>▧</Icono>Pagos y comprobantes</NavLink>}
             </nav>
           )}
 
@@ -478,6 +481,9 @@ export function Disposicion() {
               {!cartera && cambiaPlan && (
                 <NavLink to="/mi-plan" className={activo}><Icono>◈</Icono>Mi plan</NavLink>
               )}
+              {!cartera && cambiaPlan && (
+                <NavLink to="/pagos-comprobantes" className={activo}><Icono>▧</Icono>Pagos y comprobantes</NavLink>
+              )}
             </nav>
           )}
 
@@ -491,6 +497,8 @@ export function Disposicion() {
               {puede(Permisos.Plataforma.CuentasGestionar) && <NavLink to="/admin/cuentas" className={activo}><Icono>◎</Icono>Cuentas</NavLink>}
               {/* 089: usuario y contraseña para que Culqi (o un banco) pruebe como un cliente. */}
               {puede(Permisos.Plataforma.CuentasGestionar) && <NavLink to="/admin/revision" className={activo}><Icono>⚑</Icono>Accesos de revisión</NavLink>}
+              {/* e274 (091): lo que pagan los clientes por sus planes, y sus reportes. */}
+              {puede(Permisos.Plataforma.PlanesVer) && <NavLink to="/admin/ventas" className={activo}><Icono>↗</Icono>Ventas</NavLink>}
               {/* 069: planes y cobros. */}
               {puede(Permisos.Plataforma.PlanesVer) && <NavLink to="/admin/planes" className={activo}><Icono>◈</Icono>Planes y cobros</NavLink>}
               {/* 075: la empresa de Reyban que cobra los planes (no confundir con «Empresas», los clientes). */}
@@ -622,6 +630,8 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/perfil')) return 'Mi cuenta'
   if (ruta.startsWith('/mi-plan/pagos')) return 'Mis pagos'
   if (ruta.startsWith('/mi-plan')) return 'Mi plan'
+  if (ruta.startsWith('/pagos-comprobantes')) return 'Pagos y comprobantes'
+  if (ruta.startsWith('/admin/ventas')) return 'Ventas'
   if (ruta.startsWith('/admin/planes')) return 'Planes y cobros'
   if (ruta.startsWith('/admin/mi-empresa')) return 'Mi empresa'
   if (ruta.startsWith('/admin/reclamos')) return 'Libro de Reclamaciones'

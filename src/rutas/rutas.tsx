@@ -55,6 +55,8 @@ import { ReportePosPagina } from '../modulos/reportes/vistas/ReportesPos'
 import { ReporteComprasPagina } from '../modulos/reportes/vistas/ReportesCompras'
 import { Compras } from '../modulos/compras/Compras'
 import { Deudas } from '../modulos/deudas/Deudas'
+import { Ventas } from '../modulos/ventas/Ventas'
+import { PagosComprobantes } from '../modulos/ventas/PagosComprobantes'
 import { ReporteMargenPagina, ReporteResultadosPagina, ReporteValorizadoPagina } from '../modulos/reportes/vistas/ReportesGanancias'
 import {
   ReporteAnuladosPagina, ReporteDescargaPagina, ReporteIgvPagina, ReportePersonasNotasPagina, ReporteProblemasPagina,
@@ -210,6 +212,8 @@ export function Rutas() {
         <Route path="/admin/equipo" element={<Protegido soloSuperAdmin><EquipoPlataformaPagina /></Protegido>} />
         {/* 089: accesos de revisión (Culqi, un banco…). */}
         <Route path="/admin/revision" element={<Protegido permiso={Permisos.Plataforma.CuentasGestionar}><AccesosRevisionPagina /></Protegido>} />
+        {/* e274 (091): las ventas de planes, como CulqiPanel, y sus reportes. */}
+        <Route path="/admin/ventas" element={<Protegido permiso={Permisos.Plataforma.PlanesVer}><Ventas /></Protegido>} />
         {/* 069: planes y cobros (super administrador) y el plan de la cuenta. */}
         <Route path="/admin/planes" element={<Protegido soloSuperAdmin><PlanesCobrosPagina /></Protegido>} />
         {/* 075: Mi empresa (la de Reyban, que cobra los planes). */}
@@ -220,6 +224,8 @@ export function Rutas() {
         {/* e228: solo quien es de una cuenta; el super administrador va al inicio. */}
         <Route path="/mi-plan" element={<Protegido deCuenta><MiPlanPagina /></Protegido>} />
         <Route path="/mi-plan/pagos" element={<Protegido deCuenta><MisPagosPagina /></Protegido>} />
+        {/* e274 (091): lo pagado a Reyban y sus comprobantes (dueño o administrador de la cuenta). */}
+        <Route path="/pagos-comprobantes" element={<Protegido deCuenta><PagosComprobantes /></Protegido>} />
         {/* 038: los correos de acceso que no salieron. */}
         <Route
           path="/admin/correos"
