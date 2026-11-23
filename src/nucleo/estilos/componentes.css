@@ -2229,8 +2229,9 @@ code.ref { font-size: 12px; word-break: break-all; }
 .conf-lista { list-style: none; margin: 10px 0 12px; padding: 4px 0; border: 1px solid var(--borde, #e2e8ea); border-radius: 10px; background: var(--superficie, #fff); }
 .conf-lista li { display: flex; justify-content: space-between; gap: 16px; padding: 7px 12px; font-size: 13.5px; }
 .conf-lista li + li { border-top: 1px solid var(--borde-sutil, #eef2f4); }
-.conf-lista li span { min-width: 0; color: var(--tinta-2); overflow: hidden; text-overflow: ellipsis; }
-.conf-lista li strong { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--tinta); }
+.conf-lista li span { flex: none; max-width: 45%; color: var(--tinta-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* e279: un valor largo (los productos de un pack) baja de línea en vez de salirse. */
+.conf-lista li strong { min-width: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; color: var(--tinta); }
 .conf-lista li.fuerte span { color: var(--tinta); font-weight: 600; }
 .conf-lista li.mas span { color: var(--tinta-3); font-style: italic; }
 .confirmacion .conf-ojo { padding: 8px 12px; border-radius: 8px; background: var(--aviso-suave, #fdf6e7); color: var(--tinta); font-size: 13px; }

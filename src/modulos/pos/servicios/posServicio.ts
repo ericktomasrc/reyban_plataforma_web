@@ -1,4 +1,5 @@
 import { api } from '../../../nucleo/api/cliente'
+import type { OfertaActiva, TipoOferta } from '../ofertas'
 
 /** e173 (055) — el punto de venta y la caja. */
 
@@ -106,7 +107,36 @@ export interface CajaConfig { id: string; nombre: string; activo: boolean; cread
 export interface SucursalCajas { id: string; codigo: string; nombre: string; cajas: CajaConfig[] }
 export interface ConfigCajas { puedeCambiar: boolean; sucursales: SucursalCajas[] }
 
+/** e279 (094): las ofertas. */
+export type EstadoOferta = 'activa' | 'programada' | 'pausada' | 'terminada'
+export interface ProductoDeOferta { productoId: string; codigo: string; descripcion: string; cantidad: number; precio: number }
+export interface FilaOferta {
+  id: string; nombre: string; tipo: TipoOferta; precio: number; lote: string | null; loteVence: string | null; loteQuedan: number | null
+  desde: string; hasta: string | null; todasSucursales: boolean; sucursales: string[]; nombresSucursales: string[]
+  limite: number | null; estado: 'activa' | 'pausada' | 'terminada'; estadoLista: EstadoOferta
+  vendidas: number; cobrado: number; descuento: number; productos: ProductoDeOferta[]; creadoEn: string
+}
+export interface ListaOfertas {
+  puedeCambiar: boolean; hoy: string; activas: number; terminanSemana: number; cobradoMes: number; descuentoMes: number
+  ventasMes: number; lotesPorVencer: number; filas: FilaOferta[]
+}
+export interface ProductoParaOferta {
+  id: string; codigo: string; descripcion: string; unidadMedida: string; precio: number; tipoAfectacion: string; manejaLotes: boolean; costo: number | null
+}
+export interface PeticionOferta {
+  nombre: string; tipo: TipoOferta; precio: number; lote: string | null; desde: string; hasta: string | null
+  todasSucursales: boolean; sucursales: string[]; limite: number | null; productos: { productoId: string; cantidad: number }[]
+}
+
 export const posServicio = {
+  ofertas: () => api.obtener<ListaOfertas>('/api/pos/ofertas'),
+  ofertasExcel: () => api.descargar('/api/pos/ofertas?formato=xlsx'),
+  ofertasActivas: (sucursalId: string) => api.obtener<OfertaActiva[]>(`/api/pos/ofertas/activas?sucursalId=${sucursalId}`),
+  productosParaOferta: () => api.obtener<ProductoParaOferta[]>('/api/pos/ofertas/productos'),
+  lotesParaOferta: (productoId: string) => api.obtener<{ lote: string; vence: string | null; quedan: number }[]>(`/api/pos/ofertas/lotes?productoId=${productoId}`),
+  crearOferta: (d: PeticionOferta) => api.crear<{ id: string; mensaje: string }>('/api/pos/ofertas', d),
+  cambiarOferta: (id: string, d: PeticionOferta) => api.cambiar<{ mensaje: string }>(`/api/pos/ofertas/${id}`, d),
+  estadoOferta: (id: string, estado: 'activa' | 'pausada' | 'terminada') => api.crear<{ mensaje: string }>(`/api/pos/ofertas/${id}/estado`, { estado }),
   configCajas: () => api.obtener<ConfigCajas>('/api/pos/config-cajas'),
   crearCaja: (sucursalId: string, nombre: string) => api.crear<{ id: string; mensaje: string }>('/api/pos/config-cajas', { sucursalId, nombre }),
   renombrarCaja: (id: string, nombre: string) => api.cambiar<{ mensaje: string }>(`/api/pos/config-cajas/${id}`, { nombre }),

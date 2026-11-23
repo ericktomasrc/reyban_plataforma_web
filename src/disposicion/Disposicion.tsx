@@ -433,6 +433,8 @@ export function Disposicion() {
                     { ruta: '/pos/cajas', nombre: puede(Permisos.Pos.CajasVer) ? 'Cajas y arqueos' : 'Mis cajas' },
                     // e278 (093): crear y nombrar cajas.
                     ...(puede(Permisos.Pos.CajasVer) ? [{ ruta: '/pos/administrar-cajas', nombre: 'Administrar cajas' }] : []),
+                    // e279 (094): ofertas.
+                    { ruta: '/pos/ofertas', nombre: 'Ofertas' },
                   ]) }]} />
               )}
 
@@ -639,6 +641,7 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/admin/reclamos')) return 'Libro de Reclamaciones'
   if (ruta.startsWith('/admin/errores')) return 'Errores del sistema'
   if (ruta.startsWith('/pos/plan')) return 'Punto de venta'
+  if (ruta.startsWith('/pos/ofertas')) return 'Ofertas'
   if (ruta.startsWith('/admin/empresas')) return 'Empresas'
   if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'
   if (ruta.startsWith('/admin/revision')) return 'Accesos de revisión'

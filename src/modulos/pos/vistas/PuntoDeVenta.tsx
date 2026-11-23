@@ -18,9 +18,10 @@ import {
   MEDIOS, nombreMedio, posServicio,
   type CajaDeSucursal, type Cobrado, type DetalleCaja, type EstadoPos, type MedioPago, type SesionCaja,
 } from '../servicios/posServicio'
-import { importesGravada } from '../../facturacion/importesLinea'
+import { importesGravada, valorSinIgv } from '../../facturacion/importesLinea'
 import { ElegirSeries } from '../../inventario/componentes/ElegirSeries'
 import { ElegirLote } from '../../inventario/componentes/ElegirLote'
+import { aplicarOfertas, type OfertaActiva } from '../ofertas'
 import '../pos.css'
 import { CapaOcupado } from '../../../componentes/CapaOcupado'
 import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
@@ -74,7 +75,7 @@ interface Espera { clave: string; en: string; lineas: LineaVenta[]; cliente?: Cl
 // e182: una gravada con precio con IGV se calcula desde el total (como el servicio).
 const valorVenta = (l: LineaVenta) => l.tipoAfectacion === '10'
   ? importesGravada(l.cantidad, l.valorUnitario, l.descuento).valorVenta
-  : r2(Math.max(0, l.cantidad * l.valorUnitario - l.descuento))
+  : valorSinIgv(l.cantidad, l.valorUnitario, l.descuento)   // e279: exacto, como el servicio
 const igvDe = (l: LineaVenta) => l.tipoAfectacion === '10' ? importesGravada(l.cantidad, l.valorUnitario, l.descuento).igv : 0
 
 function totalesDe(lineas: LineaVenta[]) {
@@ -328,6 +329,14 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
   const [descDe, setDescDe] = useState<string>()
   const [seriesDe, setSeriesDe] = useState<string>()   // 068: la línea cuyos números de serie se eligen
   const buscador = useRef<HTMLInputElement>(null)
+  // e279 (094): las ofertas de hoy en la sucursal de la caja. Se aplican solas.
+  const [ofertas, setOfertas] = useState<OfertaActiva[]>([])
+  const [leerOfertas, setLeerOfertas] = useState(0)
+  useEffect(() => {
+    let vivo = true
+    posServicio.ofertasActivas(sesion.sucursalId).then(o => { if (vivo) setOfertas(o) }).catch(() => { if (vivo) setOfertas([]) })
+    return () => { vivo = false }
+  }, [sesion.sucursalId, leerOfertas])
   // 16 nov: el buscador de clientes se abre con «Elegir cliente» (en factura, siempre).
   const [buscarCliente, setBuscarCliente] = useState(false)
 
@@ -370,7 +379,11 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
 
   const serie = series.find(s => s.tipo === tipo && (s.sucursalId ?? null) === sesion.sucursalId)?.serie
     ?? series.find(s => s.tipo === tipo && !s.sucursalId)?.serie
-  const t = totalesDe(lineas)
+  // e279: la oferta de cada línea (null si no lleva) y las líneas con su descuento, para el total.
+  const conOferta = useMemo(() => aplicarOfertas(lineas, ofertas), [lineas, ofertas])
+  const efectivas = useMemo(() => lineas.map((l, i) => conOferta[i] ? { ...l, descuento: conOferta[i]!.descuento } : l), [lineas, conOferta])
+  const ahorroOfertas = r2(conOferta.reduce((s, o) => s + (o?.ahorro ?? 0), 0))
+  const t = totalesDe(efectivas)
 
   function agregar(p: ProductoEnLista) {
     const st = stockDe(p.id)
@@ -388,6 +401,8 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
       const i = ls.findIndex(l => l.productoId === p.id && (l.presentacionId ?? null) === (p.presentacion?.id ?? null) && l.descuento === 0)
       if (i >= 0) return ls.map((l, j) => j === i ? { ...l, cantidad: r2(l.cantidad + 1) } : l)
       const afectacion = p.tipoAfectacion
+      // e279: si hay una oferta para liquidar un lote de este producto, se vende de ese lote.
+      const loteOferta = p.manejaLotes && !p.presentacion ? ofertas.find(o => o.tipo === 'lote' && o.productos[0]?.productoId === p.id)?.lote ?? null : null
       const valorUnitario = p.incluyeIgv && afectacion === '10' ? p.precioUnitario / (1 + IGV) : p.precioUnitario
       const precio = afectacion === '10' ? (p.incluyeIgv ? p.precioUnitario : p.precioUnitario * (1 + IGV)) : p.precioUnitario
       return [...ls, {
@@ -395,7 +410,7 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
         unidadMedida: p.unidadMedida, tipoAfectacion: afectacion, precio: r2(precio),
         valorUnitario: Number(valorUnitario.toFixed(6)), cantidad: 1, descuento: 0,
         presentacionId: p.presentacion?.id ?? null, factor: p.presentacion?.factor ?? null,
-        manejaSeries: conSeries, series: conSeries ? [] : undefined, manejaLotes: !!p.manejaLotes, lote: null,   // 068
+        manejaSeries: conSeries, series: conSeries ? [] : undefined, manejaLotes: !!p.manejaLotes, lote: loteOferta,   // 068, e279
       }]
     })
   }
@@ -438,7 +453,7 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
     : !serie ? `Tu sucursal no tiene serie de ${tipo === '01' ? 'factura' : 'boleta'}.`
     : tipo === '01' && cliente?.tipoDocumento !== '6' ? 'Una factura necesita un cliente con RUC.'
     : tipo === '03' && t.total > 700 && (!cliente || cliente.tipoDocumento === '0') ? 'Una boleta de más de S/ 700 necesita el DNI del cliente.'
-    : lineas.some(l => valorVenta(l) <= 0) ? 'Hay una línea en cero.'
+    : efectivas.some(l => valorVenta(l) <= 0) ? 'Hay una línea en cero.'
     : lineas.some(l => l.manejaSeries && (l.series?.length ?? 0) !== l.cantidad) ? 'Elige los números de serie (uno por unidad).'
     : undefined
 
@@ -557,12 +572,12 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
 
           <div className="pos-lineas">
             {lineas.length === 0 && <p className="pos-vacio">Toca un producto o escanéalo para empezar.</p>}
-            {lineas.map(l => (
-              <div className="pos-lin" key={l.clave}>
+            {lineas.map((l, i) => (
+              <div className={`pos-lin${conOferta[i] ? ' con-oferta' : ''}`} key={l.clave}>
                 <div className="d">
                   <span className="pos-lin-nombre" title={l.descripcion}>{l.descripcion}</span>
                   <small>
-                    S/ {dinero(l.precio)} c/u{l.descuento > 0 && <span className="desc"> · desc. {dinero(l.descuento)}</span>}
+                    {conOferta[i] ? <><s>S/ {dinero(l.precio)}</s> c/u</> : <>S/ {dinero(l.precio)} c/u</>}{l.descuento > 0 && <span className="desc"> · desc. {dinero(l.descuento)}</span>}
                     {estado.puede.descuentos && <>{' · '}
                       <button type="button" className="enlace" onClick={() => {
                         if (l.descuento > 0) cambiarLinea(l.clave, { descuento: 0 })
@@ -570,6 +585,9 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
                       }}>{l.descuento > 0 ? 'quitar descuento' : 'descuento'}</button>
                     </>}
                   </small>
+                  {conOferta[i] && (
+                    <small className="pos-oferta"><span className="pos-oferta-tag">{conOferta[i]!.nombres.join(' + ')}</span> −S/ {dinero(conOferta[i]!.ahorro)}</small>
+                  )}
                   {/* 068: números de serie y lote. */}
                   {l.manejaSeries && (
                     <small>
@@ -606,7 +624,7 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
                          onChange={e => cambiarLinea(l.clave, { cantidad: Math.max(0, num(e.target.value)) })} />
                   <button type="button" aria-label="Uno más" onClick={() => cambiarLinea(l.clave, { cantidad: r2(l.cantidad + 1) })}>+</button>
                 </div>
-                <b className="mono">{dinero(r2(valorVenta(l) + igvDe(l)))}</b>
+                <b className="mono">{dinero(r2(valorVenta(efectivas[i]) + igvDe(efectivas[i])))}</b>
                 <button type="button" className="pos-quitar" aria-label={`Quitar ${l.descripcion}`}
                         onClick={() => setLineas(ls => ls.filter(x => x.clave !== l.clave))}>×</button>
               </div>
@@ -617,6 +635,7 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
             {t.gravado > 0 && <div><span>Op. gravadas</span><span className="mono">{dinero(t.gravado)}</span></div>}
             {t.otros > 0 && <div><span>Exoneradas / inafectas</span><span className="mono">{dinero(t.otros)}</span></div>}
             <div><span>IGV</span><span className="mono">{dinero(t.igv)}</span></div>
+            {ahorroOfertas > 0 && <div className="pos-ahorro"><span>Ahorro con ofertas</span><span className="mono">−S/ {dinero(ahorroOfertas)}</span></div>}
             <div className="g"><span>Total</span><span className="mono">S/ {dinero(t.total)}</span></div>
             <div className="pos-dos-botones">
               <button type="button" className="boton secundario" disabled={lineas.length === 0} onClick={nuevaVenta}>Vaciar</button>
@@ -645,7 +664,7 @@ function Vender({ estado, sesion, onCerrar }: { estado: EstadoPos; sesion: Sesio
         <Cobrar total={t.total} tipo={tipo} serie={serie} cliente={cliente} lineas={lineas}
                 onCerrar={() => setCobrando(false)}
                 onCobrado={c => {
-                  setCobrando(false); setHecho(c); nuevaVenta(); setRefrescarStock(n => n + 1)
+                  setCobrando(false); setHecho(c); nuevaVenta(); setRefrescarStock(n => n + 1); setLeerOfertas(n => n + 1)
                 }} />
       )}
 

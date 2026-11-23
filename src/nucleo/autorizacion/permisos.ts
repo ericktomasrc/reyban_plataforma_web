@@ -103,6 +103,8 @@ export const Permisos = {
     CajasVer:    'pos.cajas_ver',
     /** e278 (093): crear, nombrar y desactivar cajas. */
     CajasGestionar: 'pos.cajas_gestionar',
+    /** e279 (094): crear y cambiar ofertas. */
+    Ofertas: 'pos.ofertas',
   },
 
   // 032: un permiso por reporte.

@@ -3,6 +3,8 @@ import { Disposicion } from '../disposicion/Disposicion'
 import { PuntoDeVenta } from '../modulos/pos/vistas/PuntoDeVenta'
 import { Cajas, VerCaja } from '../modulos/pos/vistas/Cajas'
 import { ConfigCajas } from '../modulos/pos/vistas/ConfigCajas'
+import { Ofertas } from '../modulos/pos/vistas/Ofertas'
+import { EditarOferta } from '../modulos/pos/vistas/EditarOferta'
 import { Protegido } from '../nucleo/autorizacion/Protegido'
 import { Modulos, Permisos } from '../nucleo/autorizacion/permisos'
 import { ListaEmpresas } from '../modulos/administracion/vistas/ListaEmpresas'
@@ -391,6 +393,10 @@ export function Rutas() {
         {/* e278 (093): crear, nombrar y desactivar cajas. */}
         <Route path="/pos/administrar-cajas" element={<Protegido permiso={Permisos.Pos.CajasVer} modulo={Modulos.Pos}><ConfigCajas /></Protegido>} />
         <Route path="/pos/cajas/:id" element={<Protegido permiso={Permisos.Pos.Vender} modulo={Modulos.Pos}><VerCaja /></Protegido>} />
+        {/* e279 (094): ofertas del punto de venta. */}
+        <Route path="/pos/ofertas" element={<Protegido permiso={Permisos.Pos.Vender} modulo={Modulos.Pos}><Ofertas /></Protegido>} />
+        <Route path="/pos/ofertas/nueva" element={<Protegido permiso={Permisos.Pos.Ofertas} modulo={Modulos.Pos}><EditarOferta /></Protegido>} />
+        <Route path="/pos/ofertas/:id" element={<Protegido permiso={Permisos.Pos.Ofertas} modulo={Modulos.Pos}><EditarOferta /></Protegido>} />
 
         {/* 044: sucursales (locales del mismo RUC), sus series y sus usuarios. */}
         <Route

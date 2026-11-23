@@ -26,12 +26,29 @@ export function importesGravada(cantidad: number, valorUnitario: number, descuen
   if (precio !== null) {
     const pct = bruto > 0 && descuento > 0 ? r((descuento / bruto) * 100, 6) : 0
     const factor = r(pct / 100, 5)
-    const brutoConIgv = r2(cantidad * precio)
-    const total = factor > 0 ? r2(brutoConIgv * (1 - factor)) : brutoConIgv
+    // e279: en enteros (cantidad en diezmilésimas, precio en céntimos), como el decimal del servicio:
+    // 0.25 × 81.10 = 20.275 → 20.28 (con coma flotante salía 20.27).
+    const brutoConIgv = Math.floor((Math.round(cantidad * 10_000) * Math.round(precio * 100) + 5_000) / 10_000) / 100
+    // e279: también en enteros (céntimos × cienmilésimas), como el decimal del servicio.
+    const total = factor > 0
+      ? Math.floor((Math.round(brutoConIgv * 100) * (100_000 - Math.round(factor * 100_000)) + 50_000) / 100_000) / 100
+      : brutoConIgv
     const valorVenta = r2(total / (1 + TASA))
     return { valorVenta, igv: r2(total - valorVenta), total }
   }
   const valorVenta = r2(Math.max(0, bruto - descuento))
   const igv = r2(valorVenta * TASA)
   return { valorVenta, igv, total: r2(valorVenta + igv) }
+}
+/**
+ * e279 — EL VALOR DE VENTA DE UNA LÍNEA SIN IGV (exonerada, inafecta), EXACTO
+ * como el decimal del servicio: 0.25 × 86.10 = 21.525 → 21.53 (con coma
+ * flotante salía 21.52). En enteros: cantidad en diezmilésimas, valor en
+ * millonésimas y descuento en céntimos.
+ */
+export function valorSinIgv(cantidad: number, valorUnitario: number, descuento: number): number {
+  const bruto = BigInt(Math.round(cantidad * 10_000)) * BigInt(Math.round(valorUnitario * 1_000_000))   // en 1e-10
+  const neto = bruto - BigInt(Math.round(descuento * 100)) * 100_000_000n
+  if (neto <= 0n) return 0
+  return Number((neto + 50_000_000n) / 100_000_000n) / 100
 }
