@@ -86,13 +86,16 @@ export interface EmpresaDeCuenta {
   planProgramado?: CodigoPlan | null
   planProgramadoDesde?: string | null
 }
-export type TipoAjuste = 'cortesia' | 'meses_gratis' | 'precio_especial' | 'plan_mejor' | 'ampliar_prueba'
+export type TipoAjuste = 'cortesia' | 'meses_gratis' | 'precio_especial' | 'plan_mejor' | 'ampliar_prueba' | 'descuento'
 export interface AjusteCuenta {
   id: string
   tipo: TipoAjuste
   plan: CodigoPlan | null
   meses: number | null
   precio: number | null
+  /** 095: descuento en % y su tope de empresas (Cartera). */
+  porcentaje?: number | null
+  empresasMax?: number | null
   hasta: string
   motivo: string
   creadoEn: string
@@ -136,7 +139,13 @@ export interface ResumenCuenta {
   estadoEncendido: Exclude<EstadoCuenta, 'apagado'>
   totalEncendido: number
   planPrueba: CodigoPlan
-  mensual: { base: number; extras: number; total: number; regular: number; anual: number }
+  mensual: { base: number; extras: number; total: number; regular: number; anual: number; descuento?: number; extrasEstudio?: number }
+  /** 095: cupos Pro y Max comprados, cuántas empresas los usan y el descuento en % vigente. */
+  cuposPro?: number
+  cuposMax?: number
+  asignadasPro?: number
+  asignadasMax?: number
+  descuento?: { porcentaje: number; empresasMax: number | null; hasta: string; motivo: string; monto: number } | null
   /** 083: diferencias por subir de plan que se suman al próximo cobro. */
   pendientes?: number
 }
@@ -216,6 +225,21 @@ export interface DatosPublicos {
 
 type Mensaje = { mensaje: string }
 
+/** e281 (096): premio por invitar contadores. */
+export interface ReglasInvitar { activo: boolean; premioMeses: number; mesesPagados: number; topeAnual: number; empresasMax: number }
+export interface PremioInvitar { meses: number; hasta: string; en: string }
+export interface MiInvitar extends ReglasInvitar {
+  codigo: string | null
+  invitadoPor: string | null
+  puedeAnotar: boolean
+  ganadosAnio: number
+  invitados: { nombre: string; desde: string; pagados: number; premio: PremioInvitar | null }[]
+}
+export interface InvitarAdmin {
+  reglas: ReglasInvitar
+  filas: { invitador: string; invitadorId: string; invitado: string; invitadoId: string; desde: string; pagados: number; premio: PremioInvitar | null }[]
+}
+
 export const planesServicio = {
   // La cuenta
   mio: () => api.obtener<MiPlan>('/api/planes/mio'),
@@ -225,9 +249,14 @@ export const planesServicio = {
     api.obtener<CotizacionCambio>(`/api/planes/cambio?empresa=${empresaId}&plan=${plan}`),
   cambiar: (empresaId: string, plan: CodigoPlan, pagar: boolean) =>
     api.crear<Mensaje & { estado: string; accion: string }>('/api/planes/cambio', { empresaId, plan, pagar }),
-  cupos: (cupos: number) => api.crear<Mensaje & { cupos: number }>('/api/planes/cupos', { cupos }),
+  invitar: () => api.obtener<MiInvitar>('/api/planes/invitar'),
+  anotarInvitacion: (codigo: string) => api.crear<Mensaje>('/api/planes/invitar/anotar', { codigo }),
+  invitarAdmin: () => api.obtener<InvitarAdmin>('/api/admin/planes/invitar'),
+  reglasInvitar: (r: ReglasInvitar) => api.cambiar<Mensaje>('/api/admin/planes/invitar/reglas', r),
+  cupos: (cupos: number, pro?: number, max?: number) => api.crear<Mensaje & { cupos: number }>('/api/planes/cupos', { cupos, pro, max }),
   // e232: lo que costaría subir de cupo hoy (null si no se cobra nada).
-  cotizarCupos: (cupos: number) => api.obtener<{ texto: string | null }>(`/api/planes/cupos/cotizar?cupos=${cupos}`),
+  cotizarCupos: (cupos: number, pro?: number, max?: number) =>
+    api.obtener<{ texto: string | null }>(`/api/planes/cupos/cotizar?cupos=${cupos}${pro !== undefined ? `&pro=${pro}&max=${max ?? 0}` : ''}`),
   estudio: (empresaId: string | null) => api.crear<Mensaje>('/api/planes/estudio', { empresaId }),
   /** 085: el tope de comprobantes del mes y comprar un paquete extra. */
   comprobantes: (empresaId?: string) =>
@@ -250,7 +279,7 @@ export const planesServicio = {
     api.cambiar<Mensaje & { cambiadas: number }>('/api/admin/planes/armador', { cambios }),
   cuentas: () => api.obtener<ResumenCuenta[]>('/api/admin/planes/cuentas'),
   cuenta: (id: string) => api.obtener<ResumenCuenta>(`/api/admin/planes/cuentas/${id}`),
-  ajustar: (id: string, d: { tipo: TipoAjuste; plan?: CodigoPlan | null; meses?: number | null; precio?: number | null; hasta: string; motivo: string }) =>
+  ajustar: (id: string, d: { tipo: TipoAjuste; plan?: CodigoPlan | null; meses?: number | null; precio?: number | null; porcentaje?: number | null; empresasMax?: number | null; hasta: string; motivo: string }) =>
     api.crear<Mensaje>(`/api/admin/planes/cuentas/${id}/ajustes`, d),
   anularAjuste: (id: string, motivo: string) => api.crear<Mensaje>(`/api/admin/planes/ajustes/${id}/anular`, { motivo }),
   accesoTotal: (id: string, activo: boolean, motivo: string) =>
@@ -283,7 +312,21 @@ export const NOMBRE_ESTADO: Record<EstadoCuenta, string> = {
 }
 export const NOMBRE_AJUSTE: Record<TipoAjuste, string> = {
   cortesia: 'Cortesía', meses_gratis: 'Meses gratis', precio_especial: 'Precio especial',
-  plan_mejor: 'Un plan mejor', ampliar_prueba: 'Más prueba',
+  plan_mejor: 'Un plan mejor', ampliar_prueba: 'Más prueba', descuento: 'Descuento en %',
+}
+
+/**
+ * 095: EL PRECIO POR EMPRESA DE CADA PLAN EN LA CARTERA. Se guarda como
+ * antes (el de Básico son los tramos; el de Pro/Max, Básico + su subida) y se
+ * muestra como un precio por plan. `tramo` = la empresa número n (descuento
+ * por cantidad del tramo en que cae).
+ */
+export function precioPorEmpresa(tramos: Tramo[], planes: PlanCatalogo[], plan: CodigoPlan, regular: boolean, n = 1): number {
+  const t = tramos.find(x => x.desde <= n && (x.hasta === null || n <= x.hasta)) ?? tramos[0]
+  const base = t ? (regular ? t.precioRegular : t.precioOferta) : 0
+  if (plan === 'basico') return base
+  const p = planes.find(x => x.codigo === plan)
+  return base + (p ? (regular ? p.carteraExtraRegular : (p.carteraExtraOferta ?? p.carteraExtraRegular)) : 0)
 }
 
 /** 1 nov: lo que un plan agrega, agrupado por menú: «Inventario: stock, traslados…». */

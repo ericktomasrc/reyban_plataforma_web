@@ -15,13 +15,15 @@ import { useSesion } from '../../../nucleo/sesion/SesionContexto'
 import { useConexionSunat } from '../../../nucleo/sunat/conexionSunat'
 import { ArmadorPlanes } from '../componentes/ArmadorPlanes'
 import { PanelPagos } from '../componentes/PanelPagos'
+import { PremiosInvitar } from '../componentes/PremiosInvitar'
 import { FilaRegla, GrupoRegla } from '../componentes/Reglas'
+import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
 import {
   NOMBRE_AJUSTE, NOMBRE_ESTADO, planesServicio,
   type CodigoPlan, type ConfigPlanes, type DatosPublicos, type EstadoCuenta, type PlanCatalogo, type Reglas, type ResumenCuenta, type TipoAjuste, type Tramo,
 } from '../servicios/planesServicio'
 
-const VISTAS = ['cuentas', 'armador', 'precios', 'pagos'] as const
+const VISTAS = ['cuentas', 'armador', 'negocio', 'profesional', 'reglas', 'invitar', 'pagos'] as const
 type Filtro = 'todas' | 'negocio' | 'profesional' | 'prueba' | 'tratos' | 'acceso_total'
 
 /**
@@ -33,7 +35,11 @@ type Filtro = 'todas' | 'negocio' | 'profesional' | 'prueba' | 'tratos' | 'acces
  *                         con fecha de fin y motivo, que queda en la bitácora).
  *   Armar los planes      menús y submenús arrastrando a Básico, Pro, Max o
  *                         «Sin plan»; antes de guardar dice a cuántas afecta.
- *   Precios y reglas      Básico/Pro/Max, tramos de la Cartera, mes gratis.
+ *   e280: «Precios y reglas» pasa a tres pestañas:
+ *   Cobro Cuenta Negocio       precio de Básico/Pro/Max, sucursales, comprobantes al mes.
+ *   Cobro Cuenta Profesional   precio por empresa de cada plan en la Cartera,
+ *                              descuento por cantidad y la empresa del estudio.
+ *   Reglas para todos          mes gratis, RUC nuevo, oferta, anual, página pública.
  *   Pagos (073)           el panel de pagos (Culqi, reglas de cobro, empresa
  *                         que emite el comprobante, medios) y los pagos.
  */
@@ -66,13 +72,18 @@ export function PlanesCobrosPagina() {
       <Pestanas etiqueta="Planes y cobros" valor={vista} onCambio={setVista} opciones={[
         { valor: 'cuentas', texto: 'Cuentas' },
         { valor: 'armador', texto: 'Armar los planes' },
-        { valor: 'precios', texto: 'Precios y reglas' },
+        { valor: 'negocio', texto: 'Cobro Cuenta Negocio' },
+        { valor: 'profesional', texto: 'Cobro Cuenta Profesional' },
+        { valor: 'reglas', texto: 'Reglas para todos' },
+        { valor: 'invitar', texto: 'Premios por invitar' },
         { valor: 'pagos', texto: 'Pagos' },
       ]} />
 
       {vista === 'cuentas' && <Cuentas puedeAjustar={puede(Permisos.Plataforma.PlanesDescuentos)} encendidos={config.interruptor.encendidos} />}
       {vista === 'armador' && <ArmadorPlanes puede={puede(Permisos.Plataforma.PlanesArmar)} catalogo={config.catalogo} />}
-      {vista === 'precios' && <PreciosYReglas config={config} puede={puede(Permisos.Plataforma.PlanesArmar)} onHecho={cargar} />}
+      {(vista === 'negocio' || vista === 'profesional' || vista === 'reglas') &&
+        <PreciosYReglas key={vista} seccion={vista} config={config} puede={puede(Permisos.Plataforma.PlanesArmar)} onHecho={cargar} />}
+      {vista === 'invitar' && <PremiosInvitar puede={puede(Permisos.Plataforma.PlanesArmar)} />}
       {vista === 'pagos' && <PanelPagos puedeConfigurar={puede(Permisos.Plataforma.CobrosConfigurar)} puedeRegistrar={puede(Permisos.Plataforma.CobrosRegistrar)} />}
     </>
   )
@@ -311,6 +322,8 @@ function AjustarCuenta({ id, puede, onCerrar, onCambio }: { id: string; puede: b
   const [plan, setPlan] = useState<CodigoPlan>('pro')
   const [meses, setMeses] = useState(1)
   const [precio, setPrecio] = useState('')
+  const [porcentaje, setPorcentaje] = useState('50')   // 095
+  const [empresasMax, setEmpresasMax] = useState('')
   const [hasta, setHasta] = useState(hoyMas(90))
   const [motivo, setMotivo] = useState('')
   const [motivoTotal, setMotivoTotal] = useState('Cuenta de prueba')
@@ -480,17 +493,40 @@ function AjustarCuenta({ id, puede, onCerrar, onCambio }: { id: string; puede: b
                   <label className="campo"><span className="rotulo">Precio al mes</span>
                     <span className="con-moneda"><b>S/</b><input type="number" min={0} step="0.01" value={precio} onChange={e => setPrecio(e.target.value)} /></span></label>
                 )}
+                {tipo === 'descuento' && <>
+                  <label className="campo"><span className="rotulo">Descuento</span>
+                    <span className="con-unidad"><input type="number" min={1} max={100} step="1" value={porcentaje} onChange={e => setPorcentaje(e.target.value)} /><em>%</em></span></label>
+                  {c.tipo === 'profesional' && (
+                    <label className="campo"><span className="rotulo">Hasta cuántas empresas (opcional)</span>
+                      <span className="con-unidad"><input type="number" min={1} step="1" value={empresasMax} placeholder="todas" onChange={e => setEmpresasMax(e.target.value)} /><em>empresas</em></span></label>
+                  )}
+                </>}
                 <label className="campo"><span className="rotulo">Termina el</span>
                   <input type="date" value={hasta} min={hoyMas(0)} onChange={e => setHasta(e.target.value)} /></label>
               </div>
+              {tipo === 'descuento' && Number(porcentaje) > 0 && (
+                <p className="pista">{(() => {
+                  const pct = Math.min(100, Number(porcentaje)); const tope = Number(empresasMax) || null
+                  const total = c.mensual.base + c.mensual.extras - (c.mensual.extrasEstudio ?? 0)
+                  const n = Math.max(c.cobradas, 1)
+                  const dsc = Math.round(total * pct / 100 * Math.min(1, (tope ?? n) / n) * 100) / 100
+                  return c.tipo === 'profesional'
+                    ? `Con sus ${n} empresas de hoy pagaría ${soles(c.mensual.base + c.mensual.extras - dsc)} en vez de ${soles(c.mensual.base + c.mensual.extras)} al mes.`
+                      + (tope ? ` El descuento cubre ${tope} empresas: las demás pagan precio normal.` : '') + ' Termina solo en la fecha que pongas.'
+                    : `Pagaría ${soles((c.mensual.base + c.mensual.extras) * (1 - pct / 100))} en vez de ${soles(c.mensual.base + c.mensual.extras)} al mes. Termina solo en la fecha que pongas.`
+                })()}</p>
+              )}
               <label className="campo"><span className="rotulo">Motivo (queda en la bitácora con tu nombre)</span>
                 <input value={motivo} maxLength={500} placeholder="Por ejemplo: me ayudó con SUNAT" onChange={e => setMotivo(e.target.value)} /></label>
               <Boton ocupado={ocupado === 'ajuste'}
-                     disabled={motivo.trim().length < 5 || !hasta || (tipo === 'precio_especial' && precio === '')}
+                     disabled={motivo.trim().length < 5 || !hasta || (tipo === 'precio_especial' && precio === '') || (tipo === 'descuento' && !(Number(porcentaje) > 0 && Number(porcentaje) <= 100))}
                      onClick={() => void hacer('ajuste', () => planesServicio.ajustar(c.id, {
                        tipo, plan: tipo === 'cortesia' || tipo === 'plan_mejor' ? plan : null,
                        meses: tipo === 'meses_gratis' ? meses : null,
-                       precio: tipo === 'precio_especial' ? Number(precio) : null, hasta, motivo: motivo.trim(),
+                       precio: tipo === 'precio_especial' ? Number(precio) : null,
+                       porcentaje: tipo === 'descuento' ? Number(porcentaje) : null,
+                       empresasMax: tipo === 'descuento' && Number(empresasMax) > 0 ? Number(empresasMax) : null,
+                       hasta, motivo: motivo.trim(),
                      }), () => setMotivo(''))}>Guardar trato especial</Boton>
             </section>
           )}
@@ -504,7 +540,7 @@ function AjustarCuenta({ id, puede, onCerrar, onCambio }: { id: string; puede: b
                   <li key={a.id} className={a.vigente ? undefined : 'apagado'}>
                     <div>
                       <strong>{NOMBRE_AJUSTE[a.tipo]}</strong>
-                      {a.plan && ` ${NOMBRE_PLAN[a.plan]}`}{a.meses && ` · ${a.meses} mes${a.meses === 1 ? '' : 'es'}`}{a.precio !== null && ` · ${soles(a.precio)}/mes`}
+                      {a.plan && ` ${NOMBRE_PLAN[a.plan]}`}{a.meses && ` · ${a.meses} mes${a.meses === 1 ? '' : 'es'}`}{a.precio !== null && ` · ${soles(a.precio)}/mes`}{a.porcentaje != null && ` · ${a.porcentaje} %${a.empresasMax ? ` hasta ${a.empresasMax} empresas` : ''}`}
                       {' · hasta '}{fecha(a.hasta)}{a.vigente ? ' · vigente' : ''}
                       <div className="secundario">{a.motivo}{a.anuladoEn && ` · quitado el ${fecha(a.anuladoEn)}: ${a.anuladoMotivo}`}</div>
                     </div>
@@ -540,6 +576,7 @@ const EXPLICA_AJUSTE: Record<TipoAjuste, { ve: string; paga: string; ejemplo: st
   meses_gratis:    { ve: 'Su plan',             paga: 'Nada',                  ejemplo: 'Le regalas 2 meses por recomendar a otro' },
   precio_especial: { ve: 'Su plan',             paga: 'El precio que pongas',  ejemplo: 'Un conocido paga S/ 20 en vez de S/ 39' },
   ampliar_prueba:  { ve: 'Lo del mes gratis',   paga: 'Nada',                  ejemplo: 'Su mes gratis termina hoy y necesita 2 semanas más' },
+  descuento:       { ve: 'Su plan',             paga: 'Su plan menos el %',    ejemplo: 'Socio fundador: 50 % hasta 20 empresas por 24 meses' },
 }
 
 /** Por qué una empresa ve lo que ve (para la columna «Por qué»). */
@@ -562,10 +599,12 @@ function porQueVe(c: ResumenCuenta, e: ResumenCuenta['empresas'][number]): strin
 // PRECIOS Y REGLAS — en pestañas: Planes · Tramos de la Cartera · Mes gratis y reglas
 // =============================================================================
 type VistaPrecios = 'planes' | 'tramos' | 'comprobantes' | 'reglas' | 'publica'
+type Seccion = 'negocio' | 'profesional' | 'reglas'
 
-function PreciosYReglas({ config, puede, onHecho }: { config: ConfigPlanes; puede: boolean; onHecho: () => Promise<void> }) {
+function PreciosYReglas({ seccion, config, puede, onHecho }: { seccion: Seccion; config: ConfigPlanes; puede: boolean; onHecho: () => Promise<void> }) {
   const mensaje = useMensaje()
-  const [vista, setVista] = useState<VistaPrecios>('planes')
+  const { pedir, dialogo } = useConfirmar()
+  const [vista, setVista] = useState<VistaPrecios>(seccion === 'negocio' ? 'planes' : seccion === 'profesional' ? 'tramos' : 'reglas')
   const [planes, setPlanes] = useState<PlanCatalogo[]>(config.catalogo.planes)
   const [tramos, setTramos] = useState<Tramo[]>(config.catalogo.tramos)
   const [reglas, setReglas] = useState<Reglas>(config.catalogo.reglas)
@@ -596,28 +635,29 @@ function PreciosYReglas({ config, puede, onHecho }: { config: ConfigPlanes; pued
                        topeRegular: p.topeRegular ?? null, topeOferta: p.topeOferta ?? null })),
     tramos, paquete))
 
-  // Ejemplo con los tramos escritos (sin guardar): cuánto paga una Cartera de 12.
-  const ejemplo = 12
-  const ejemploTotal = tramos.reduce((s, t) => {
-    if (t.desde > ejemplo) return s
-    return s + Math.max(0, Math.min(ejemplo, t.hasta ?? ejemplo) - t.desde + 1) * t.precioOferta
-  }, 0)
 
   return (
     <>
-      <Pestanas<VistaPrecios> etiqueta="Precios y reglas" valor={vista} onCambio={setVista} opciones={[
-        { valor: 'planes', texto: 'Precios de Básico, Pro y Max' },
-        { valor: 'tramos', texto: 'Precio de la Cartera' },
-        { valor: 'comprobantes', texto: 'Comprobantes al mes' },
-        { valor: 'reglas', texto: 'Mes gratis y otras reglas' },
-        { valor: 'publica', texto: 'Página pública' },
-      ]} />
+      {dialogo}
+      {seccion === 'negocio' && (
+        <Pestanas<VistaPrecios> etiqueta="Cobro Cuenta Negocio" valor={vista} onCambio={setVista} opciones={[
+          { valor: 'planes', texto: 'Precio de Básico, Pro y Max' },
+          { valor: 'comprobantes', texto: 'Comprobantes al mes' },
+        ]} />
+      )}
+      {seccion === 'reglas' && (
+        <Pestanas<VistaPrecios> etiqueta="Reglas para todos" valor={vista} onCambio={setVista} opciones={[
+          { valor: 'reglas', texto: 'Mes gratis y otras reglas' },
+          { valor: 'publica', texto: 'Página pública' },
+        ]} />
+      )}
 
       {vista === 'planes' && (
         <div className="bloque">
           <p className="secundario">
-            Lo que paga al mes una <strong>Cuenta Negocio</strong> por su empresa. El cliente ve el precio real tachado y paga el de
-            lanzamiento mientras dure la oferta (fecha en «Mes gratis y otras reglas»). Todos los montos son en soles, con IGV.
+            Lo que paga al mes una <strong>Cuenta Negocio</strong> por su única empresa. El cliente ve el precio real tachado y paga el de
+            lanzamiento mientras dure la oferta (la fecha está en «Reglas para todos»). Todos los montos son en soles, con IGV.
+            Lo de la Cartera está en «Cobro Cuenta Profesional».
           </p>
           <div className="tarjetas-precio">
             {planes.map((p, i) => (
@@ -635,18 +675,6 @@ function PreciosYReglas({ config, puede, onHecho }: { config: ConfigPlanes; pued
                     <em>sucursales · vacío = ilimitadas</em>
                   </span>
                 </label>
-                <div className="subgrupo-precio">
-                  <span className="rotulo">En la Cartera (Cuenta Profesional)</span>
-                  <p className="pista">{p.codigo === 'basico'
-                    ? 'Cada empresa de la Cartera ya viene en Básico: no se suma nada.'
-                    : `Lo que se suma al mes por cada empresa de la Cartera que sube a ${p.nombre}.`}</p>
-                  {p.codigo !== 'basico' && <>
-                  <CampoPrecio etiqueta="Subir a este plan · real" pista="por empresa, al mes" valor={p.carteraExtraRegular} disabled={!puede}
-                               onCambio={v => cambiarPlan(i, 'carteraExtraRegular', v ?? 0)} />
-                  <CampoPrecio etiqueta="Subir a este plan · lanzamiento" pista="por empresa, al mes" valor={p.carteraExtraOferta} disabled={!puede}
-                               onCambio={v => cambiarPlan(i, 'carteraExtraOferta', v)} />
-                  </>}
-                </div>
               </div>
             ))}
           </div>
@@ -692,48 +720,148 @@ function PreciosYReglas({ config, puede, onHecho }: { config: ConfigPlanes; pued
         </div>
       )}
 
-      {vista === 'tramos' && (
-        <div className="bloque">
-          <p className="secundario">
-            Lo que paga al mes la <strong>Cartera</strong> (Cuenta Profesional) por cada empresa, en Básico. Es escalonado: cada
-            empresa paga el precio de su tramo. Con los precios de abajo, una Cartera de {ejemplo} empresas paga{' '}
-            <strong>{soles(ejemploTotal)}</strong> al mes (precio de lanzamiento).
-          </p>
-          <table className="tabla compacta tabla-tramos">
-            <thead><tr><th>Empresas del tramo</th><th>Precio que paga hoy (lanzamiento), por empresa</th><th>Precio real, por empresa (se ve tachado)</th><th /></tr></thead>
-            <tbody>
-              {tramos.map((t, i) => (
-                <tr key={i}>
-                  <td>
-                    <span className="rango-tramo">
-                      de la <input type="number" min={1} step={1} disabled={!puede || i === 0} value={t.desde} aria-label="Desde"
-                                   onChange={e => cambiarTramo(i, 'desde', Number(e.target.value))} />
-                      a la <input type="number" min={1} step={1} disabled={!puede} placeholder="∞" value={t.hasta ?? ''} aria-label="Hasta"
-                                  onChange={e => cambiarTramo(i, 'hasta', num(e.target.value))} />
-                    </span>
-                    {t.hasta === null && <div className="pista">en adelante</div>}
-                  </td>
-                  <td><CampoSoles valor={t.precioOferta} disabled={!puede} onCambio={v => cambiarTramo(i, 'precioOferta', v ?? 0)} /></td>
-                  <td><CampoSoles valor={t.precioRegular} disabled={!puede} onCambio={v => cambiarTramo(i, 'precioRegular', v ?? 0)} /></td>
-                  <td>{puede && tramos.length > 1 && <button type="button" className="enlace" onClick={() => setTramos(ts => ts.filter((_, j) => j !== i))}>Quitar</button>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="pista">Los tramos van seguidos (1 a 5, 6 a 10…) y el último no tiene fin. Las subidas a Pro y Max se cobran aparte (pestaña «Precios de Básico, Pro y Max»).</p>
-          {puede && (
-            <div className="acciones-bloque">
-              <Boton estilo="plano" onClick={() => setTramos(ts => {
-                const ultimo = ts[ts.length - 1]
-                const desde = (ultimo?.hasta ?? (ultimo ? ultimo.desde + 9 : 0)) + 1
-                return [...ts.map((t, j) => j === ts.length - 1 && t.hasta === null ? { ...t, hasta: desde - 1 } : t),
-                        { desde, hasta: null, precioOferta: ultimo?.precioOferta ?? 10, precioRegular: ultimo?.precioRegular ?? 15 }]
-              })}>Agregar tramo</Boton>
-              <Boton ocupado={ocupado === 'precios'} onClick={() => void guardarPrecios()}>Guardar precios de la Cartera</Boton>
+      {vista === 'tramos' && (() => {
+        // e280: el precio por empresa de cada plan. Se guarda como antes: Básico = los
+        // tramos (el primero sin descuento) y Pro/Max = Básico + su subida.
+        const t0 = tramos[0]
+        const basR = t0?.precioRegular ?? 0
+        const basO = t0?.precioOferta ?? 0
+        const pp = (c: CodigoPlan) => planes.find(p => p.codigo === c)!
+        const precioDe = (c: CodigoPlan, regular: boolean) => c === 'basico' ? (regular ? basR : basO)
+          : (regular ? basR + pp(c).carteraExtraRegular : basO + (pp(c).carteraExtraOferta ?? pp(c).carteraExtraRegular))
+        const pct = (t: Tramo) => basO > 0 ? Math.round((1 - t.precioOferta / basO) * 10000) / 100 : 0
+        const r2 = (n: number) => Math.round(n * 100) / 100
+        function cambiarBasico(regular: boolean, v: number) {
+          // Los tramos guardan su % de descuento; Pro y Max conservan su precio.
+          const viejo = regular ? basR : basO
+          setTramos(ts => ts.map((t, i) => {
+            const p = i === 0 || viejo <= 0 ? 0 : 1 - (regular ? t.precioRegular : t.precioOferta) / viejo
+            return regular ? { ...t, precioRegular: r2(v * (1 - p)) } : { ...t, precioOferta: r2(v * (1 - p)) }
+          }))
+          setPlanes(ps => ps.map(p => p.codigo === 'basico' ? p : regular
+            ? { ...p, carteraExtraRegular: Math.max(0, r2(precioDe(p.codigo, true) - v)) }
+            : { ...p, carteraExtraOferta: Math.max(0, r2(precioDe(p.codigo, false) - v)) }))
+        }
+        const cambiarPlanCartera = (c: CodigoPlan, regular: boolean, v: number) =>
+          setPlanes(ps => ps.map(p => p.codigo !== c ? p : regular
+            ? { ...p, carteraExtraRegular: Math.max(0, r2(v - basR)) }
+            : { ...p, carteraExtraOferta: Math.max(0, r2(v - basO)) }))
+        const cambiarPct = (i: number, v: number) => setTramos(ts => ts.map((t, j) => j !== i ? t
+          : { ...t, precioOferta: r2(basO * (1 - v / 100)), precioRegular: r2(basR * (1 - v / 100)) }))
+        const ejB = 2, ejP = 1
+        const ejCartera = ejB * precioDe('basico', false) + ejP * precioDe('pro', false)
+        const subePro = precioDe('pro', false) - basO, subeMax = precioDe('max', false) - basO
+        async function revisar() {
+          const viejo = config.catalogo
+          const pv = (c: CodigoPlan, regular: boolean) => {
+            const b = regular ? viejo.tramos[0]?.precioRegular ?? 0 : viejo.tramos[0]?.precioOferta ?? 0
+            const p = viejo.planes.find(x => x.codigo === c)!
+            return c === 'basico' ? b : b + (regular ? p.carteraExtraRegular : (p.carteraExtraOferta ?? p.carteraExtraRegular))
+          }
+          const filas = (['basico', 'pro', 'max'] as CodigoPlan[]).flatMap(c => [
+            { nombre: `${NOMBRE_PLAN[c]} · lanzamiento`, antes: pv(c, false), ahora: precioDe(c, false) },
+            { nombre: `${NOMBRE_PLAN[c]} · real (tachado)`, antes: pv(c, true), ahora: precioDe(c, true) },
+          ]).filter(x => Math.abs(x.antes - x.ahora) > 0.004)
+          const tramosCambian = JSON.stringify(viejo.tramos.slice(1).map(t => [t.desde, t.hasta, pct(t)])) !== JSON.stringify(tramos.slice(1).map(t => [t.desde, t.hasta, pct(t)]))
+          if (!await pedir({
+            titulo: '¿Guardar el cobro de la Cuenta Profesional?',
+            confirmar: 'Sí, guardar precios',
+            mensaje: <>
+              <p>Se aplica desde el próximo cobro de cada Cartera. Quien entró con precio de lanzamiento lo conserva sus meses.</p>
+              {filas.length > 0
+                ? <ListaConfirmar filas={filas.map(x => ({ nombre: x.nombre, valor: `${soles(x.antes)} → ${soles(x.ahora)}`, fuerte: true }))} />
+                : !tramosCambian && <p className="secundario">No cambiaste ningún precio por empresa.</p>}
+              {tramosCambian && <p className="conf-ojo">También cambia el descuento por cantidad.</p>}
+            </>,
+          })) return
+          await guardarPrecios()
+        }
+        return (
+          <div className="bloque">
+            <p className="secundario">
+              Lo que paga al mes un <strong>estudio contable</strong> (Cuenta Profesional) por <strong>cada empresa de su cartera</strong>, según su
+              plan. Todo va en un solo cobro al mes, con su propia empresa («Mi empresa») incluida. Montos en soles, con IGV.
+            </p>
+            <h3 className="subtitulo-topes">Precio por empresa de la cartera</h3>
+            <table className="tabla compacta tabla-tramos">
+              <thead><tr><th>Plan</th><th>Precio real, por empresa (va tachado)</th><th>Precio de lanzamiento (el que paga)</th><th>Ahorro</th></tr></thead>
+              <tbody>
+                {(['basico', 'pro', 'max'] as CodigoPlan[]).map(c => {
+                  const r = precioDe(c, true), o = precioDe(c, false)
+                  return (
+                    <tr key={c}>
+                      <td><strong>{NOMBRE_PLAN[c]}</strong>{c !== 'basico' && <div className="pista">= Básico + {soles(c === 'pro' ? subePro : subeMax)}</div>}</td>
+                      <td><CampoSoles valor={r} disabled={!puede} onCambio={v => c === 'basico' ? cambiarBasico(true, v ?? 0) : cambiarPlanCartera(c, true, v ?? 0)} /></td>
+                      <td><CampoSoles valor={o} disabled={!puede} onCambio={v => c === 'basico' ? cambiarBasico(false, v ?? 0) : cambiarPlanCartera(c, false, v ?? 0)} /></td>
+                      <td className="secundario">{r > 0 && o < r ? `${Math.round((1 - o / r) * 100)} %` : '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            {(['pro', 'max'] as CodigoPlan[]).some(c => precioDe(c, false) < basO) && <Aviso tono="ojo">Pro y Max no pueden costar menos que Básico.</Aviso>}
+            <p className="pista">El precio de lanzamiento vale hasta el {reglas.ofertaHasta ? fecha(reglas.ofertaHasta) : 'fin de la oferta'} y el mínimo de la Cartera
+              es {reglas.carteraMinimo} empresas: los dos se cambian en «Reglas para todos».</p>
+
+            <h3 className="subtitulo-topes">Descuento por cantidad <span className="secundario">(opcional)</span></h3>
+            <p className="pista">Cuantas más empresas, menos paga cada una en Básico. Cuenta todas las empresas de la cartera; cada empresa paga según el tramo en que cae.
+              Si no quieres descuento, deja un solo tramo.</p>
+            <table className="tabla compacta tabla-tramos">
+              <thead><tr><th>Empresas</th><th>Descuento</th><th>Básico por empresa (ejemplo)</th><th /></tr></thead>
+              <tbody>
+                {tramos.map((t, i) => (
+                  <tr key={i}>
+                    <td>
+                      <span className="rango-tramo">
+                        de la <input type="number" min={1} step={1} disabled={!puede || i === 0} value={t.desde} aria-label="Desde"
+                                     onChange={e => cambiarTramo(i, 'desde', Number(e.target.value))} />
+                        a la <input type="number" min={1} step={1} disabled={!puede} placeholder="∞" value={t.hasta ?? ''} aria-label="Hasta"
+                                    onChange={e => cambiarTramo(i, 'hasta', num(e.target.value))} />
+                      </span>
+                      {t.hasta === null && <div className="pista">en adelante</div>}
+                    </td>
+                    <td>{i === 0 ? <span className="secundario">0 % (precio de arriba)</span> : (
+                      <span className="con-unidad"><input type="number" min={0} max={90} step="1" disabled={!puede} value={pct(t)} aria-label="Descuento"
+                        onChange={e => cambiarPct(i, Math.max(0, Math.min(90, Number(e.target.value) || 0)))} /><em>%</em></span>)}</td>
+                    <td className="secundario">{soles(t.precioOferta)} <s>{soles(t.precioRegular)}</s></td>
+                    <td>{puede && i > 0 && <button type="button" className="enlace" onClick={() => setTramos(ts => {
+                      const sin = ts.filter((_, j) => j !== i)
+                      return sin.map((x, j) => j === sin.length - 1 ? { ...x, hasta: null } : x)
+                    })}>Quitar</button>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {puede && <Boton estilo="plano" onClick={() => setTramos(ts => {
+              const ultimo = ts[ts.length - 1]
+              const desde = (ultimo?.hasta ?? (ultimo ? ultimo.desde + 9 : 0)) + 1
+              return [...ts.map((t, j) => j === ts.length - 1 && t.hasta === null ? { ...t, hasta: desde - 1 } : t),
+                      { desde, hasta: null, precioOferta: r2(basO * 0.9), precioRegular: r2(basR * 0.9) }]
+            })}>Agregar tramo</Boton>}
+
+            <h3 className="subtitulo-topes">La empresa del estudio («Mi empresa»)</h3>
+            <ul className="lista-regla">
+              <li><strong>Gratis en Básico</strong>, mientras tenga {reglas.carteraMinimo} o más empresas en su cartera. No cuenta como empresa de la cartera.</li>
+              <li>Si la sube, paga solo la diferencia (se calcula sola): a Pro <strong>+{soles(subePro)}</strong> y a Max <strong>+{soles(subeMax)}</strong> al mes.</li>
+            </ul>
+
+            <div className="resumen-ejemplo">
+              <strong>Así se ve un cobro (ejemplo, precio de lanzamiento)</strong>
+              <div><span>Cartera: {ejB} Básico</span><span>{soles(ejB * precioDe('basico', false))}</span></div>
+              <div><span>Cartera: {ejP} Pro</span><span>{soles(ejP * precioDe('pro', false))}</span></div>
+              <div><span>Mi empresa: Básico</span><span>Gratis</span></div>
+              <div><span>Mi empresa: subida a Pro</span><span>{soles(subePro)}</span></div>
+              <div className="suma"><span>Un solo cobro al mes</span><span>{soles(ejCartera + subePro)}</span></div>
             </div>
-          )}
-        </div>
-      )}
+            {puede && (
+              <div className="acciones-bloque">
+                <Boton ocupado={ocupado === 'precios'} disabled={(['pro', 'max'] as CodigoPlan[]).some(c => precioDe(c, false) < basO)}
+                       onClick={() => void revisar()}>Revisar y guardar</Boton>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {vista === 'publica' && <PaginaPublica inicial={config.publica} puede={puede} onHecho={onHecho} />}
 

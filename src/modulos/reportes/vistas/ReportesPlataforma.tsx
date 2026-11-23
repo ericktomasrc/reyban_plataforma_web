@@ -18,7 +18,7 @@ import { Marco, useReporte } from './Reportes'
 
 /** Los de la cartera y los de la plataforma, para el menú. */
 export const REPORTES_CARTERA = [
-  { ruta: '/mi-cartera/reportes', nombre: 'Mis empresas del mes' },
+  { ruta: '/mi-cartera/reportes', nombre: 'Mi cartera del mes' },
   { ruta: '/mi-cartera/certificados', nombre: 'Certificados por vencer' },
 ]
 
@@ -54,7 +54,7 @@ const pieSoles = <p className="nota pie-reporte">Montos en soles. Cuentan los co
 export function ReporteCarteraPagina() {
   const r = useReporte<ReporteCartera>('cartera', true)
   return (
-    <Marco titulo="Mis empresas del mes" reporte="cartera" r={r} conMoneda={false} horizontal busqueda={{ texto: 'Nombre o RUC de la empresa', sunat: true }} pie={pieSoles}>
+    <Marco titulo="Mi cartera del mes" reporte="cartera" r={r} conMoneda={false} horizontal busqueda={{ texto: 'Nombre o RUC de la empresa', sunat: true }} pie={pieSoles}>
       {d => {
         const total = d.filas.reduce((s, f) => s + f.total, 0)
         const comprobantes = d.filas.reduce((s, f) => s + f.comprobantes, 0)
@@ -73,7 +73,7 @@ export function ReporteCarteraPagina() {
               <Barras cabeceras={['Empresa', 'Vendido (S/)']}
                       filas={topYOtros(d.filas, f => f.nombre, f => f.total, f => `${f.comprobantes} comp.`)} />
             </div>
-            <p className="nota">Para trabajar en una, ábrela desde <Link to="/empresas">Mis empresas</Link>.</p>
+            <p className="nota">Para trabajar en una, ábrela desde <Link to="/empresas">Mi cartera</Link>.</p>
             </>}
             detalle={<div className="tabla-ancha">
               <TablaDatos filas={d.filas} clave={f => f.id} ordenInicial={{ clave: 'total', desc: true }}

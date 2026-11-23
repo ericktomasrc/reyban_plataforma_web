@@ -88,7 +88,7 @@ export function Deudas({ lado }: { lado: Lado }) {
           </h1>
           <p className="bajada-pagina">
             {cobrar
-              ? <>Lo que te deben tus clientes: las facturas y boletas emitidas <strong>al crédito</strong>. Las ventas al contado no aparecen aquí.</>
+              ? <>Lo que te deben tus clientes: las facturas y boletas emitidas <strong>al crédito</strong> y las notas de venta <strong>fiadas</strong>. Las ventas al contado no aparecen aquí.</>
               : <>Lo que debes: las compras y gastos anotados <strong>al crédito</strong> en <Link to="/compras">Compras y gastos</Link>.</>}
           </p>
         </div>
@@ -152,7 +152,7 @@ export function Deudas({ lado }: { lado: Lado }) {
                     <tr key={d.id} onClick={() => setViendo(d)}>
                       <td className="lst-nombre"><div className="principal" title={d.nombre}>{d.nombre}</div>
                         {d.numeroDoc && <div className="secundario">{d.tipoDoc === '6' ? 'RUC' : d.tipoDoc === '1' ? 'DNI' : 'Doc.'} {d.numeroDoc}</div>}</td>
-                      <td><span className="mono">{d.comprobante}</span>
+                      <td><span className="mono">{d.comprobante}</span>{d.origen === 'nota' && <div className="secundario">nota de venta</div>}
                         {d.cuotas && d.cuotas > 1 && d.cuota && <div className="secundario">cuota {d.cuota} de {d.cuotas}</div>}</td>
                       <td className="secundario sin-corte">{fecha(d.emitido)}</td>
                       <td className="sin-corte">{fecha(d.vence)}</td>
@@ -240,12 +240,12 @@ function DialogoPago({ deuda, onCerrar, onHecho }: { deuda: Deuda; onCerrar: () 
       </p>
       <div className="ddu-resumen"><span>Pagado <strong>{s} {dinero(deuda.pagado)}</strong></span><span>Saldo <strong>{s} {dinero(deuda.saldo)}</strong></span></div>
       <div className="pareja">
-        <label className="campo"><span className="etiqueta">{deuda.origen === 'documento' ? 'Monto que paga' : 'Monto que pagas'}</span>
+        <label className="campo"><span className="etiqueta">{deuda.origen !== 'compra' ? 'Monto que paga' : 'Monto que pagas'}</span>
           <input className="mono ddu-monto" inputMode="decimal" value={monto} autoFocus onChange={e => setMonto(e.target.value)} onFocus={e => e.target.select()} /></label>
         <label className="campo"><span className="etiqueta">Fecha</span>
           <input type="date" value={fechaP} max={hoyLima()} onChange={e => setFechaP(e.target.value)} /></label>
       </div>
-      <div className="campo"><span className="etiqueta">Cómo {deuda.origen === 'documento' ? 'pagó' : 'pagaste'}</span>
+      <div className="campo"><span className="etiqueta">Cómo {deuda.origen !== 'compra' ? 'pagó' : 'pagaste'}</span>
         <div className="cmp-chips ddu-medios" role="group" aria-label="Medio de pago">
           {MEDIOS.map(([v, t]) => (
             <button key={v} type="button" className={medio === v ? 'cmp-chip elegido' : 'cmp-chip'} aria-pressed={medio === v} onClick={() => setMedio(v)}>{t}</button>
@@ -311,10 +311,12 @@ function DialogoDeuda({ deuda, registra, onCerrar, onPagar, onCambio }: {
       <p className="ddu-sub">
         {x.origen === 'documento'
           ? <><Link to={`/facturacion/comprobantes/${x.id}`} className="mono">{x.comprobante}</Link> · emitido el {fecha(x.emitido)}</>
+          : x.origen === 'nota'
+          ? <>Nota de venta <Link to={`/facturacion/notas-venta/${x.id}`} className="mono">{x.comprobante}</Link> · fiado el {fecha(x.emitido)}</>
           : <><span className="mono">{x.comprobante}</span> · {x.clase === 'gasto' ? 'gasto' : 'compra'} del {fecha(x.emitido)} · <Link to="/compras">ver en Compras y gastos</Link></>}
       </p>
       <div className="cmp-mes estatico ddu-cifras">
-        <div className="cmp-mes-dato"><span>Total</span><strong>{s} {dinero(x.total)}</strong><small>{x.nc > 0 ? `− ${s} ${dinero(x.nc)} en notas de crédito` : x.origen === 'documento' ? 'suma de las cuotas' : 'de la compra'}</small></div>
+        <div className="cmp-mes-dato"><span>Total</span><strong>{s} {dinero(x.total)}</strong><small>{x.nc > 0 ? `− ${s} ${dinero(x.nc)} en notas de crédito` : x.origen === 'documento' ? 'suma de las cuotas' : x.origen === 'nota' ? 'de la nota de venta' : 'de la compra'}</small></div>
         <div className="cmp-mes-dato bien"><span>Pagado</span><strong>{s} {dinero(x.pagado)}</strong><small>{d ? `${d.pagos.filter(p => !p.anuladoEn).length} pagos` : ' '}</small></div>
         <div className={`cmp-mes-dato ${x.estado === 'vencida' ? 'mal' : x.estado === 'porvencer' ? 'ojo' : ''}`}><span>Saldo</span><strong>{s} {dinero(x.saldo)}</strong><small>{textoEstado(x)}</small></div>
       </div>

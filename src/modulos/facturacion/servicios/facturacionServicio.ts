@@ -375,6 +375,8 @@ export interface DatosDocumento {
   whatsapp?: boolean
   /** 052: «se entrega después (con guía)». null = el modo de la empresa. */
   entregaDespues?: boolean | null
+  /** 097: la nota de venta que se convierte (esta boleta o factura no mueve stock). */
+  notaVentaId?: string | null
 }
 
 /** 21 oct: una serie de la empresa, con el número que sigue («F002-00000010»). */

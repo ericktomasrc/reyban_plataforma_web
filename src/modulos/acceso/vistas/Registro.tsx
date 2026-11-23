@@ -9,6 +9,7 @@ import { Cargando } from '../../../componentes/Cargando'
 import { ErrorApi } from '../../../nucleo/api/errores'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { registroServicio } from '../servicios/registroServicio'
+import { guardarCodigoInvitacion } from '../../planes/invitar'
 import type {
   ConfigRegistro, Registrado, TipoCuenta, TipoTitular,
 } from '../servicios/registroServicio'
@@ -35,6 +36,9 @@ import type {
 export function Registro() {
   const [parametros] = useSearchParams()
   const mensaje = useMensaje()
+  // e281 (096): el enlace de un contador que invita (?invita=…): se guarda para
+  // proponerlo en su Plan Cartera (también si entra con Google).
+  useEffect(() => { guardarCodigoInvitacion(parametros.get('invita')) }, [parametros])
 
   const [config, setConfig] = useState<ConfigRegistro>()
   const [falloConfig, setFalloConfig] = useState<string>()
@@ -241,7 +245,7 @@ export function Registro() {
         <Aviso tono="bien">
           {tipo === 'negocio'
             ? 'El RUC de tu empresa lo registras después, en el asistente de configuración. Primero creamos tu acceso.'
-            : 'Después agregas tus empresas en «Mis empresas» (hasta 50 por día) e invitas a tus colaboradores.'}
+            : 'Después agregas tus empresas en «Mi cartera» (hasta 50 por día) e invitas a tus colaboradores.'}
         </Aviso>
 
         {config.captchaDePrueba ? (

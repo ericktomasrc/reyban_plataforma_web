@@ -149,6 +149,8 @@ function FilaMovimiento({ f, conSucursal }: { f: FilaKardex; conSucursal: boolea
     ? <Link to={`/inventario/operaciones/${f.operacionId}`} className="mono">{f.operacionCodigo}</Link>
     : f.fuente === 'documento' && f.documentoNumero
       ? <Link to={`/facturacion/comprobantes/${f.fuenteId}`} className="mono">{f.documentoNumero}</Link>
+      : f.fuente === 'nota_venta' && f.documentoNumero
+        ? <Link to={`/facturacion/notas-venta/${f.fuenteId}`} className="mono">{f.documentoNumero}</Link>
       : f.guiaNumero
         ? <Link to={`/guias/${f.guiaId}`} className="mono">{f.guiaNumero}</Link>
         : <span className="vacio">—</span>

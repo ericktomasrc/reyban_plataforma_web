@@ -358,6 +358,17 @@ export function VerComprobante() {
                 <dd className="secundario">{fecha(d.fechaEmision)}</dd>
               </div>
 
+              {/* 097: sale de una nota de venta (el stock salió con la nota). */}
+              {d.notaVenta && (
+                <div className="fila">
+                  <dt>Nota de venta</dt>
+                  <dd>
+                    <Boton estilo="plano" onClick={() => navegar(`/facturacion/notas-venta/${d.notaVenta!.id}`)}>
+                      {d.notaVenta.numero}
+                    </Boton>
+                  </dd>
+                </div>
+              )}
               {/* 031: una nota de crédito dice a qué comprobante afecta y por qué. */}
               {esNota && d.afecta && (
                 <div className="fila">

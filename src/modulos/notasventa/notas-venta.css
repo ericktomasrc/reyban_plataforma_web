@@ -1,0 +1,80 @@
+/* =============================================================================
+   e282 (097) — NOTAS DE VENTA. Con las clases de Comprobantes y de Cobros y
+   pagos; aquí solo lo propio, bajo .nv-pagina.
+   ========================================================================== */
+.nv-pagina { font-size: 13px; }
+.nv-pagina .encabezado-pagina { align-items: flex-end; gap: 16px; margin-bottom: 14px; }
+.nv-pagina .titulo-pagina { font-size: 22px; margin: 0; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nv-pagina .titulo-pagina .ddu-estado { font-size: 12.5px; }
+.nv-pagina .bajada-pagina { margin: 4px 0 0; font-size: 13px; color: var(--tinta-2); }
+.nv-migas { margin: 0 0 4px; font-size: 12px; color: var(--tinta-3); }
+.nv-migas a { color: var(--tinta-3); text-decoration: none; }
+.nv-migas a:hover { color: var(--acento); }
+.nv-acciones { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.nv-acciones .boton { white-space: nowrap; }
+
+/* Lista */
+.nv-filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.nv-filtros .lst-buscar { flex: 1 1 260px; }
+.nv-pagina .tabla .nv-convertir { min-height: 30px; height: 30px; padding: 0 12px; font-size: 12.5px; }
+.nv-doc { color: var(--tinta-2); text-decoration: none; font-size: 12.5px; }
+.nv-doc:hover { color: var(--acento); }
+
+/* Nueva */
+.nv-dos { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+.nv-izq, .nv-der { margin: 0; }
+.nv-fila-cliente { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.nv-cliente { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; align-items: stretch; }
+.nv-sucursal { flex: 0 0 240px; }
+.nv-quitar { align-self: flex-start; font-size: 12px; margin: 4px 0 0; text-align: left; }
+.nv-rotulo { display: block; font-size: 12.5px; font-weight: 600; color: var(--tinta-2); margin: 0 0 6px; }
+.nv-lineas th { font-size: 11.5px; color: var(--tinta-3); font-weight: 600; letter-spacing: .03em; }
+.nv-lineas td { vertical-align: middle; }
+.nv-pagina .nv-num { width: 88px; height: 32px; padding: 0 8px; text-align: right; font-size: 13px; border: 1px solid var(--borde); border-radius: 8px; background: var(--superficie); color: var(--tinta); }
+.nv-pagina .nv-num:focus { outline: 2px solid var(--acento); outline-offset: -1px; border-color: transparent; }
+.nv-x { border: 0; background: transparent; color: var(--tinta-3); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.nv-x:hover { color: var(--peligro); background: var(--hundido); }
+.nv-buscar { margin: 10px 0 12px; }
+.nv-nota { margin-top: 12px; }
+.nv-der { display: flex; flex-direction: column; gap: 8px; position: sticky; top: 12px; }
+.nv-der > .nv-rotulo { margin: 4px 0 0; }
+.nv-der .campo { margin: 0; }
+.nv-seg { display: flex; margin-bottom: 4px; }
+.nv-seg button { flex: 1; }
+.nv-medios { flex-wrap: wrap; }
+.nv-texto { margin: 0; font-size: 12.5px; }
+.nv-totales { border-top: 1px solid var(--borde); margin-top: 6px; padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.nv-totales > div { display: flex; justify-content: space-between; color: var(--tinta-2); }
+.nv-total span { font-size: 16px; font-weight: 700; color: var(--tinta); }
+.nv-total strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+.nv-aviso { font-size: 12.5px; margin: 0; }
+.nv-botones { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 4px; }
+.nv-botones .boton { justify-content: center; }
+
+/* Ver */
+.nv-ver-dos { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 16px; align-items: start; }
+.nv-ticket-caja { background: var(--superficie); border: 1px solid var(--borde); border-radius: 4px; padding: 16px 14px; box-shadow: var(--sombra); }
+.nv-ticket { font: 11.5px/1.4 "Courier New", ui-monospace, monospace; color: var(--tinta); }
+.nv-ticket hr { border: 0; border-top: 1px dashed var(--tinta-3); margin: 7px 0; }
+.nv-ticket .t-centro { text-align: center; }
+.nv-ticket .t-fila { display: flex; justify-content: space-between; gap: 8px; }
+.nv-ticket .t-fila span:first-child { overflow-wrap: anywhere; }
+.nv-ticket .t-fila span:last-child { white-space: nowrap; }
+.nv-ticket .t-sub { padding-left: 12px; font-size: 10.5px; color: var(--tinta-2); }
+.nv-ticket .t-total { font-weight: 700; font-size: 13px; }
+.nv-ticket .t-nota { margin-top: 4px; font-style: italic; }
+.nv-ticket .t-anulada { font-weight: 700; color: var(--peligro); margin-top: 6px; }
+.nv-ticket .t-pie { font-size: 10.5px; color: var(--tinta-2); }
+.nv-paneles { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.nv-panel { margin: 0; }
+.nv-panel h2 { font-size: 14px; margin: 0 0 6px; }
+.nv-panel p { margin: 0 0 8px; }
+.nv-panel a { color: var(--acento); font-weight: 600; text-decoration: none; }
+.nv-fila-botones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.nv-borrador { font-size: 12.5px; padding: 8px 10px; border-radius: 8px; background: var(--hundido); }
+
+@media (max-width: 960px) {
+  .nv-dos, .nv-ver-dos { grid-template-columns: minmax(0, 1fr); }
+  .nv-der { position: static; }
+  .nv-ticket-caja { max-width: 340px; }
+}

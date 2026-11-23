@@ -7,13 +7,14 @@ export type FiltroDeuda = 'pendientes' | 'vencidas' | 'porvencer' | 'pagadas' | 
 export type MedioPago = 'efectivo' | 'yape' | 'tarjeta' | 'transferencia' | 'otro'
 
 export interface Deuda {
-  origen: 'documento' | 'compra'
+  /** 097: «nota» = nota de venta fiada. */
+  origen: 'documento' | 'compra' | 'nota'
   id: string
   nombre: string
   tipoDoc: string | null
   numeroDoc: string | null
   comprobante: string
-  /** Por cobrar: 01 factura · 03 boleta. Por pagar: el tipo de la compra. */
+  /** Por cobrar: 01 factura · 03 boleta · NV nota de venta. Por pagar: el tipo de la compra. */
   tipo: string
   clase: 'compra' | 'gasto' | null
   emitido: string

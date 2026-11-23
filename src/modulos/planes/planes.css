@@ -167,3 +167,74 @@
 .pln-pagina .como-funciona { border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 12px; padding: 14px 18px; }
 .pln-pagina .como-funciona h3 { font-size: 13.5px; font-weight: 650; }
 .pln-pagina .como-funciona ul { font-size: 12.5px; gap: 5px; }
+
+/* =========================================================================
+   e280 (095): Plan Cartera por planes — contadores por plan, resumen y reparto.
+   ========================================================================= */
+.pln-pagina .cartera-plan h2 { font-size: 15px; font-weight: 650; margin: 0 0 4px; }
+.crt-planes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0 6px; }
+.crt-plan { display: flex; flex-direction: column; gap: 6px; padding: 16px; border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 12px; background: var(--superficie); min-width: 0; }
+.crt-plan.elegido { border-color: var(--acento); box-shadow: 0 0 0 3px var(--acento-suave, #e8f1f0); }
+.crt-plan h3 { margin: 0; font-size: 15px; font-weight: 650; }
+.crt-precio { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.crt-precio s { color: var(--tinta-3); font-size: 13px; }
+.crt-precio strong { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+.crt-precio span { font-size: 12px; color: var(--tinta-2); }
+.crt-lanz { align-self: flex-start; font-size: 11px; color: #8a4b09; background: #fdf1e2; border-radius: 999px; padding: 1px 8px; }
+.crt-contador { display: inline-flex; align-self: flex-start; align-items: stretch; border: 1px solid var(--borde, #dfe5e8); border-radius: 10px; overflow: hidden; margin-top: 4px; }
+.crt-contador button { width: 38px; border: 0; background: var(--superficie); font: inherit; font-size: 18px; color: var(--tinta-2); cursor: pointer; }
+.crt-contador button:hover:not(:disabled) { background: var(--hundido); color: var(--tinta); }
+.crt-contador button:disabled { opacity: .35; cursor: default; }
+.crt-contador input { width: 56px; min-height: 36px; border: 0; border-left: 1px solid var(--borde, #dfe5e8); border-right: 1px solid var(--borde, #dfe5e8); border-radius: 0; text-align: center; font-size: 16px; font-weight: 650; -moz-appearance: textfield; }
+.crt-contador input::-webkit-outer-spin-button, .crt-contador input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.crt-sub { font-size: 12.5px; color: var(--tinta-2); }
+.crt-sub strong { color: var(--tinta); }
+.crt-min { font-size: 11.5px; }
+.crt-plan .incluye-plan { display: block; padding: 0; background: none; font-size: 12px; font-weight: 600; line-height: 1.45; color: var(--tinta-2); margin-top: 6px; }
+.crt-plan .incluye-plan.pro { color: var(--acento); }
+.crt-plan .incluye-plan.max { color: #8a5a00; }
+.crt-plan .lista-plan { list-style: none; padding: 0; margin: 2px 0 0; display: flex; flex-direction: column; gap: 5px; font-size: 12px; line-height: 1.45; color: var(--tinta-2); }
+.crt-plan .lista-plan li.nuevo-plan { color: var(--tinta); }
+.crt-resumen .resumen-pago { margin-top: 14px; }
+.crt-resumen .crt-grupo { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--tinta-3); text-transform: uppercase; }
+.crt-resumen .resumen-pago .boton { margin-top: 8px; }
+.crt-cab-tabla { padding: 16px 16px 10px; }
+.crt-cupos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.crt-cupo { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--borde-sutil, #e6ebef); background: var(--superficie); font-size: 12.5px; }
+.crt-cupo.ojo { background: #fdf1e2; border-color: #f1d4ab; color: #8a4b09; }
+.crt-sin-usar { margin: 12px 16px 0; }
+@media (max-width: 900px) { .crt-planes { grid-template-columns: minmax(0, 1fr); } }
+
+/* e280: Cobro Cuenta Profesional (super admin) y Mi empresa (Cuenta Profesional). */
+.lista-regla { margin: 4px 0 12px; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--tinta-2); }
+.lista-regla strong { color: var(--tinta); }
+.resumen-ejemplo { max-width: 420px; margin: 8px 0 14px; padding: 12px 14px; border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 10px; background: var(--superficie); font-size: 13px; }
+.resumen-ejemplo > strong { display: block; margin-bottom: 6px; font-size: 12.5px; }
+.resumen-ejemplo > div { display: flex; justify-content: space-between; padding: 3px 0; }
+.resumen-ejemplo > div.suma { border-top: 1px solid var(--borde-sutil, #e6ebef); margin-top: 6px; padding-top: 8px; font-weight: 700; }
+.mie-pagina .mie-empresa h2 { margin: 0; font-size: 16px; }
+.mie-planes { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 8px; max-width: 640px; }
+.mie-plan { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 10px; background: var(--superficie); }
+.mie-plan.actual { border-color: var(--acento); box-shadow: 0 0 0 3px var(--acento-suave, #e8f1f0); }
+.mie-plan > div:first-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mie-plan small { font-size: 12px; }
+.mie-precio { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; white-space: nowrap; }
+.mie-precio .gratis { color: var(--bien, #1b6b4a); }
+.mie-precio small { font-size: 11.5px; color: var(--tinta-3); }
+.mie-dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.mie-dos h2 { margin: 0 0 4px; font-size: 15px; }
+.mie-marcar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.mie-marcar select { flex: 1; min-width: 200px; }
+@media (max-width: 860px) { .mie-dos { grid-template-columns: minmax(0, 1fr); } }
+.pln-pagina .resumen-pago .acciones-pago { grid-column: 2; grid-row: 2 / span 2; align-self: center; display: flex; flex-direction: column; gap: 8px; min-width: 280px; max-width: 360px; }
+.pln-pagina .resumen-pago .acciones-pago .boton { grid-column: auto; grid-row: auto; width: 100%; justify-content: center; text-align: center; margin: 0; }
+.pln-pagina .resumen-pago .acciones-pago .franja-cupos { margin: 0; font-size: 12px; }
+@media (max-width: 760px) { .pln-pagina .resumen-pago .acciones-pago { grid-column: 1; grid-row: auto; min-width: 0; max-width: none; margin-top: 10px; } }
+
+/* e281 (096): invitar contadores. */
+.inv-caja h2 { margin: 0 0 4px; font-size: 15px; }
+.inv-enlace { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 4px; max-width: 720px; }
+.inv-enlace input { flex: 1; min-width: 240px; font-size: 13px; text-transform: none; }
+.inv-tabla { margin-top: 10px; max-width: 720px; }
+.inv-anotar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: 13px; }
+.inv-anotar input { width: 200px; text-transform: none; }

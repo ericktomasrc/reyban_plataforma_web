@@ -146,7 +146,7 @@ export function MisEmpresas() {
     <div className="car-pagina">
       <div className="encabezado-pagina cmp-encab">
         <div>
-          <h1 className="titulo-pagina">Mis empresas{empresas.length > 0 && <span className="lst-cuenta">{empresas.length} {empresas.length === 1 ? 'empresa' : 'empresas'}</span>}</h1>
+          <h1 className="titulo-pagina">Mi cartera{empresas.length > 0 && <span className="lst-cuenta">{empresas.length} {empresas.length === 1 ? 'empresa' : 'empresas'}</span>}</h1>
           <p className="bajada-pagina">Las empresas que gestionas. Entra en una para emitir; una a la vez.</p>
         </div>
         {agrega && <Link to="/configurar?nueva=1" className="boton">+ Agregar empresa</Link>}

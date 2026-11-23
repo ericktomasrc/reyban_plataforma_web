@@ -30,6 +30,7 @@ import { cantidad, inventarioServicio, type Disponible } from '../../inventario/
 import '../comprobante.css'
 import { afectacionBase, codigoRegalo, deRegalo, esRegalo, motivosPara, NOMBRE_REGALO, sePuedeRegalar, type MotivoRegalo } from '../regalos'
 import { importesGravada, precioConIgv } from '../importesLinea'
+import { notasVentaServicio } from '../../notasventa/notasVentaServicio'
 import { ElegirSeries } from '../../inventario/componentes/ElegirSeries'
 import { ElegirLote } from '../../inventario/componentes/ElegirLote'
 
@@ -183,6 +184,9 @@ export function NuevoComprobante() {
   // a uno NUEVO (el rechazado ya gastó su número y no se edita).
   const [params] = useSearchParams()
   const copiar = id ? null : params.get('copiar')
+  // e282 (097): «Convertir en boleta o factura» desde una nota de venta.
+  const notaId = id || copiar ? null : params.get('nota')
+  const tipoNota = params.get('tipo') === '01' ? '01' : '03'
   const navegar = useNavigate()
   const { pedir, dialogo: confirmacion } = useConfirmar()
   const mensaje = useMensaje()
@@ -329,6 +333,8 @@ export function NuevoComprobante() {
   const [errorCarga, setErrorCarga] = useState<string>()
   // e166: el número del rechazado que se está corrigiendo.
   const [copiaDe, setCopiaDe] = useState<string>()
+  // e282 (097): la nota de venta que se está convirtiendo (su stock ya salió).
+  const [notaDe, setNotaDe] = useState<{ id: string; numero: string }>()
 
   // --- 052: lo disponible de los productos elegidos (en la sucursal de la serie)
   const productosElegidos = [...new Set(lineas.map(l => l.productoId).filter((x): x is string => !!x))].sort().join(',')
@@ -345,6 +351,7 @@ export function NuevoComprobante() {
 
   // Lo que no alcanza: lo pedido por producto (todas sus líneas) contra lo disponible.
   const faltan = useMemo(() => {
+    if (notaDe) return []   // 097: el stock ya salió con la nota de venta
     if (!productosElegidos || !disp?.encendido || !disp.productos) return []
     const pedido = new Map<string, number>()
     // 061: una caja de 12 pide 12 unidades.
@@ -352,7 +359,7 @@ export function NuevoComprobante() {
     return disp.productos
       .filter(p => p.controla && (pedido.get(p.productoId) ?? 0) > p.disponible)
       .map(p => ({ ...p, pedido: pedido.get(p.productoId) ?? 0, descripcion: lineas.find(l => l.productoId === p.productoId)?.descripcion ?? '' }))
-  }, [disp, lineas, productosElegidos])
+  }, [disp, lineas, productosElegidos, notaDe])
   const entregaEfectiva = entregaDespues ?? (disp?.modo === 'despacho')
 
   // --- Carga inicial --------------------------------------------------------
@@ -417,6 +424,7 @@ export function NuevoComprobante() {
 
           if (id) setEstadoDoc(d.estado)
           if (copiar) setCopiaDe(d.numero)
+          if (id && d.notaVenta) setNotaDe(d.notaVenta)   // 097
           setTipo(d.tipo)
           setSerie(d.serie ?? (d.tipo === '01' ? 'F001' : 'B001'))
           // 044: la sucursal del borrador es la de su serie.
@@ -471,6 +479,40 @@ export function NuevoComprobante() {
             manejaSeries: (l.series?.length ?? 0) > 0,
             lote: l.lote ?? null,                       // 068
             manejaLotes: !!l.lote,
+          })))
+        }
+        // e282 (097): convertir una nota de venta: cliente y productos ya puestos.
+        if (notaId) {
+          const nv = await notasVentaServicio.ver(notaId)
+          if (!vivo) return
+          if (nv.documento) {
+            navegar(`/facturacion/notas-venta/${notaId}`, { replace: true })
+            return
+          }
+          setNotaDe({ id: nv.id, numero: nv.numero })
+          setTipo(tipoNota)
+          const sucNota = ss.some(x => x.sucursalId === nv.sucursalId) ? nv.sucursalId : null
+          if (sucNota) setSucursalId(sucNota)
+          const s1 = ss.find(x => x.tipo === tipoNota && (!sucNota || !x.sucursalId || x.sucursalId === sucNota))
+          if (s1) setSerie(s1.serie)
+          else setSerie(tipoNota === '01' ? 'F001' : 'B001')
+          if (nv.cliente?.numeroDocumento) {
+            const encontrados = await clientesServicio.listar(nv.cliente.numeroDocumento)
+            if (vivo) setCliente(encontrados.find(c => c.id === nv.cliente!.id))
+          }
+          setLineas(nv.lineas.map(l => ({
+            clave: crypto.randomUUID(),
+            productoId: l.productoId,
+            codigo: l.codigo ?? '',
+            descripcion: l.descripcion,
+            unidadMedida: l.unidadMedida,
+            cantidad: String(l.cantidad),
+            valorUnitario: String(l.valorUnitario),
+            descuento: '0',
+            tipoAfectacion: l.tipoAfectacion,
+            precioTexto: l.tipoAfectacion === '10' ? l.precio.toFixed(2) : undefined,
+            presentacionId: l.presentacionId ?? null,
+            factor: l.factor ?? null,
           })))
         }
       } catch (e) {
@@ -944,7 +986,9 @@ export function NuevoComprobante() {
     whatsapp: !!cliente?.whatsapp && (porWhatsapp ?? !!cliente?.whatsappActivo),
 
     // 052: «se entrega después (con guía)»; sin tocar, el modo de la empresa.
-    entregaDespues: disp?.encendido ? entregaDespues : null,
+    entregaDespues: disp?.encendido && !notaDe ? entregaDespues : null,
+    // 097: de una nota de venta (no descuenta stock otra vez).
+    notaVentaId: notaDe?.id ?? null,
   })
 
   function revisar(): string | undefined {
@@ -1306,7 +1350,7 @@ export function NuevoComprobante() {
   const pendiente = revisar() ?? (faltan.length > 0 && disp?.bloquea
     ? `No alcanza el stock de ${faltan.length === 1 ? '1 producto' : `${faltan.length} productos`}: revisa las líneas en rojo.`
     : undefined)
-  const hayEntrega = !!disp?.encendido
+  const hayEntrega = !notaDe && (!!disp?.encendido)   // 097: de una nota de venta, el stock ya salió
 
   // e162: buscar entre las líneas y paginarlas. El número de línea es siempre
   // el del comprobante (i + 1), aunque se esté viendo una página o un filtro.
@@ -1428,6 +1472,12 @@ export function NuevoComprobante() {
       </nav>
 
       {errorCarga && <Aviso>{errorCarga}</Aviso>}
+      {notaDe && (
+        <Aviso tono="info">
+          <strong>Convirtiendo la nota de venta {notaDe.numero}.</strong> El cliente y los productos ya están puestos: revisa y emite. El stock
+          ya salió con la nota: este comprobante <strong>no lo descuenta otra vez</strong>.
+        </Aviso>
+      )}
       {copiaDe && (
         <Aviso tono="info">
           <strong>Copia de {copiaDe}, que SUNAT rechazó.</strong> Corrige lo que indicó SUNAT y emite: saldrá con un

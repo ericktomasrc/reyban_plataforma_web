@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { Aviso } from '../../../componentes/Aviso'
@@ -10,12 +10,14 @@ import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { NOMBRE_PLAN, diasQueFaltan, soles } from '../../../nucleo/planes/planes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
+import { ListaConfirmar } from '../../../componentes/ListaConfirmar'
 import { useCambioPlan } from '../componentes/CambioPlan'
+import { InvitarContadores } from '../componentes/InvitarContadores'
 import { textoTope } from '../componentes/TopeComprobantes'
 import '../../facturacion/comprobantes-lista.css'
 import '../planes.css'
 import {
-  etiquetaPlan, extraHoy, menusDelPlan, planesServicio, precioCartera, precioHoy,
+  etiquetaPlan, extraHoy, menusDelPlan, planesServicio, precioCartera, precioHoy, precioPorEmpresa,
   type Catalogo, type CodigoPlan, type MiPlan, type PlanCatalogo, type ResumenCuenta,
 } from '../servicios/planesServicio'
 
@@ -57,7 +59,7 @@ export function MiPlanPagina() {
           <h1 className="titulo-pagina">{cuenta?.tipo === 'profesional' ? 'Plan Cartera' : 'Elige tu plan'}</h1>
           <p className="bajada-pagina">
             {cuenta?.tipo === 'profesional'
-              ? 'Tú decides cuántas empresas trabajas. Cada una trae el Plan Básico, y subes a Pro o Max solo las que lo necesitan.'
+              ? 'Tú decides cuántas empresas trabajas y en qué plan va cada una. Primero eliges cuántas de cada plan; después las repartes a tus empresas.'
               : 'Usuarios ilimitados en todos los planes. Cambias de plan cuando quieras.'}
           </p>
         </div>
@@ -96,12 +98,14 @@ function EstadoDeLaCuenta({ cuenta }: { cuenta: ResumenCuenta }) {
             Te quedan <strong>{dias} día{dias === 1 ? '' : 's'}</strong> (hasta el {fecha(cuenta.pruebaHasta!)}).{' '}
             {cuenta.tipo === 'negocio'
               ? <>Mientras dure tienes <strong>todo lo del {NOMBRE_PLAN[cuenta.planPrueba]}</strong>, sin pagar.</>
-              : <>Tus primeras {cuenta.empresas.filter(e => e.pruebaMotivo === 'cuenta').length || 'empresas'} empresas tienen <strong>todo lo del {NOMBRE_PLAN[cuenta.planPrueba]}</strong>, sin pagar.</>}
+              : (() => { const n = cuenta.empresas.filter(e => e.pruebaMotivo === 'cuenta').length
+                         return n === 1 ? <>Tu primera empresa tiene <strong>todo lo del {NOMBRE_PLAN[cuenta.planPrueba]}</strong>, sin pagar.</>
+                           : <>{n > 1 ? `Tus primeras ${n} empresas tienen` : 'Tus empresas tienen'} <strong>todo lo del {NOMBRE_PLAN[cuenta.planPrueba]}</strong>, sin pagar.</> })()}
           </p>
           <p className="secundario">
             {despues
               ? <>Al terminar pasas al plan <strong>{despues}</strong>. Si quieres otro, elígelo abajo: empieza cuando termine tu mes gratis.</>
-              : <>Al terminar, cada empresa pasa al plan que tenga elegido abajo y se cobran los cupos de tu Cartera.</>}
+              : <>Al terminar, cada empresa pasa al plan que le diste abajo y se cobra lo que elegiste.</>}
           </p>
         </div>
       </div>
@@ -243,138 +247,219 @@ function ElegirPlan({ catalogo, cuenta, empresa, puede, onHecho }: {
 const Menus = (p: PlanCatalogo) => menusDelPlan(p.funciones)
 
 // =============================================================================
-// CUENTA PROFESIONAL — PLAN CARTERA
+// CUENTA PROFESIONAL — PLAN CARTERA (e280, 095): cuántas empresas de cada plan
+// (Básico, Pro, Max) y después se reparten a las empresas. La empresa del
+// estudio va aparte, en «Mi empresa»: Básico gratis y, si sube, la diferencia.
 // =============================================================================
 function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
   catalogo: Catalogo; cuenta: ResumenCuenta; puede: boolean; onHecho: (m: string) => Promise<void>
 }) {
   const mensaje = useMensaje()
+  const { pedir, dialogo } = useConfirmar()
   const minimo = catalogo.reglas.carteraMinimo
-  const [n, setN] = useState(Math.max(cuenta.cupos ?? cuenta.usados, minimo))
-  const [guardando, setGuardando] = useState<string>()
-  const cambio = useCambioPlan(onHecho)   // 083
   const oferta = conOferta(catalogo, cuenta)   // 079
-  // e232: subir de cupo con un periodo pagado corriendo suma la diferencia
-  // por los días que quedan al próximo cobro: se dice antes de guardar.
+  const cambio = useCambioPlan(onHecho)          // 083
+  const plan = (c: CodigoPlan) => catalogo.planes.find(p => p.codigo === c)!
+
+  const activas = cuenta.empresas.filter(e => !e.pausada)
+  const cartera = cuenta.empresas.filter(e => !e.esDelEstudio)
+  const estudio = cuenta.empresas.find(e => e.esDelEstudio && !e.pausada) ?? null
+  const asigPro = cuenta.asignadasPro ?? activas.filter(e => !e.esDelEstudio && e.plan === 'pro').length
+  const asigMax = cuenta.asignadasMax ?? activas.filter(e => !e.esDelEstudio && e.plan === 'max').length
+  const asigBas = Math.max(0, cuenta.usados - asigPro - asigMax)
+  const guardadoPro = Math.max(cuenta.cuposPro ?? 0, asigPro)
+  const guardadoMax = Math.max(cuenta.cuposMax ?? 0, asigMax)
+  const guardadoTotal = Math.max(cuenta.cupos ?? cuenta.usados, cuenta.usados, minimo)
+
+  const [pro, setPro] = useState(guardadoPro)
+  const [max, setMax] = useState(guardadoMax)
+  const [bas, setBas] = useState(Math.max(guardadoTotal - guardadoPro - guardadoMax, asigBas))
+  const total = Math.max(bas + pro + max, minimo)
+  const cambiado = total !== guardadoTotal || pro !== (cuenta.cuposPro ?? 0) || max !== (cuenta.cuposMax ?? 0)
+  const [guardando, setGuardando] = useState(false)
+
+  // e232: subir con un periodo pagado corriendo suma la diferencia: se dice antes de guardar.
   const [difCupos, setDifCupos] = useState<string | null>(null)
   useEffect(() => {
-    if (!puede || n <= (cuenta.cupos ?? 0)) { setDifCupos(null); return }
+    if (!puede || !cambiado) { setDifCupos(null); return }
     let vivo = true
     const t = setTimeout(() => {
-      planesServicio.cotizarCupos(n)
+      planesServicio.cotizarCupos(total, pro, max)
         .then(r => { if (vivo) setDifCupos(r.texto) })
         .catch(() => { if (vivo) setDifCupos(null) })
     }, 350)
     return () => { vivo = false; clearTimeout(t) }
-  }, [n, puede, cuenta.cupos])
-  const plan = (c: CodigoPlan) => catalogo.planes.find(p => p.codigo === c)!
+  }, [total, pro, max, puede, cambiado])
 
-  const base = precioCartera(catalogo.tramos, n, !oferta)
-  const baseReal = precioCartera(catalogo.tramos, n, true)
-  const activas = cuenta.empresas.filter(e => !e.pausada)
-  const extras = activas.reduce((s, e) => s + extraHoy(plan(e.plan), oferta), 0)
-  const total = base + extras
+  // Precios por empresa de cada plan (el de la primera empresa) y la cuenta exacta.
+  const unidad = (c: CodigoPlan, regular = !oferta) => precioPorEmpresa(catalogo.tramos, catalogo.planes, c, regular)
+  const base = precioCartera(catalogo.tramos, total, !oferta)
+  const extras = pro * extraHoy(plan('pro'), oferta) + max * extraHoy(plan('max'), oferta)
+  const sinDescCantidad = bas * unidad('basico') + pro * unidad('pro') + max * unidad('max') + Math.max(0, total - bas - pro - max) * unidad('basico')
+  const descCantidad = Math.max(0, Math.round((sinDescCantidad - base - extras) * 100) / 100)
+  const extraEstudio = estudio && estudio.plan !== 'basico' ? extraHoy(plan(estudio.plan), oferta) : 0
+  const carteraMes = base + extras
+  const d = cuenta.descuento
+  const descBeneficio = d ? Math.round(carteraMes * d.porcentaje / 100 * Math.min(1, (d.empresasMax ?? total) / Math.max(total, 1)) * 100) / 100 : 0
+  const alMes = Math.max(0, carteraMes + extraEstudio - descBeneficio)
   const meses = 12 - catalogo.reglas.anualMesesGratis
-  const subidas = useMemo(() => ({
-    pro: activas.filter(e => e.plan === 'pro').length,
-    max: activas.filter(e => e.plan === 'max').length,
-  }), [activas])
+  const conTramos = catalogo.tramos.length > 1 && catalogo.tramos.some(t => t.precioOferta < catalogo.tramos[0].precioOferta)
 
-  async function hacer(clave: string, f: () => Promise<{ mensaje: string }>) {
-    setGuardando(clave)
-    try { await onHecho((await f()).mensaje) }
+  async function guardar() {
+    const partes = [`${bas} Básico`, ...(pro ? [`${pro} Pro`] : []), ...(max ? [`${max} Max`] : [])].join(' + ')
+    if (!await pedir({
+      titulo: '¿Guardar tu Cartera?',
+      confirmar: `Sí, guardar ${partes}`,
+      mensaje: <>
+        <p>Tu Cartera queda con <strong>{partes}</strong> ({total} empresas). Pagas por las que eliges, aunque todavía no las uses todas.</p>
+        <ListaConfirmar filas={[
+          { nombre: 'Tu cartera al mes', valor: soles(carteraMes) },
+          ...(extraEstudio ? [{ nombre: `Mi empresa: subida a ${NOMBRE_PLAN[estudio!.plan]}`, valor: soles(extraEstudio) }] : []),
+          ...(descBeneficio ? [{ nombre: `Descuento ${d!.porcentaje} %`, valor: `−${soles(descBeneficio)}` }] : []),
+          { nombre: 'Un solo cobro al mes', valor: soles(alMes), fuerte: true },
+        ]} />
+        {difCupos && <p className="conf-ojo">{difCupos}</p>}
+      </>,
+    })) return
+    setGuardando(true)
+    try { await onHecho((await planesServicio.cupos(total, pro, max)).mensaje) }
     catch (e) { mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo guardar.') }
-    finally { setGuardando(undefined) }
+    finally { setGuardando(false) }
   }
+
+  // Cambiar el plan de una empresa: se pregunta antes (con cupo libre no se paga).
+  async function cambiarPlan(e: (typeof cartera)[number], nuevo: CodigoPlan) {
+    if (nuevo === e.plan && !e.planProgramado) return
+    const libres = nuevo === 'pro' ? (cuenta.cuposPro ?? 0) - asigPro : nuevo === 'max' ? (cuenta.cuposMax ?? 0) - asigMax : 0
+    const sube = (catalogo.planes.find(p => p.codigo === nuevo)?.orden ?? 0) > (catalogo.planes.find(p => p.codigo === e.plan)?.orden ?? 0)
+    if (!await pedir({
+      titulo: `¿Pasar ${e.nombre} a ${NOMBRE_PLAN[nuevo]}?`,
+      confirmar: `Sí, pasar a ${NOMBRE_PLAN[nuevo]}`,
+      mensaje: sube && nuevo !== 'basico'
+        ? libres > 0
+          ? <p>Usa uno de tus <strong>{NOMBRE_PLAN[nuevo]}</strong> que ya pagas ({libres} libre{libres === 1 ? '' : 's'}): <strong>no se cobra nada más</strong>.</p>
+          : <p>No te quedan {NOMBRE_PLAN[nuevo]} libres: se suma <strong>+{soles(extraHoy(plan(nuevo), oferta))} al mes</strong>. Si ya pagaste el mes, te diremos la diferencia por los días que quedan.</p>
+        : <p>Si ya pagaste el mes, sigue en {NOMBRE_PLAN[e.plan]} hasta el final del periodo y el cambio empieza en tu próximo cobro. Su cupo de {NOMBRE_PLAN[e.plan]} queda libre para otra empresa.</p>,
+    })) return
+    await cambio.abrir(e.id, nuevo)
+  }
+
+  const enGratisCuenta = !cuenta.accesoTotal && diasQueFaltan(cuenta.pruebaHasta) !== null
+  const gratis = activas.filter(e => !cuenta.accesoTotal && diasQueFaltan(e.pruebaHasta) !== null)
+  const cobrables = activas.filter(e => !gratis.includes(e) && !(e.esDelEstudio && e.plan === 'basico'))
+  const hoy = enGratisCuenta && cobrables.length > 0
+    ? precioCartera(catalogo.tramos, cobrables.length, !oferta) + cobrables.reduce((x, e) => x + extraHoy(plan(e.plan), oferta), 0) : 0
+  const sinUsarPro = (cuenta.cuposPro ?? 0) - asigPro
+  const sinUsarMax = (cuenta.cuposMax ?? 0) - asigMax
+
+  const contadores: { c: CodigoPlan; v: number; set: (n: number) => void; min: number }[] = [
+    { c: 'basico', v: bas, set: setBas, min: asigBas },
+    { c: 'pro', v: pro, set: setPro, min: asigPro },
+    { c: 'max', v: max, set: setMax, min: asigMax },
+  ]
 
   return (
     <div className="cartera-plan">
-      <div className="bloque">
-        <h2>¿Cuántas empresas vas a trabajar?</h2>
-        <p className="secundario">Todas entran en <strong>Básico</strong>. Si alguna necesita Pro o Max, cámbiala en la tabla de abajo: solo esa paga la diferencia.</p>
-        <div className="calculadora-cartera">
-          <input type="number" min={minimo} max={10000} value={n} disabled={!puede} aria-label="Empresas"
-                 onChange={e => setN(Math.max(minimo, Math.min(10000, Number(e.target.value) || minimo)))} />
-          <div className="paquetes-cartera">
-            {[5, 10, 20, 50].map(x => (
-              <button key={x} type="button" disabled={!puede} className={n === x ? 'elegido' : undefined} onClick={() => setN(x)}>{x}</button>
-            ))}
-          </div>
-        </div>
+      <section className="bloque">
+        <h2>1. ¿Cuántas empresas quieres en cada plan?</h2>
         <p className="secundario">
-          Usas {cuenta.usados} {cuenta.usados === 1 ? 'empresa' : 'empresas'}
-          {cuenta.empresas.some(e => e.esDelEstudio) && ' (sin contar la de tu estudio)'}.
-          {n < cuenta.usados && ' Con menos cupos que empresas, el próximo mes se cobra lo que usas.'}
+          Usas {cuenta.usados} {cuenta.usados === 1 ? 'empresa' : 'empresas'}{estudio && ' (sin contar la de tu estudio)'}: {asigBas} en Básico
+          {asigPro > 0 && `, ${asigPro} en Pro`}{asigMax > 0 && `, ${asigMax} en Max`}. Puedes elegir más de las que usas hoy.
+          {total > bas + pro + max && ` El mínimo de la Cartera es ${minimo} empresas.`}
         </p>
-        <div className="total-cartera">
-          <div><span>{n} empresas en Básico</span>{oferta && baseReal > base && <s>{soles(baseReal)}</s>}<strong>{soles(base)}</strong></div>
-          {subidas.pro > 0 && <div><span>{subidas.pro} a Pro (+{soles(extraHoy(plan('pro'), oferta))} c/u)</span><strong>{soles(subidas.pro * extraHoy(plan('pro'), oferta))}</strong></div>}
-          {subidas.max > 0 && <div><span>{subidas.max} a Max (+{soles(extraHoy(plan('max'), oferta))} c/u)</span><strong>{soles(subidas.max * extraHoy(plan('max'), oferta))}</strong></div>}
-          <div className="suma"><span>Al mes</span><strong>{soles(total)}</strong></div>
-          <div className="secundario"><span>Al año ({catalogo.reglas.anualMesesGratis} meses gratis)</span><span>{soles(total * meses)}</span></div>
+        <div className="crt-planes">
+          {contadores.map(({ c, v, set, min }) => {
+            const i = catalogo.planes.findIndex(p => p.codigo === c)
+            const p = catalogo.planes[i]
+            const real = unidad(c, true)
+            const precio = unidad(c)
+            return (
+              <div key={c} className={`crt-plan${v > 0 ? ' elegido' : ''}`}>
+                <h3>{p.nombre}</h3>
+                <div className="crt-precio">
+                  {precio < real && <s>{soles(real)}</s>}<strong>{soles(precio)}</strong><span>por empresa al mes</span>
+                </div>
+                {precio < real && <span className="crt-lanz">precio de lanzamiento</span>}
+                <div className="crt-contador" role="group" aria-label={`Empresas en ${p.nombre}`}>
+                  <button type="button" disabled={!puede || v <= min} aria-label={`Una menos en ${p.nombre}`} onClick={() => set(Math.max(min, v - 1))}>−</button>
+                  <input type="number" min={min} max={10000} value={v} disabled={!puede} aria-label={`Cuántas en ${p.nombre}`}
+                         onChange={ev => set(Math.max(min, Math.min(10000, Math.floor(Number(ev.target.value) || 0))))} />
+                  <button type="button" disabled={!puede} aria-label={`Una más en ${p.nombre}`} onClick={() => set(v + 1)}>+</button>
+                </div>
+                <div className="crt-sub">{v > 0 ? <>{v} × {soles(precio)} = <strong>{soles(v * precio)}</strong></> : '—'}</div>
+                {min > 0 && <div className="crt-min secundario">{min} {min === 1 ? 'empresa ya lo usa' : 'empresas ya lo usan'}</div>}
+                <span className={'incluye-plan ' + c}>{etiquetaPlan(catalogo.planes, i)}</span>
+                <ul className="lista-plan">
+                  {Menus(p).map(m => <li key={m} className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{m}</li>)}
+                  <li className={i > 0 ? 'nuevo-plan' : undefined}>{p.sucursalesMax === null ? 'Sucursales ilimitadas' : p.sucursalesMax === 1 ? '1 sucursal' : `Hasta ${p.sucursalesMax} sucursales`}</li>
+                  {p.topeRegular && <li className="tope-plan">{textoTope(p, oferta)} por empresa</li>}
+                </ul>
+              </div>
+            )
+          })}
         </div>
-        {puede && difCupos && n !== cuenta.cupos && <p className="franja-cupos">{difCupos}</p>}
-        {puede && (
-          <Boton ocupado={guardando === 'cupos'} disabled={n === cuenta.cupos}
-                 onClick={() => void hacer('cupos', () => planesServicio.cupos(n))}>Guardar {n} empresas</Boton>
+        {conTramos && (
+          <p className="nota">Descuento por cantidad: {catalogo.tramos.filter(t => t.precioOferta < catalogo.tramos[0].precioOferta).map(t =>
+            `desde la empresa ${t.desde}, −${Math.round((1 - t.precioOferta / catalogo.tramos[0].precioOferta) * 100)} %`).join(' · ')} (sobre el precio de Básico).</p>
         )}
 
-        {(() => {
-          // Quién está gratis ahora y quién no (mes gratis de la cuenta o por RUC nuevo).
-          const enGratisCuenta = !cuenta.accesoTotal && diasQueFaltan(cuenta.pruebaHasta) !== null
-          const gratis = activas.filter(e => !cuenta.accesoTotal && diasQueFaltan(e.pruebaHasta) !== null)
-          const cobrables = activas.filter(e => !gratis.includes(e) && !(e.esDelEstudio && e.plan === 'basico'))
-          const extrasDe = (lista: typeof activas) => lista.reduce((x, e) => x + extraHoy(plan(e.plan), oferta), 0)
-          const hoy = enGratisCuenta && cobrables.length > 0 ? precioCartera(catalogo.tramos, cobrables.length, !oferta) + extrasDe(cobrables) : 0
-          const despues = base + extras
-          return (
-            <ResumenPago
-              filas={[
-                ...(gratis.length > 0 ? [{ texto: <>{gratis.length} empresa{gratis.length === 1 ? '' : 's'} en su mes gratis (no se cobran)</>, monto: soles(0) }] : []),
-                ...(enGratisCuenta && cobrables.length > 0
-                  ? [{ texto: <>{cobrables.length} empresa{cobrables.length === 1 ? '' : 's'} fuera del mes gratis: se pagan desde hoy</>, monto: soles(hoy), fuerte: true }]
-                  : []),
-                { texto: <>{enGratisCuenta ? `Desde el ${fecha(cuenta.pruebaHasta)}` : 'Cada mes'}: {Math.max(n, minimo)} empresas{subidas.pro + subidas.max > 0 ? ' y sus subidas' : ''}</>,
-                  monto: `${soles(despues)} al mes`, fuerte: !(enGratisCuenta && cobrables.length > 0) },
-              ]}
-              condiciones={[
-                { ok: catalogo.encendidos, informativa: true, texto: catalogo.encendidos ? 'Planes y cobros encendidos' : 'Planes apagados: por ahora el pago es solo de prueba' },
-                { ok: puede, texto: 'Eres el dueño del estudio (o colaborador administrador)' },
-                { ok: cuenta.cupos !== null && cuenta.cupos === n, texto: `Guardaste cuántas empresas trabajas (${n})` },
-                ]}
-              boton={enGratisCuenta && cobrables.length > 0 ? `Pagar hoy ${soles(hoy)}`
-                : enGratisCuenta ? `Dejar mi tarjeta · primer cobro el ${fecha(cuenta.pruebaHasta)}`
-                : `Pagar ${soles(despues)} al mes`}
-              nota={<>Las empresas en su mes gratis se cobran recién cuando termina el suyo.
-                {enGratisCuenta && ` Tu mes gratis cubre ${catalogo.reglas.pruebaCarteraEmpresas} empresas; desde la ${catalogo.reglas.pruebaCarteraEmpresas + 1}, cada una se paga desde el día en que la agregas.`}
-                {' '}Todo va en un solo comprobante a nombre de tu estudio.</>} />
-          )
-        })()}
-      </div>
-
-      {/* 1 nov: qué trae cada plan, también en la Cartera. */}
-      <details className="planes-cartera" open>
-        <summary>Qué trae cada plan (y cuánto suma subir una empresa)</summary>
-        <div className="planes-cartera-rejilla">
-          {catalogo.planes.map((p, i) => (
-            <div key={p.codigo}>
-              <h3>{p.nombre} <span className="secundario">{p.codigo === 'basico' ? 'incluido en cada empresa' : `+${soles(extraHoy(p, oferta))} por empresa al mes`}</span></h3>
-              <span className={'incluye-plan ' + p.codigo}>{etiquetaPlan(catalogo.planes, i)}</span>
-              <ul className="lista-plan">
-                {Menus(p).map(m => <li key={m} className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{m}</li>)}
-                <li className={i > 0 ? 'nuevo-plan' : undefined}>{i > 0 && '+ '}{p.sucursalesMax === null ? 'Sucursales ilimitadas' : p.sucursalesMax === 1 ? '1 sucursal' : `Hasta ${p.sucursalesMax} sucursales`}</li>
-                {p.topeRegular && <li className="tope-plan">{textoTope(p, oferta)} por empresa</li>}
-              </ul>
-            </div>
-          ))}
+        <div className="crt-resumen">
+          <ResumenPago
+            filas={[
+              { texto: <span className="crt-grupo">Tu cartera</span> },
+              { texto: <>{bas + Math.max(0, total - bas - pro - max)} Básico</>, monto: soles((bas + Math.max(0, total - bas - pro - max)) * unidad('basico')) },
+              ...(pro ? [{ texto: <>{pro} Pro</>, monto: soles(pro * unidad('pro')) }] : []),
+              ...(max ? [{ texto: <>{max} Max</>, monto: soles(max * unidad('max')) }] : []),
+              ...(descCantidad > 0 ? [{ texto: <>Descuento por cantidad</>, monto: `−${soles(descCantidad)}` }] : []),
+              { texto: <span className="crt-grupo">Mi empresa</span> },
+              ...(estudio
+                ? [{ texto: <>{estudio.nombre}: Básico</>, monto: 'Gratis' },
+                   ...(extraEstudio ? [{ texto: <>Subida a {NOMBRE_PLAN[estudio.plan]}</>, monto: soles(extraEstudio) }] : [])]
+                : [{ texto: <><Link to="/mi-estudio/empresa">Registra tu empresa</Link>: en Básico es gratis</>, monto: soles(0) }]),
+              ...(d ? [{ texto: <span className="crt-grupo">Beneficio</span> },
+                       { texto: <>{d.motivo} ({d.porcentaje} %{d.empresasMax ? `, hasta ${d.empresasMax} empresas` : ''}, hasta el {fecha(d.hasta)})</>, monto: `−${soles(descBeneficio)}` }] : []),
+              { texto: <>{enGratisCuenta ? `Desde el ${fecha(cuenta.pruebaHasta)}` : 'Cada mes'}: un solo cobro</>, monto: `${soles(alMes)} al mes`, fuerte: true },
+              { texto: <>O el año completo ({catalogo.reglas.anualMesesGratis} meses gratis)</>, monto: soles(alMes * meses) },
+              ...(gratis.length > 0 ? [{ texto: <>{gratis.length} empresa{gratis.length === 1 ? '' : 's'} en su mes gratis (no se cobran hoy)</>, monto: soles(0) }] : []),
+              ...(enGratisCuenta && cobrables.length > 0
+                ? [{ texto: <>{cobrables.length} empresa{cobrables.length === 1 ? '' : 's'} fuera del mes gratis: se pagan desde hoy</>, monto: soles(hoy), fuerte: true }] : []),
+            ]}
+            condiciones={[
+              { ok: catalogo.encendidos, informativa: true, texto: catalogo.encendidos ? 'Planes y cobros encendidos' : 'Planes apagados: por ahora el pago es solo de prueba' },
+              { ok: puede, texto: 'Eres el dueño del estudio (o colaborador administrador)' },
+              { ok: cuenta.cupos !== null && !cambiado, texto: cambiado ? 'Falta guardar lo que elegiste' : 'Guardaste cuántas empresas de cada plan' },
+            ]}
+            extra={puede && (
+              <>
+                {difCupos && cambiado && <p className="franja-cupos">{difCupos}</p>}
+                <Boton ocupado={guardando} disabled={!cambiado} ancho onClick={() => void guardar()}>
+                  Guardar {[`${bas} Básico`, ...(pro ? [`${pro} Pro`] : []), ...(max ? [`${max} Max`] : [])].join(' + ')}
+                </Boton>
+              </>
+            )}
+            boton={enGratisCuenta && cobrables.length > 0 ? `Pagar hoy ${soles(hoy)}`
+              : enGratisCuenta ? `Dejar mi tarjeta · primer cobro el ${fecha(cuenta.pruebaHasta)}`
+              : `Pagar ${soles(alMes)} al mes`}
+            nota={<>Las empresas en su mes gratis se cobran recién cuando termina el suyo.
+              {enGratisCuenta && ` Tu mes gratis cubre ${catalogo.reglas.pruebaCarteraEmpresas} empresas; desde la ${catalogo.reglas.pruebaCarteraEmpresas + 1}, cada una se paga desde el día en que la agregas.`}
+              {' '}Todo va en un solo comprobante a nombre de tu estudio. Precios con IGV.</>} />
         </div>
-      </details>
+      </section>
 
-      <div className="bloque sin-relleno">
+      <section className="bloque sin-relleno">
+        <div className="crt-cab-tabla">
+          <h2>2. Reparte los planes a tus empresas</h2>
+          <p className="secundario">Elige el plan de cada empresa. Con un cupo libre ya pagado, no se cobra nada más.</p>
+          <div className="crt-cupos">
+            <span className="crt-cupo">Básico: <strong>{asigBas}</strong> de {Math.max(guardadoTotal - guardadoPro - guardadoMax, asigBas)}</span>
+            <span className={`crt-cupo${sinUsarPro > 0 ? ' ojo' : ''}`}>Pro: <strong>{asigPro}</strong> de {guardadoPro}{sinUsarPro > 0 && ` · ${sinUsarPro} sin asignar`}</span>
+            <span className={`crt-cupo${sinUsarMax > 0 ? ' ojo' : ''}`}>Max: <strong>{asigMax}</strong> de {guardadoMax}{sinUsarMax > 0 && ` · ${sinUsarMax} sin asignar`}</span>
+          </div>
+        </div>
         <table className="tabla">
-          <thead><tr><th>Empresa</th><th>Plan de la empresa</th><th>Cuánto suma al mes</th><th>Es mi estudio</th></tr></thead>
+          <thead><tr><th>Empresa</th><th>Plan de la empresa</th><th>Cuánto suma al mes</th></tr></thead>
           <tbody>
-            {cuenta.empresas.map(e => {
+            {cartera.map(e => {
               const dias = diasQueFaltan(e.pruebaHasta)
               return (
                 <tr key={e.id} className={e.pausada ? 'apagada' : undefined}>
@@ -382,18 +467,23 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
                     <div className="principal">{e.nombre}</div>
                     <div className="secundario">{e.ruc ? `RUC ${e.ruc}` : 'Sin RUC'}{e.pausada && ' · en pausa (no ocupa cupo)'}
                       {dias !== null && ` · mes gratis: ${dias} día${dias === 1 ? '' : 's'}`}</div>
-                    {dias !== null && e.uso && (
+                    {e.uso && (
                       <div className="secundario recomendado-empresa">
                         Le conviene: <strong>{NOMBRE_PLAN[e.uso.recomendado]}</strong>
-                        {e.uso.usos.length > 0 ? ` (usó ${e.uso.usos.join(', ')})` : ' (solo emitió)'}
+                        {e.uso.usos.length > 0 ? ` (usa ${e.uso.usos.join(', ')})` : ' (solo emitió)'}
                       </div>
                     )}
                   </td>
                   <td>
-                    {puede ? (
+                    {puede && !e.pausada ? (
                       <select value={e.plan} disabled={!!cambio.cargando} aria-label={`Plan de ${e.nombre}`}
-                              onChange={ev => void cambio.abrir(e.id, ev.target.value as CodigoPlan)}>
-                        {catalogo.planes.map(p => <option key={p.codigo} value={p.codigo}>{p.nombre}</option>)}
+                              onChange={ev => void cambiarPlan(e, ev.target.value as CodigoPlan)}>
+                        {catalogo.planes.map(p => {
+                          const libres = p.codigo === 'pro' ? sinUsarPro : p.codigo === 'max' ? sinUsarMax : 0
+                          return <option key={p.codigo} value={p.codigo}>
+                            {p.nombre}{p.codigo !== 'basico' && p.codigo !== e.plan ? (libres > 0 ? ` · ${libres} libre${libres === 1 ? '' : 's'}` : ` · +${soles(extraHoy(p, oferta))}`) : ''}
+                          </option>
+                        })}
                       </select>
                     ) : NOMBRE_PLAN[e.plan]}
                     {e.planProgramado && e.planProgramadoDesde && (
@@ -402,42 +492,46 @@ function PlanCartera({ catalogo, cuenta, puede, onHecho }: {
                         {puede && <> · <button type="button" className="enlace" onClick={() => void cambio.abrir(e.id, e.plan)}>Deshacer</button></>}
                       </div>
                     )}
-                    {e.efectivo !== e.plan && <div className="secundario">Ve: {NOMBRE_PLAN[e.efectivo]}</div>}
+                    {e.efectivo !== e.plan && <div className="secundario">Hoy ve: {NOMBRE_PLAN[e.efectivo]}{dias !== null ? ' (mes gratis)' : ''}</div>}
                   </td>
-                  <td>{e.esDelEstudio && e.plan === 'basico' ? 'Gratis'
-                    : e.plan === 'basico' ? <span title="Ya está pagada dentro de tus empresas en Básico">Nada (incluida)</span>
-                    : <>+{soles(extraHoy(plan(e.plan), oferta))} <span className="secundario">por {NOMBRE_PLAN[e.plan]}</span></>}</td>
-                  <td>
-                    {puede ? (
-                      <input type="radio" name="estudio" checked={e.esDelEstudio} aria-label={`${e.nombre} es mi estudio`}
-                             onChange={() => void hacer(e.id + 'e', () => planesServicio.estudio(e.id))} />
-                    ) : e.esDelEstudio ? '✓' : ''}
-                  </td>
+                  <td>{e.pausada ? <span className="secundario">Nada (en pausa)</span>
+                    : <span title="Ya está dentro de lo que elegiste arriba">Dentro de tus {NOMBRE_PLAN[e.plan]}</span>}</td>
                 </tr>
               )
             })}
-            {cuenta.empresas.length === 0 && <tr><td colSpan={4} className="secundario">Todavía no tienes empresas.</td></tr>}
+            {cartera.length === 0 && <tr><td colSpan={3} className="secundario">Todavía no tienes empresas en tu cartera. Agrégalas desde «Mi cartera».</td></tr>}
           </tbody>
         </table>
+        {(sinUsarPro > 0 || sinUsarMax > 0) && (
+          <div className="franja-programado crt-sin-usar">
+            <span>Tienes <strong>{[sinUsarPro > 0 && `${sinUsarPro} Pro`, sinUsarMax > 0 && `${sinUsarMax} Max`].filter(Boolean).join(' y ')} sin usar</strong>:
+              los pagas igual. Pásaselos a una empresa en la tabla, o bájalos arriba y guarda.</span>
+          </div>
+        )}
         <ul className="ayuda-tabla">
-          <li><strong>Plan de la empresa:</strong> cada una nace en Básico (ya incluida en tus empresas). Si la cambias a Pro o Max, se suma solo la diferencia de esa empresa.{' '}
-            Si la subes a mitad de mes, pagas la diferencia por los días que faltan; si la bajas, el cambio empieza en tu próximo cobro.</li>
-          <li><strong>Es mi estudio:</strong> marca la empresa de tu propio estudio contable (la tuya, la que factura tus honorarios). En Básico es <strong>gratis</strong> y no cuenta en tus empresas. Solo una.</li>
+          <li><strong>Plan de la empresa:</strong> si la subes a mitad de mes y no tienes un cupo libre de ese plan, pagas la diferencia solo por los días que faltan;
+            si la bajas, el cambio empieza en tu próximo cobro y su cupo queda libre para otra.</li>
+          <li><strong>Tu propia empresa</strong> no va aquí: está en <Link to="/mi-estudio/empresa">Mi empresa</Link> (Básico gratis; si la subes, pagas solo la diferencia).</li>
         </ul>
-      </div>
+      </section>
+
+      {/* e281 (096): invitar a otros contadores. */}
+      <InvitarContadores puede={puede} />
 
       <div className="como-funciona">
         <h3>Cómo funciona</h3>
         <ul>
-          <li>Pagas por las empresas que eliges, aunque no las uses todas. Puedes bajar para el mes siguiente.</li>
-          <li>Precio escalonado: {catalogo.tramos.map(t => `${t.desde}${t.hasta ? '–' + t.hasta : '+'} a ${soles(oferta ? t.precioOferta : t.precioRegular)}`).join(' · ')} cada una.</li>
+          <li>Pagas por las empresas que eliges en cada plan, aunque no las uses todas. Puedes bajar para el mes siguiente.</li>
+          <li>Precio por empresa al mes: Básico {soles(unidad('basico'))}, Pro {soles(unidad('pro'))} y Max {soles(unidad('max'))}{oferta ? ' (precio de lanzamiento)' : ''}.
+            {conTramos && ' Con más empresas, el Básico baja (descuento por cantidad).'}</li>
           <li>Si agregas una empresa de más, te decimos lo que cuesta y la sumas al confirmar. Nunca se bloquea a las que ya tienes.</li>
-          <li>Pausar una empresa libera su cupo. La empresa de tu propio estudio es gratis en Básico y no ocupa cupo.</li>
+          <li>Pausar una empresa libera su lugar. La empresa de tu propio estudio es gratis en Básico y no se cuenta.</li>
           <li>Todo se factura a tu estudio, en una sola factura con el detalle.</li>
           {catalogo.reglas.rucGratisActivo && <li>Cada RUC nuevo que sumes tiene un mes gratis (una vez por RUC, hasta {catalogo.reglas.rucGratisTope} al mes).</li>}
         </ul>
       </div>
       {cambio.dialogo}
+      {dialogo}
     </div>
   )
 }
@@ -463,11 +557,13 @@ function TextoLanzamiento(catalogo: Catalogo, cuenta: ResumenCuenta | null) {
          (meses > 0 ? `: lo mantienes ${meses} meses pagando` : '')
 }
 
-function ResumenPago({ filas, condiciones, boton, nota }: {
+function ResumenPago({ filas, condiciones, boton, nota, extra }: {
   filas: { texto: ReactNode; monto?: string; fuerte?: boolean }[]
   condiciones: Condicion[]
   boton: string
   nota?: ReactNode
+  /** e280: algo antes del botón de pagar (en la Cartera, «Guardar»). */
+  extra?: ReactNode
 }) {
   const listo = condiciones.every(c => c.ok || c.informativa)
   return (
@@ -482,9 +578,13 @@ function ResumenPago({ filas, condiciones, boton, nota }: {
         {condiciones.map(c => <li key={c.texto} className={c.ok ? 'ok' : c.informativa ? 'info' : 'falta'}>{c.ok ? '✓' : c.informativa ? 'ℹ' : '✗'} {c.texto}</li>)}
       </ul>
       {/* 073: el pago se hace en «Mis pagos» (tarjeta, datos del comprobante e historial). */}
-      {listo
-        ? <Link className="boton" to="/mi-plan/pagos">{boton}</Link>
-        : <button type="button" className="boton" disabled title="Falta lo marcado con ✗">{boton}</button>}
+      {(() => {
+        const pagar = listo
+          ? <Link className={extra ? 'boton secundario' : 'boton'} to="/mi-plan/pagos">{boton}</Link>
+          : <button type="button" className={extra ? 'boton secundario' : 'boton'} disabled title="Falta lo marcado con ✗">{boton}</button>
+        // e280: con «Guardar» (Cartera), los dos botones van juntos, uno debajo del otro.
+        return extra ? <div className="acciones-pago">{extra}{pagar}</div> : pagar
+      })()}
       {nota && <p className="nota">{nota}</p>}
     </div>
   )

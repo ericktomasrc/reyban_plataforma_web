@@ -166,11 +166,11 @@ export function Disposicion() {
   // equipo, reportes de la cartera, agregar empresa) o DENTRO de una empresa.
   // El menú enseña solo lo del modo; el selector de arriba cambia de uno a otro.
   const enEstudio = cartera && (!empresa
-    || ['/empresas', '/colaboradores', '/mi-cartera', '/mi-plan', '/pagos-comprobantes'].some(r => ruta.pathname === r || ruta.pathname.startsWith(r + '/'))
+    || ['/empresas', '/colaboradores', '/mi-cartera', '/mi-plan', '/pagos-comprobantes', '/mi-estudio'].some(r => ruta.pathname === r || ruta.pathname.startsWith(r + '/'))
     || (ruta.pathname === '/configurar' && new URLSearchParams(ruta.search).has('nueva')))
 
   const pagina = nombreDePagina(ruta.pathname)
-  const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil', '/mi-plan', '/mi-plan/pagos', '/pagos-comprobantes'].includes(ruta.pathname)
+  const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil', '/mi-plan', '/mi-plan/pagos', '/pagos-comprobantes', '/mi-estudio/empresa'].includes(ruta.pathname)
     && !ruta.pathname.startsWith('/admin')
 
   return (
@@ -349,7 +349,8 @@ export function Disposicion() {
           {cartera && enEstudio && (
             <nav className="seccion-lateral">
               <span className="titulo-seccion">Mi estudio</span>
-              <NavLink to="/empresas" className={activo}><Icono>▦</Icono>Mis empresas<IndicadorCertificado datos={avisos.datos} numero /></NavLink>
+              {/* e280: «Mi cartera» (antes «Mis empresas»): las empresas de sus clientes. */}
+              <NavLink to="/empresas" className={activo}><Icono>▦</Icono>Mi cartera<IndicadorCertificado datos={avisos.datos} numero /></NavLink>
               {/* 047: Mi equipo se despliega: el equipo y los cargos del estudio. */}
               {cuenta?.nivel !== 'colaborador' && (
                 <MenuDesplegable icono="◎" titulo="Mi equipo" inicio="/colaboradores" prefijos={['/colaboradores']}
@@ -365,6 +366,13 @@ export function Disposicion() {
               <NavLink to="/mi-plan" className={activo}><Icono>◈</Icono>Plan Cartera</NavLink>
               {/* e274 (091): lo pagado a Reyban, con sus comprobantes. */}
               {cambiaPlan && <NavLink to="/pagos-comprobantes" className={activo}><Icono>▧</Icono>Pagos y comprobantes</NavLink>}
+            </nav>
+          )}
+          {/* e280 (095): MI EMPRESA, la del propio estudio (no es de la cartera). */}
+          {cartera && enEstudio && cuenta?.nivel !== 'colaborador' && (
+            <nav className="seccion-lateral">
+              <span className="titulo-seccion">Mi empresa</span>
+              <NavLink to="/mi-estudio/empresa" className={activo}><Icono>⌂</Icono>Mi empresa</NavLink>
             </nav>
           )}
 
@@ -385,13 +393,18 @@ export function Disposicion() {
               {facturacion && (
                 <>
                   {/* 24 oct: «Comprobantes» se despliega, con las notas sueltas como en SOL. */}
-                  {puede(Permisos.Facturacion.NotasCredito) && (visible('/facturacion/notas/nueva-credito') || visible('/facturacion/notas/nueva-debito')) ? (
+                  {/* e282 (097): «Notas de venta» también va dentro de Comprobantes. */}
+                  {(puede(Permisos.Facturacion.NotasCredito) && (visible('/facturacion/notas/nueva-credito') || visible('/facturacion/notas/nueva-debito')))
+                    || visible('/facturacion/notas-venta') || !!candadoDe('/facturacion/notas-venta') ? (
                     <MenuDesplegable icono="▤" titulo="Comprobantes" inicio="/facturacion/comprobantes"
                       prefijos={['/facturacion/comprobantes', '/facturacion/notas']}
                       grupos={[{ titulo: '', items: conCandado([
                         { ruta: '/facturacion/comprobantes', nombre: 'Comprobantes emitidos', excepto: ['/nota-credito', '/nota-debito'] },
-                        { ruta: '/facturacion/notas/nueva-credito', nombre: 'Nueva nota de crédito', tambien: ['/nota-credito'] },
-                        { ruta: '/facturacion/notas/nueva-debito', nombre: 'Nueva nota de débito', tambien: ['/nota-debito'] },
+                        { ruta: '/facturacion/notas-venta', nombre: 'Notas de venta' },
+                        ...(puede(Permisos.Facturacion.NotasCredito) ? [
+                          { ruta: '/facturacion/notas/nueva-credito', nombre: 'Nueva nota de crédito', tambien: ['/nota-credito'] },
+                          { ruta: '/facturacion/notas/nueva-debito', nombre: 'Nueva nota de débito', tambien: ['/nota-debito'] },
+                        ] : []),
                       ]) }]} />
                   ) : (
                     <NavLink to="/facturacion/comprobantes" className={activo}><Icono>▤</Icono>Comprobantes</NavLink>
@@ -595,6 +608,9 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/facturacion/comprobantes/') && ruta.endsWith('/nota-debito')) return 'Nota de débito'
   if (ruta.startsWith('/facturacion/comprobantes/')) return 'Comprobante'
   if (ruta.startsWith('/facturacion/comprobantes')) return 'Comprobantes'
+  if (ruta.startsWith('/facturacion/notas-venta/nueva')) return 'Nueva nota de venta'
+  if (ruta.startsWith('/facturacion/notas-venta/')) return 'Nota de venta'
+  if (ruta.startsWith('/facturacion/notas-venta')) return 'Notas de venta'
   if (ruta.startsWith('/facturacion/notas/nueva-credito')) return 'Nueva nota de crédito'
   if (ruta.startsWith('/facturacion/notas/nueva-debito')) return 'Nueva nota de débito'
   if (ruta.startsWith('/facturacion/clientes')) return 'Clientes'
@@ -629,7 +645,8 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/usuarios')) return 'Personal de la empresa'
   if (ruta.startsWith('/auditoria')) return 'Auditoría'
   if (ruta.startsWith('/configurar')) return 'Configuración'
-  if (ruta.startsWith('/empresas')) return 'Mis empresas'
+  if (ruta.startsWith('/empresas')) return 'Mi cartera'
+  if (ruta.startsWith('/mi-estudio/empresa')) return 'Mi empresa'
   if (ruta.startsWith('/colaboradores')) return 'Mi equipo'
   if (ruta.startsWith('/perfil')) return 'Mi cuenta'
   if (ruta.startsWith('/mi-plan/pagos')) return 'Mis pagos'

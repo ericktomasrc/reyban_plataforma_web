@@ -1258,3 +1258,9 @@ button, input, select, textarea {
   color: #fff; font-size: 13.5px; padding: 7px 14px; border-radius: 10px; }
 .cabecera .sucursal-fija .selector-etiqueta { color: #bfe0dc; }
 .cabecera .sucursal-fija strong { color: #fff; font-weight: 600; }
+
+/* e280: todos los menús del lateral del mismo tamaño (los que abren submenú y
+   los que no), en las tres cuentas. Los submenús siguen un punto más chicos. */
+.lateral .seccion-lateral > a,
+.lateral .boton-lateral { font-size: 14px; }
+.lateral .submenu-lateral a { font-size: 13px; }

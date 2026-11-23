@@ -46,7 +46,7 @@ export function ConvertirCuenta() {
       <h2>¿Ahora facturas para más de una empresa?</h2>
       <p className="texto-paso">
         Convierte tu cuenta en <strong>Cuenta Profesional</strong>. Sigues con el mismo correo, la misma
-        empresa y todo su historial; solo se te abren <strong>Mis empresas</strong>, el selector y los
+        empresa y todo su historial; solo se te abren <strong>Mi cartera</strong>, el selector y los
         colaboradores.
       </p>
       <ul className="lista-nota">

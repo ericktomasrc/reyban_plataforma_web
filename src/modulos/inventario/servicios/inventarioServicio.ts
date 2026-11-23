@@ -101,7 +101,7 @@ export interface FilaKardex {
   reservado: number
   saldoFisico: number
   saldoReservado: number
-  fuente: 'documento' | 'guia' | 'operacion' | 'traslado'
+  fuente: 'documento' | 'guia' | 'operacion' | 'traslado' | 'nota_venta'
   fuenteId: string
   documentoId: string | null
   documentoNumero: string | null

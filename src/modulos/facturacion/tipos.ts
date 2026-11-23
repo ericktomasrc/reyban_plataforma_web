@@ -638,6 +638,8 @@ export interface DocumentoCompleto {
   // --- 052: inventario --------------------------------------------------------
   /** «Se entrega después (con guía)». Null = el modo de la empresa. */
   entregaDespues?: boolean | null
+  /** 097: la nota de venta de la que salió (su stock ya salió con la nota). */
+  notaVenta?: { id: string; numero: string } | null
   invRetorno?: string | null
   invSucursalId?: string | null
   /** Lo que el inventario hizo con este comprobante. Null si no lo tocó. */

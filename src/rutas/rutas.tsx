@@ -5,6 +5,9 @@ import { Cajas, VerCaja } from '../modulos/pos/vistas/Cajas'
 import { ConfigCajas } from '../modulos/pos/vistas/ConfigCajas'
 import { Ofertas } from '../modulos/pos/vistas/Ofertas'
 import { EditarOferta } from '../modulos/pos/vistas/EditarOferta'
+import { NotasVenta } from '../modulos/notasventa/NotasVenta'
+import { NuevaNotaVenta } from '../modulos/notasventa/NuevaNotaVenta'
+import { VerNotaVenta } from '../modulos/notasventa/VerNotaVenta'
 import { Protegido } from '../nucleo/autorizacion/Protegido'
 import { Modulos, Permisos } from '../nucleo/autorizacion/permisos'
 import { ListaEmpresas } from '../modulos/administracion/vistas/ListaEmpresas'
@@ -15,6 +18,7 @@ import { CorreosPagina } from '../modulos/administracion/vistas/Correos'
 import { EquipoPlataformaPagina } from '../modulos/administracion/vistas/EquipoPlataforma'
 import { AccesosRevisionPagina } from '../modulos/administracion/vistas/AccesosRevision'
 import { MiPlanPagina } from '../modulos/planes/vistas/MiPlan'
+import { MiEmpresaEstudio } from '../modulos/planes/vistas/MiEmpresaEstudio'
 import { MisPagosPagina } from '../modulos/planes/vistas/MisPagos'
 import { MiEmpresaPagina } from '../modulos/miempresa/vistas/MiEmpresa'
 import { ReclamosPagina } from '../modulos/reclamos/vistas/Reclamos'
@@ -226,6 +230,8 @@ export function Rutas() {
         <Route path="/admin/errores" element={<Protegido soloSuperAdmin><ErroresSistemaPagina /></Protegido>} />
         {/* e228: solo quien es de una cuenta; el super administrador va al inicio. */}
         <Route path="/mi-plan" element={<Protegido deCuenta><MiPlanPagina /></Protegido>} />
+        {/* e280 (095): la empresa del propio estudio (Cuenta Profesional). */}
+        <Route path="/mi-estudio/empresa" element={<Protegido deCuenta><MiEmpresaEstudio /></Protegido>} />
         <Route path="/mi-plan/pagos" element={<Protegido deCuenta><MisPagosPagina /></Protegido>} />
         {/* e274 (091): lo pagado a Reyban y sus comprobantes (dueño o administrador de la cuenta). */}
         <Route path="/pagos-comprobantes" element={<Protegido deCuenta><PagosComprobantes /></Protegido>} />
@@ -426,6 +432,13 @@ export function Rutas() {
           <Protegido permiso={Permisos.Compras.Ver} modulo={Modulos.Facturacion}><Compras /></Protegido>} />
         <Route path="/reportes/compras" element={
           <Protegido permiso={Permisos.Compras.Ver} modulo={Modulos.Facturacion}><ReporteComprasPagina /></Protegido>} />
+        {/* e282 (097): notas de venta (sin SUNAT). */}
+        <Route path="/facturacion/notas-venta" element={
+          <Protegido permiso={Permisos.Facturacion.Ver} modulo={Modulos.Facturacion}><NotasVenta /></Protegido>} />
+        <Route path="/facturacion/notas-venta/nueva" element={
+          <Protegido permiso={Permisos.Facturacion.Emitir} modulo={Modulos.Facturacion}><NuevaNotaVenta /></Protegido>} />
+        <Route path="/facturacion/notas-venta/:id" element={
+          <Protegido permiso={Permisos.Facturacion.Ver} modulo={Modulos.Facturacion}><VerNotaVenta /></Protegido>} />
         {/* e267 (090): cobros y pagos. */}
         <Route path="/cobros/por-cobrar" element={
           <Protegido permiso={Permisos.Deudas.Ver} modulo={Modulos.Facturacion}><Deudas key="cobrar" lado="cobrar" /></Protegido>} />

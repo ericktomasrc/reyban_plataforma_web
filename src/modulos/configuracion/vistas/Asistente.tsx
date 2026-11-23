@@ -503,7 +503,7 @@ function EmpresaYaEnReyban({ ruc, revision }: { ruc: string; revision: RevisionP
         <div className="aviso ojo">
           <strong>{nombre} ya está en Reyban.</strong> {revision.mensaje}
         </div>
-        {revision.resultado === 'ya_pediste' && <Link to="/empresas" className="boton secundario">Ir a Mis empresas</Link>}
+        {revision.resultado === 'ya_pediste' && <Link to="/empresas" className="boton secundario">Ir a Mi cartera</Link>}
         {revision.resultado === 'convertir' && <Link to="/perfil#convertir" className="boton secundario">Ir a Mi cuenta</Link>}
         <Pie><span /></Pie>
       </>
