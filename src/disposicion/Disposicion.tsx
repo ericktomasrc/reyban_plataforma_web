@@ -170,6 +170,8 @@ export function Disposicion() {
   const rutaDeEstudio = ['/empresas', '/colaboradores', '/mi-cartera', '/mi-plan', '/pagos-comprobantes', '/mi-estudio'].some(r => ruta.pathname === r || ruta.pathname.startsWith(r + '/'))
     || (ruta.pathname === '/configurar' && new URLSearchParams(ruta.search).has('nueva'))
   const enEstudio = cartera && (!empresa || estudioCandado || rutaDeEstudio)
+  // e290: ¿la empresa abierta es la del estudio («Mi empresa») o la de un cliente?
+  const esMiEmpresa = cartera && !!empresa && !!cuenta?.estudio?.empresaId && empresa.id === cuenta.estudio.empresaId
 
   const pagina = nombreDePagina(ruta.pathname)
   const deEmpresa = !!empresa && !enEstudio && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil', '/mi-plan', '/mi-plan/pagos', '/pagos-comprobantes', '/mi-estudio/empresa'].includes(ruta.pathname)
@@ -228,7 +230,7 @@ export function Disposicion() {
         {empresa && !enEstudio && <SelectorSucursal />}
 
         {/* e255: el mes gratis, en la misma línea (antes, una franja encima). */}
-        {!usuario.esSuperAdmin && empresa && diasGratis !== null && !enEstudio && (
+        {!usuario.esSuperAdmin && empresa && diasGratis !== null && !enEstudio && !cartera && (
           <span className="mes-gratis-cabecera" role="status" title={`Mes gratis: te quedan ${diasGratis} día${diasGratis === 1 ? '' : 's'} con todo lo del Max.`}>
             <svg className="icono-mes-gratis" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M2 6h20v4H2zM12 6v15M12 6C8 6 6 5 6 3.5 6 2.5 7 2 8 2c2 0 4 4 4 4Zm0 0c4 0 6-1 6-2.5C18 2.5 17 2 16 2c-2 0-4 4-4 4Z"/></svg>
             <span className="mes-gratis-texto">Mes gratis: te quedan <b>{diasGratis} día{diasGratis === 1 ? '' : 's'}</b><span className="mes-gratis-largo"> con todo lo del Max</span>.</span>
@@ -389,8 +391,12 @@ export function Disposicion() {
               duda de en cuál se está emitiendo. */}
           {empresa && !enEstudio && (
             <nav className="seccion-lateral">
+              {/* e290: en la Cuenta Profesional, la salida al estudio siempre a la vista. */}
+              {cartera && (
+                <Link to="/empresas" className="volver-estudio"><span aria-hidden="true">←</span> Volver a Mi estudio</Link>
+              )}
               <div className="empresa-lateral">
-                <span className="titulo-seccion">{cartera ? 'Empresa abierta' : 'Mi empresa'}</span>
+                <span className="titulo-seccion">{!cartera || esMiEmpresa ? 'Mi empresa' : 'Cliente de tu cartera'}</span>
                 <strong>{empresa.nombre}{!cartera && <IndicadorCertificado datos={avisos.datos} numero={false} />}</strong>
                 {empresa.ruc && <span className="mono">RUC {empresa.ruc}</span>}
               </div>

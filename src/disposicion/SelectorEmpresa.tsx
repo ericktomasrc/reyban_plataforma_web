@@ -113,6 +113,7 @@ export function SelectorEmpresa({ estudio, avisos }: { estudio: boolean; avisos?
             <IconoEmpresa />
             <span className="selector-etiqueta">Trabajando en:</span>
             <strong>{empresa?.nombre ?? 'elige una empresa'}</strong>
+            {empresa && <span className="selector-tipo">{empresa.id === cuenta?.estudio?.empresaId ? 'mi empresa' : 'cliente'}</span>}
             <IndicadorCertificado datos={avisos} numero />
           </>
         )}
