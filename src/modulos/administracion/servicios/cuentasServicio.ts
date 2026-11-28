@@ -26,6 +26,34 @@ export interface CuentaEnLista {
 
   /** El primer usuario de la cuenta (el que se registró). */
   usuario: { correo: string; alias: string; nombre: string } | null
+
+  /** e291 (101): cómo está hoy. La frase la arma la pantalla (estadoCuenta.ts). */
+  situacion: SituacionCuenta | null
+}
+
+/** e291 (101): lo que se sabe de cada empresa de la cuenta (como en Mi cartera). */
+export interface EmpresaSituacion {
+  id: string
+  esDelEstudio: boolean
+  pausadaEn: string | null
+  facturacionActiva: boolean
+  listaParaEmitir: boolean | null
+  faltan: string[] | null
+  certificadoHasta: string | null
+  rechazos: number
+  ultimoDocumento: string | null
+}
+
+export interface SituacionCuenta {
+  pago: 'al_dia' | 'reintento' | 'gracia' | 'no_emite' | 'cancelado' | null
+  accesoTotal: boolean
+  encendidos: boolean
+  pruebaHasta: string | null
+  /** Profesional: cuántas empresas de clientes cuentan para el mínimo. */
+  cartera: number | null
+  /** Profesional: el estado de «Mi empresa» (098). */
+  estudio: { estado: 'activa' | 'sin_activar' | 'aviso' | 'no_emite'; tiene: number; minimo: number; faltan: number; empresaId: string | null; hasta: string | null } | null
+  empresas: EmpresaSituacion[]
 }
 
 export const cuentasServicio = {

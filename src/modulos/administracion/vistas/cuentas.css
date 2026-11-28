@@ -1,0 +1,88 @@
+/* =============================================================================
+   e291 (101) — CUENTAS del super administrador: cómo está cada cuenta.
+   Todo bajo .cue-pagina.
+   ========================================================================== */
+.cue-pagina { font-size: 13px; }
+.cue-pagina .encabezado-pagina { margin-bottom: 14px; }
+.cue-pagina .bajada-pagina { margin: 4px 0 0; color: var(--tinta-2); max-width: 760px; }
+
+/* La franja de tarjetas que filtran */
+.cue-banda { display: flex; margin: 0 0 14px; background: var(--superficie); border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 12px; overflow: hidden; }
+.cue-banda > button { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; text-align: left;
+  font: inherit; color: var(--tinta); background: none; border: 0; border-right: 1px solid var(--borde-sutil, #e6ebef); cursor: pointer; }
+.cue-banda > button:last-child { border-right: 0; }
+.cue-banda > button:hover { background: #fafbfc; }
+.cue-banda > button.elegida { background: #f6faf9; box-shadow: inset 0 -2px 0 var(--acento); }
+.cue-banda > button > span { font-size: 11.5px; color: var(--tinta-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cue-banda > button > span:last-child { font-size: 11px; }
+.cue-banda > button strong { font-size: 19px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+/* Filtros */
+.cue-filtros { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; padding: 10px 12px; background: var(--superficie);
+  border: 1px solid var(--borde-sutil, #e6ebef); border-bottom: 0; border-radius: 12px 12px 0 0; }
+.cue-buscar { flex: 1 1 260px; max-width: 420px; height: 34px; padding: 0 10px; font: inherit; font-size: 12.5px; border: 1px solid var(--borde); border-radius: 8px; background: var(--superficie); color: var(--tinta); }
+.cue-seg { display: inline-flex; margin-left: auto; background: var(--hundido); border-radius: 8px; padding: 2px; }
+.cue-seg button { border: 0; background: none; font: inherit; font-size: 12.5px; padding: 5px 12px; border-radius: 6px; color: var(--tinta-2); cursor: pointer; }
+.cue-seg button.on { background: var(--superficie); color: var(--tinta); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 8%); }
+
+/* La tabla de cuentas */
+.cue-tabla { background: var(--superficie); border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 0 0 12px 12px; overflow-x: auto; }
+.cue-pagina .tabla th { font-size: 11px; letter-spacing: .04em; color: var(--tinta-3); white-space: nowrap; }
+.cue-pagina .tabla td { font-size: 12.5px; vertical-align: middle; }
+.cue-pagina .tabla .principal { font-weight: 600; font-size: 13px; }
+.cue-pagina .tabla .secundario { font-size: 11.5px; color: var(--tinta-3); }
+.cue-pagina .tabla .etiqueta { font-size: 11px; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.cue-nowrap { white-space: nowrap; }
+.cue-cuenta { display: flex; gap: 6px; align-items: flex-start; min-width: 220px; }
+.cue-flecha { width: 18px; flex: none; border: 0; background: none; padding: 1px 0 0; color: var(--tinta-3); font-size: 11px; cursor: pointer; }
+.cue-flecha.oculta { visibility: hidden; }
+.cue-desplegable { cursor: pointer; }
+.cue-desplegable:hover > td { background: #fafbfc; }
+.cue-abierta > td { background: #f7faf9 !important; border-bottom-color: transparent !important; }
+.cue-estado { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12.5px; }
+.cue-estado::before { content: ""; width: 7px; height: 7px; flex: none; border-radius: 50%; background: currentColor; }
+.cue-estado.t-bien { color: var(--bien); } .cue-estado.t-aviso { color: var(--aviso); }
+.cue-estado.t-malo { color: var(--peligro); } .cue-estado.t-gris { color: var(--tinta-3); }
+.cue-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.cue-chip { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--borde); color: var(--tinta-2); white-space: nowrap; }
+.cue-chip.t-bien { border-color: transparent; background: var(--bien-suave); color: var(--bien); }
+.cue-chip.t-aviso { border-color: transparent; background: var(--aviso-suave); color: var(--aviso); }
+.cue-chip.t-malo { border-color: transparent; background: var(--peligro-suave); color: var(--peligro); }
+
+/* «···» */
+.cue-menu { position: relative; display: inline-block; }
+.cue-mas { letter-spacing: .1em; min-height: 28px; padding: 0 10px; }
+.cue-menu-lista { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 230px; padding: 4px; background: var(--superficie);
+  border: 1px solid var(--borde); border-radius: 10px; box-shadow: 0 8px 24px rgb(22 32 42 / 14%); }
+.cue-menu-lista button { display: block; width: 100%; text-align: left; border: 0; background: none; font: inherit; font-size: 12.5px; padding: 7px 10px; border-radius: 6px; color: var(--tinta); cursor: pointer; }
+.cue-menu-lista button:hover { background: var(--hundido); }
+.cue-menu-lista button.peligro { color: var(--peligro); }
+
+/* Las empresas de la cuenta (desplegadas) */
+.cue-detalle > td { background: #f7faf9; padding-top: 0 !important; }
+.cue-sub { width: 0; min-width: calc(100% - 8px); margin: 0 0 8px 8px; }
+.cue-scroll { overflow-x: auto; border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 10px; background: var(--superficie); }
+.cue-pagina .cue-subtabla { min-width: 1080px; }
+.cue-pagina .cue-subtabla th { font-size: 10.5px; padding: 8px 10px; background: #fafbfc; }
+.cue-pagina .cue-subtabla td { font-size: 12px; padding: 8px 10px; background: var(--superficie); }
+.cue-pagina .cue-subtabla .principal { font-size: 12.5px; }
+.cue-grupo td { font-size: 10.5px !important; letter-spacing: .07em; text-transform: uppercase; color: var(--tinta-3); background: #fbfcfc !important; padding: 6px 10px !important; }
+.cue-mods { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 230px; max-width: 280px; }
+.cue-mods .plan-chico { margin: 0; font-size: 10.5px; }
+.cue-mod { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--acento-suave); color: var(--acento); white-space: nowrap; }
+.cue-pagina .cue-subtabla td.cue-acc, .cue-pagina .cue-subtabla th:last-child { position: sticky; right: 0; box-shadow: -8px 0 8px -8px rgb(0 0 0 / 12%); }
+.cue-pagina .cue-subtabla th:last-child { background: #fafbfc; }
+.cue-pagina .cue-subtabla td.cue-acc { width: 200px; min-width: 200px; white-space: normal; line-height: 1.2; }
+.cue-acc .boton { min-height: 24px; height: 24px; padding: 0 6px; font-size: 12px; margin: 1px 2px 1px 0; color: var(--tinta-2); }
+.cue-acc .boton:hover { color: var(--acento); }
+.cue-acc .boton.acc-peligro { color: var(--peligro); }
+.cue-nota { margin: 10px 0 0; font-size: 12px; color: var(--tinta-3); }
+
+@media (max-width: 900px) {
+  .cue-banda { overflow-x: auto; }
+  .cue-banda > button { flex: 0 0 150px; }
+  .cue-seg { margin-left: 0; }
+}
+.cue-pagina .cue-subtabla td:first-child { min-width: 210px; }
+.cue-pagina .cue-subtabla td:nth-child(6) { min-width: 180px; }
+.cue-pagina .cue-subtabla { min-width: 1180px; }

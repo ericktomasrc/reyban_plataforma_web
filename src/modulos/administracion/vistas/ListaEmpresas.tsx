@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Paginacion } from '../../../componentes/Paginacion'
 import { FiltroFechas } from '../../../componentes/FiltrosComunes'
 import { contiene, usePaginaLocal } from '../../../nucleo/hooks/usePaginaLocal'
@@ -348,7 +349,7 @@ export function ListaEmpresas() {
  * (la lista no le pregunta: tiene que abrir aunque esté apagado). Un `null`
  * es «todavía no se preguntó»: no se pinta nada, ni bueno ni malo.
  */
-function MarcasDeFacturacion({ empresa }: { empresa: EmpresaEnLista }) {
+export function MarcasDeFacturacion({ empresa }: { empresa: EmpresaEnLista }) {
   const f = empresa.facturacion
   if (!f) return null
 
@@ -449,7 +450,7 @@ export function PlanDeEmpresa({ info, id }: { info?: PlanesDeEmpresas; id: strin
 }
 
 /** e234 (085): «4,120 / 6,000», en ámbar desde el 80 % y en rojo al llegar. */
-function UsoDelMes({ u }: { u?: UsoComprobantes }) {
+export function UsoDelMes({ u }: { u?: UsoComprobantes }) {
   if (!u) return <span className="vacio">sin tope</span>
   const n = (x: number) => x.toLocaleString('en-US')
   const tono = u.bloqueado ? 'rojo' : u.porcentaje >= 80 ? 'ambar' : ''
@@ -473,13 +474,13 @@ function CuentaDeEmpresa({ e, onFiltrar }: { e: EmpresaEnLista; onFiltrar: (text
   const c = e.cuenta
   if (!c) return <><span className="etiqueta">Sin cuenta</span><div className="secundario">Alta del super admin</div></>
   const titular = c.titular ?? 'Sin nombre'
-  if (c.rol === 'negocio') return <><span className="etiqueta">Cuenta Negocio</span><div className="secundario">{titular}</div></>
+  if (c.rol === 'negocio') return <><span className="etiqueta">Cuenta Negocio</span><div className="secundario">{titular} · <Link to={`/admin/cuentas?cuenta=${c.id}`}>ver cuenta</Link></div></>
   return (
     <>
       <span className={c.rol === 'estudio' ? 'etiqueta acento' : 'etiqueta'}>{c.rol === 'estudio' ? 'Mi empresa del estudio' : 'Cartera de un estudio'}</span>
       <div className="secundario">
         <button type="button" className="enlace" title="Ver todas las empresas de esta cuenta" onClick={() => onFiltrar(titular)}>{titular}</button>
-        <div>{c.empresasCuenta} en su cartera</div>
+        <div>{c.empresasCuenta} en su cartera · <Link to={`/admin/cuentas?cuenta=${c.id}`}>ver cuenta</Link></div>
       </div>
     </>
   )
