@@ -629,6 +629,25 @@ function PreciosYReglas({ seccion, config, puede, onHecho }: { seccion: Seccion;
     catch (e) { mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo guardar.') }
     finally { setOcupado(undefined) }
   }
+  // 098: confirmar antes de guardar las reglas (con lo de Mi empresa a la vista).
+  async function guardarReglas() {
+    const meses = reglas.miEmpresaMesesGratis ?? 0
+    if (!await pedir({
+      titulo: '¿Guardar las reglas?',
+      confirmar: 'Sí, guardar',
+      mensaje: (
+        <>
+          <p>Valen desde ahora. No se cobra nada hacia atrás.</p>
+          <ul className="lista-regla">
+            <li>Cartera: mínimo <strong>{reglas.carteraMinimo} empresas</strong> (con menos, «Mi empresa» queda con candado).</li>
+            <li>Mi empresa: Básico gratis <strong>{meses === 0 ? 'sin fecha de fin' : `por ${meses} meses`}</strong>.</li>
+            <li>Mi empresa: <strong>{reglas.miEmpresaDiasAviso ?? 7} días</strong> de aviso si la cartera baja del mínimo.</li>
+          </ul>
+        </>
+      ),
+    })) return
+    await guardar('reglas', () => planesServicio.reglas(reglas))
+  }
   const guardarPrecios = () => guardar('precios', () => planesServicio.precios(
     planes.map(p => ({ codigo: p.codigo, precioRegular: p.precioRegular, precioOferta: p.precioOferta, sucursalesMax: p.sucursalesMax,
                        carteraExtraRegular: p.carteraExtraRegular, carteraExtraOferta: p.carteraExtraOferta,
@@ -841,7 +860,8 @@ function PreciosYReglas({ seccion, config, puede, onHecho }: { seccion: Seccion;
 
             <h3 className="subtitulo-topes">La empresa del estudio («Mi empresa»)</h3>
             <ul className="lista-regla">
-              <li><strong>Gratis en Básico</strong>, mientras tenga {reglas.carteraMinimo} o más empresas en su cartera. No cuenta como empresa de la cartera.</li>
+              <li><strong>Gratis en Básico</strong>{(reglas.miEmpresaMesesGratis ?? 0) > 0 ? ` por ${reglas.miEmpresaMesesGratis} meses` : ', sin fecha de fin,'} mientras tenga {reglas.carteraMinimo} o más empresas en su cartera. No cuenta como empresa de la cartera.</li>
+              <li>Con menos de {reglas.carteraMinimo} empresas en la cartera, Mi empresa queda <strong>con candado</strong>. Si baja después de tenerlas, sigue emitiendo {reglas.miEmpresaDiasAviso ?? 7} días con aviso. Se cambian en «Reglas para todos › Cartera».</li>
               <li>Si la sube, paga solo la diferencia (se calcula sola): a Pro <strong>+{soles(subePro)}</strong> y a Max <strong>+{soles(subeMax)}</strong> al mes.</li>
             </ul>
 
@@ -895,9 +915,18 @@ function PreciosYReglas({ seccion, config, puede, onHecho }: { seccion: Seccion;
           </GrupoRegla>
 
           <GrupoRegla titulo="Cartera" texto="Para lo que paga la Cuenta Profesional. No tiene que ver con el mes gratis.">
-            <FilaRegla etiqueta="Mínimo de empresas que se paga" ayuda="La Cartera paga al menos esta cantidad de empresas, aunque tenga menos. Ejemplo: con 2, un estudio con una sola empresa paga 2 (si solo va a tener una, le conviene la Cuenta Negocio).">
+            <FilaRegla etiqueta="Mínimo de empresas que se paga" ayuda="La Cartera paga al menos esta cantidad de empresas, aunque tenga menos. Ejemplo: con 2, un estudio con una sola empresa paga 2 (si solo va a tener una, le conviene la Cuenta Negocio). Con menos de este mínimo, «Mi empresa» queda con candado.">
               <span className="con-unidad"><input type="number" min={1} disabled={!puede} value={reglas.carteraMinimo}
                 onChange={e => regla('carteraMinimo', Number(e.target.value))} /><em>empresas</em></span>
+            </FilaRegla>
+            {/* 098: Mi empresa (la empresa del estudio). */}
+            <FilaRegla etiqueta="Mi empresa: Básico gratis por" ayuda="0 = gratis sin fecha de fin (así viene). Con 12, pasado un año desde que se activó, Mi empresa se cobra como una empresa más de la cartera.">
+              <span className="con-unidad"><input type="number" min={0} max={120} disabled={!puede} value={reglas.miEmpresaMesesGratis ?? 0}
+                onChange={e => regla('miEmpresaMesesGratis', Number(e.target.value))} /><em>meses (0 = sin fin)</em></span>
+            </FilaRegla>
+            <FilaRegla etiqueta="Mi empresa: aviso antes de dejar de emitir" ayuda="Si la cartera baja del mínimo, Mi empresa sigue emitiendo estos días con aviso. Después ve y descarga todo, pero no emite, hasta volver al mínimo. Las empresas de los clientes no se tocan.">
+              <span className="con-unidad"><input type="number" min={0} max={60} disabled={!puede} value={reglas.miEmpresaDiasAviso ?? 7}
+                onChange={e => regla('miEmpresaDiasAviso', Number(e.target.value))} /><em>días</em></span>
             </FilaRegla>
           </GrupoRegla>
 
@@ -919,7 +948,7 @@ function PreciosYReglas({ seccion, config, puede, onHecho }: { seccion: Seccion;
             </FilaRegla>
           </GrupoRegla>
 
-          {puede && <div className="acciones-bloque"><Boton ocupado={ocupado === 'reglas'} onClick={() => void guardar('reglas', () => planesServicio.reglas(reglas))}>Guardar reglas</Boton></div>}
+          {puede && <div className="acciones-bloque"><Boton ocupado={ocupado === 'reglas'} onClick={() => void guardarReglas()}>Guardar reglas</Boton></div>}
         </div>
       )}
     </>

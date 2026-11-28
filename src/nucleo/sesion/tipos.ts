@@ -49,6 +49,30 @@ export interface Cuenta {
    * cajera): no ve la cartera.
    */
   nivel: 'dueno' | 'colaborador_admin' | 'colaborador' | null
+
+  /** 098: «Mi empresa» (Cuenta Profesional). Nulo en la Cuenta Negocio. */
+  estudio?: EstadoMiEmpresa | null
+}
+
+/**
+ * 098: el estado de «Mi empresa», la empresa del estudio.
+ *   activa: tiene el mínimo de empresas en la cartera (o planes apagados).
+ *   sin_activar: nunca llegó al mínimo → candado.
+ *   aviso: bajó del mínimo → emite hasta «hasta».
+ *   no_emite: pasados los días de aviso → ve y descarga, no emite.
+ */
+export interface EstadoMiEmpresa {
+  estado: 'activa' | 'sin_activar' | 'aviso' | 'no_emite'
+  tiene: number
+  minimo: number
+  faltan: number
+  empresaId: string | null
+  hasta: string | null
+  diasAviso: number
+  mesesGratis: number
+  activadaEn: string | null
+  gratisHasta: string | null
+  encendidos: boolean
 }
 
 export interface EntradaMenu {

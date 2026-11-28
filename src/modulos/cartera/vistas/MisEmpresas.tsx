@@ -72,12 +72,19 @@ export function MisEmpresas() {
   const [quitar, setQuitar] = useState<EmpresaCartera | null>(null)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [reclamos, setReclamos] = useState<ReclamoSobreMia[]>([])
+  const [estudio, setEstudio] = useState<string | null>(null)
 
   const dueno = cuenta?.nivel === 'dueno'
   const agrega = cuenta?.nivel !== 'colaborador'
 
   const cargar = useCallback(async () => {
-    try { setEmpresas(await carteraServicio.empresas()); setFallo(null) }
+    // 098: «Mi empresa» (la del estudio) va en su propio menú, no en la cartera.
+    try {
+      const todas = await carteraServicio.empresas()
+      setEmpresas(todas.filter(e => !e.esDelEstudio))
+      setEstudio(todas.find(e => e.esDelEstudio)?.nombre ?? null)
+      setFallo(null)
+    }
     catch (e) { setFallo(e instanceof ErrorApi ? e.message : 'No se pudo leer tu cartera.') }
 
     // Lo de la fase 4d no tumba la bandeja si falla: es información de más.
@@ -153,6 +160,19 @@ export function MisEmpresas() {
       </div>
 
       <FranjaReclamos reclamos={reclamos} onRespondido={cargar} />
+
+      {/* 098: la Cuenta Profesional es para 2 o más empresas. */}
+      {cuenta?.tipo === 'profesional' && cuenta.estudio && cuenta.estudio.encendidos && cuenta.estudio.tiene < cuenta.estudio.minimo && empresas.length > 0 && (
+        <div className="aviso info car-minimo">
+          <span>
+            <strong>La Cuenta Profesional es para {cuenta.estudio.minimo} o más empresas.</strong> Tienes {cuenta.estudio.tiene}. Agrega
+            {cuenta.estudio.faltan === 1 ? ' otra' : ` ${cuenta.estudio.faltan} más`} para activar <strong>Mi empresa</strong> (Básico gratis).
+            Mientras tanto se cobra el mínimo de {cuenta.estudio.minimo}. Si solo facturas para una empresa, te conviene la Cuenta Negocio.
+          </span>
+          {agrega && <Link to="/configurar?nueva=1" className="boton secundario">Agregar empresa</Link>}
+        </div>
+      )}
+      {estudio && <p className="nota car-nota-estudio">Tu empresa (<strong>{estudio}</strong>) está en <Link to="/mi-estudio/empresa">Mi empresa</Link>, no aquí.</p>}
 
       {empresas.length === 0 ? (<>
         {pedidos.length > 0 && <PedidosATitulares pedidos={pedidos} onCancelar={cancelarPedido} onOcultar={ocultarPedido} />}

@@ -1264,3 +1264,8 @@ button, input, select, textarea {
 .lateral .seccion-lateral > a,
 .lateral .boton-lateral { font-size: 14px; }
 .lateral .submenu-lateral a { font-size: 13px; }
+
+/* e283 (098): los menús de «Mi empresa» con candado (Cuenta Profesional). */
+.lateral .con-candado-lateral { color: var(--tinta-3); opacity: .8; }
+.lateral .con-candado-lateral:hover { opacity: 1; }
+.lateral .con-candado-lateral .icono-candado { width: 20px; display: inline-flex; justify-content: center; font-size: 12px; filter: grayscale(1); }

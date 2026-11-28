@@ -31,6 +31,9 @@ export interface EmpresaCartera {
 
   /** El correo del dueño de la empresa (019). */
   correoTitular: string | null
+
+  /** 098: es «Mi empresa» (la del estudio): no va en Mi cartera. */
+  esDelEstudio?: boolean
 }
 
 /** GET /api/cartera/colaboradores */

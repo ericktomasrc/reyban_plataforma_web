@@ -96,6 +96,13 @@ export function MiEmpresaEstudio() {
   }
 
   const dias = estudio ? diasQueFaltan(estudio.pruebaHasta) : null
+  // 098: con menos del mínimo en la cartera, Mi empresa queda con candado.
+  const est = cuenta.estudio ?? null
+  const candado = est?.estado === 'sin_activar'
+  const fechaLarga = (iso: string) => new Date(iso).toLocaleDateString('es-PE', { timeZone: 'America/Lima', weekday: 'long', day: 'numeric', month: 'long' })
+  const mensajeCandado = est
+    ? `Tu empresa todavía no puede emitir: se activa cuando tengas al menos ${est.minimo} empresas en tu cartera. Hoy tienes ${est.tiene}. Agrégalas en «Mi cartera».`
+    : ''
 
   return (
     <div className="pln-pagina mie-pagina">
@@ -103,11 +110,45 @@ export function MiEmpresaEstudio() {
       <div className="encabezado-pagina cmp-encab">
         <div>
           <h1 className="titulo-pagina">Mi empresa</h1>
-          <p className="bajada-pagina">La empresa de tu estudio, para facturar tus honorarios. En Básico es gratis mientras tengas {catalogo.reglas.carteraMinimo} o más
+          <p className="bajada-pagina">La empresa de tu estudio, para facturar tus honorarios. En Básico es gratis
+            {(catalogo.reglas.miEmpresaMesesGratis ?? 0) > 0 ? ` por ${catalogo.reglas.miEmpresaMesesGratis} meses` : ''} mientras tengas {catalogo.reglas.carteraMinimo} o más
             empresas en tu cartera.</p>
         </div>
-        {estudio && <Boton ocupado={ocupado === 'entrar'} textoOcupado="Abriendo…" onClick={() => void entrar()}>Entrar a emitir</Boton>}
+        {estudio && <Boton ocupado={ocupado === 'entrar'} textoOcupado="Abriendo…" className={candado ? 'con-candado' : undefined}
+          onClick={() => candado ? mensaje.ojo(mensajeCandado) : void entrar()}>{candado ? '🔒 Entrar a emitir' : est?.estado === 'no_emite' ? 'Entrar (solo ver)' : 'Entrar a emitir'}</Boton>}
       </div>
+
+      {/* 098: el estado de Mi empresa según las empresas de la cartera. */}
+      {est && candado && (
+        <div className="aviso ojo mie-estado">
+          <div>
+            <strong>Tu empresa todavía no puede emitir.</strong> Para emitir con tu empresa y tenerla en <strong>Básico gratis</strong>, registra al
+            menos <strong>{est.minimo} empresas</strong> en tu cartera.
+            <div className="mie-progreso" role="progressbar" aria-valuemin={0} aria-valuemax={est.minimo} aria-valuenow={est.tiene}>
+              <i style={{ width: `${Math.min(100, (est.tiene / Math.max(est.minimo, 1)) * 100)}%` }} />
+            </div>
+            <small>Tienes {est.tiene} de {est.minimo}.</small>
+          </div>
+          {puede && <Link className="boton" to="/configurar?nueva=1">Agregar empresa a mi cartera</Link>}
+        </div>
+      )}
+      {est?.estado === 'aviso' && est.hasta && (
+        <div className="aviso ojo mie-estado">
+          <div><strong>Tu cartera bajó a {est.tiene} empresa{est.tiene === 1 ? '' : 's'}.</strong> Tu empresa puede emitir hasta el <strong>{fechaLarga(est.hasta)}</strong>.
+            Después podrás ver y descargar todo, pero no emitir, hasta que vuelvas a tener {est.minimo} empresas. No se borra nada.</div>
+          {puede && <Link className="boton secundario" to="/configurar?nueva=1">Agregar empresa</Link>}
+        </div>
+      )}
+      {est?.estado === 'no_emite' && (
+        <div className="aviso error mie-estado">
+          <div><strong>Tu empresa no puede emitir:</strong> tu cartera tiene menos de {est.minimo} empresas (hoy {est.tiene}). Puedes entrar a ver y
+            descargar todo. Agrega una empresa en «Mi cartera» y se reactiva sola.</div>
+          {puede && <Link className="boton secundario" to="/configurar?nueva=1">Agregar empresa</Link>}
+        </div>
+      )}
+      {est?.estado === 'activa' && est.gratisHasta && (
+        <div className="franja-plan">Básico gratis hasta el <strong>{fecha(est.gratisHasta.slice(0, 10))}</strong>. Después se cobra como una empresa más de tu cartera.</div>
+      )}
 
       {cuenta.descuento && (
         <div className="franja-plan">Beneficio activo: <strong>{cuenta.descuento.motivo}</strong>, {cuenta.descuento.porcentaje} % en tu Plan Cartera
@@ -116,7 +157,7 @@ export function MiEmpresaEstudio() {
 
       {estudio ? (
         <section className="bloque mie-empresa">
-          <h2>{estudio.nombre}</h2>
+          <h2>{estudio.nombre}{candado && <span className="mie-candado"> 🔒 con candado</span>}</h2>
           <p className="secundario">{estudio.ruc ? `RUC ${estudio.ruc}` : 'Sin RUC'}
             {dias !== null && ` · mes gratis: ${dias} día${dias === 1 ? '' : 's'} (hoy ve todo lo del ${NOMBRE_PLAN[estudio.efectivo === 'todo' ? 'max' : estudio.efectivo]})`}</p>
           {estudio.planProgramado && estudio.planProgramadoDesde && (
@@ -134,13 +175,20 @@ export function MiEmpresaEstudio() {
                   <div className="mie-precio">
                     {p.codigo === 'basico' ? <strong className="gratis">Gratis</strong> : <strong>+{soles(extraHoy(p, oferta))} al mes</strong>}
                     {actual ? <small>tu plan ahora</small>
-                      : puede && <button type="button" className="enlace" disabled={!!cambio.cargando} onClick={() => void cambiarA(p.codigo)}>
+                      : puede && !candado && <button type="button" className="enlace" disabled={!!cambio.cargando} onClick={() => void cambiarA(p.codigo)}>
                           {orden(p.codigo) > orden(estudio.plan) ? `Subir a ${p.nombre}` : `Bajar a ${p.nombre}`}</button>}
                   </div>
                 </div>
               )
             })}
           </div>
+          {candado && (
+            <div className="mie-bloqueados" aria-label="Lo que se activa con tu cartera">
+              <div><strong>🔒 Comprobantes</strong><span>Facturas, boletas y notas</span></div>
+              <div><strong>🔒 Clientes y productos</strong><span>Con consulta RUC y DNI</span></div>
+              <div><strong>🔒 Guías y reportes</strong><span>Reportes esenciales</span></div>
+            </div>
+          )}
           <p className="nota">Si la subes a mitad de mes, pagas la diferencia solo por los días que faltan. Va en el mismo comprobante de tu
             <Link to="/mi-plan"> Plan Cartera</Link>.</p>
           {puede && <p className="nota">¿Te equivocaste de empresa? <button type="button" className="enlace" disabled={ocupado === 'marcar'} onClick={() => void marcar(null)}>Ya no es mi empresa</button>.</p>}

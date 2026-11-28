@@ -1,3 +1,4 @@
+import type { EstadoMiEmpresa } from '../../../nucleo/sesion/tipos'
 import { api } from '../../../nucleo/api/cliente'
 
 /** 069: Básico, Pro o Max. */
@@ -37,6 +38,9 @@ export interface Reglas {
   paqueteCantidad?: number
   paquetePrecioRegular?: number
   paquetePrecioOferta?: number
+  /** 098: Mi empresa (Cuenta Profesional): meses de Básico gratis (0 = sin fin) y días de aviso. */
+  miEmpresaMesesGratis?: number
+  miEmpresaDiasAviso?: number
 }
 
 /** 085: el tope de comprobantes del mes de una empresa. */
@@ -146,6 +150,8 @@ export interface ResumenCuenta {
   asignadasPro?: number
   asignadasMax?: number
   descuento?: { porcentaje: number; empresasMax: number | null; hasta: string; motivo: string; monto: number } | null
+  /** 098: el estado de «Mi empresa» (solo Cuenta Profesional). */
+  estudio?: EstadoMiEmpresa | null
   /** 083: diferencias por subir de plan que se suman al próximo cobro. */
   pendientes?: number
 }

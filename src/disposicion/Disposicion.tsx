@@ -373,6 +373,13 @@ export function Disposicion() {
             <nav className="seccion-lateral">
               <span className="titulo-seccion">Mi empresa</span>
               <NavLink to="/mi-estudio/empresa" className={activo}><Icono>⌂</Icono>Mi empresa</NavLink>
+              {/* 098: con menos del mínimo en la cartera, sus menús van con candado. */}
+              {cuenta?.estudio?.estado === 'sin_activar' && ['Comprobantes', 'Clientes', 'Productos', 'Guías de remisión', 'Reportes'].map(n => (
+                <button key={n} type="button" className="boton-lateral con-candado-lateral"
+                  onClick={() => mensaje.ojo(`«${n}» de tu empresa se activa cuando tengas al menos ${cuenta.estudio!.minimo} empresas en tu cartera. Hoy tienes ${cuenta.estudio!.tiene}.`)}>
+                  <span className="icono-candado" aria-hidden="true">🔒</span>{n}
+                </button>
+              ))}
             </nav>
           )}
 

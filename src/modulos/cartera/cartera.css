@@ -46,3 +46,9 @@
   .car-pagina .resumen-bandeja.resumen-cartera { flex-wrap: wrap; }
   .car-pagina .resumen-bandeja > button.tarjeta-filtro { flex: 1 1 33%; border-bottom: 1px solid var(--borde-sutil, #e6ebef); }
 }
+
+/* e283 (098): «la Cuenta Profesional es para 2 o más» y dónde está Mi empresa. */
+.car-minimo { display: flex; gap: 14px; align-items: center; justify-content: space-between; margin-bottom: 12px; line-height: 1.5; }
+.car-minimo .boton { flex: none; white-space: nowrap; }
+.car-nota-estudio { margin: -4px 0 12px; font-size: 12.5px; }
+@media (max-width: 760px) { .car-minimo { flex-direction: column; align-items: flex-start; } }
