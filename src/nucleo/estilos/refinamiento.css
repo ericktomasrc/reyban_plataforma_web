@@ -1275,3 +1275,8 @@ button, input, select, textarea {
 .tabla:has(.cuenta-empresa) td.acciones { min-width: 210px; }
 .tabla .cuenta-empresa .etiqueta { white-space: nowrap; }
 .tabla .cuenta-empresa .enlace { text-align: left; font-size: inherit; }
+
+/* e288: selector de empresas: «Mi empresa» arriba y la cartera con su propio scroll. */
+.selector-separador-fuerte { height: 2px; background: var(--borde); margin: 8px 0; }
+.selector-lista.selector-propia { max-height: none; overflow: visible; }
+.selector-menu .selector-lista:not(.selector-propia) { max-height: 300px; overflow-y: auto; scrollbar-gutter: stable; }

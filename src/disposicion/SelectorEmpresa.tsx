@@ -94,7 +94,7 @@ export function SelectorEmpresa({ estudio, avisos }: { estudio: boolean; avisos?
     .filter(e => !e.pausadaEn && !e.esDelEstudio)
     .filter(coincide)
   // e285: la empresa del estudio, en su propio grupo «Mi empresa».
-  const propia = (empresas ?? []).find(e => e.esDelEstudio && !e.pausadaEn && coincide(e))
+  const propia = (empresas ?? []).find(e => e.esDelEstudio && !e.pausadaEn)
   const candado = cuenta?.estudio?.estado === 'sin_activar'
 
   return (
@@ -132,14 +132,37 @@ export function SelectorEmpresa({ estudio, avisos }: { estudio: boolean; avisos?
             <IndicadorCertificado datos={avisos} numero />
             {estudio && <span className="selector-marca" aria-hidden="true">✓</span>}
           </button>
-          <div className="selector-separador" />
-          <input className="selector-buscar" placeholder="Buscar empresa o RUC…" autoFocus
+          {/* e288: «Mi empresa» arriba, separada de la cartera (no la filtra el buscador). */}
+          {propia && (
+            <>
+              <div className="selector-separador" />
+              <span className="selector-subtitulo">Mi empresa</span>
+              <ul role="listbox" className="selector-lista selector-propia">
+                <li role="option" aria-selected={propia.abierta}>
+                  <button type="button" className={'selector-opcion' + (propia.abierta && !estudio ? ' elegida' : '') + (candado ? ' con-candado' : '')}
+                          onClick={() => void elegir(propia)}>
+                    <span>
+                      <strong>{candado ? '🔒 ' : ''}{propia.nombre}</strong>
+                      <span className="selector-ruc">RUC {propia.ruc}{candado ? ' · se activa con 2 empresas en tu cartera' : ''}</span>
+                    </span>
+                    {propia.abierta && !estudio
+                      ? <span className="selector-marca" aria-hidden="true">✓</span>
+                      : estadoDe(propia) !== 'lista' && <span className={`estado-empresa ${estadoDe(propia)}`}>{textoEstado(propia)}</span>}
+                  </button>
+                </li>
+              </ul>
+            </>
+          )}
+          <div className="selector-separador selector-separador-fuerte" />
+          <input className="selector-buscar" placeholder="Buscar en tu cartera (nombre o RUC)…" autoFocus
                  value={buscar} onChange={e => setBuscar(e.target.value)} />
-          <span className="selector-subtitulo">Entrar a una empresa</span>
+          <span className="selector-subtitulo">
+            Tu cartera{total !== null ? ` · ${texto ? `${visibles.length} de ${total}` : total}` : ''}
+          </span>
 
           <ul role="listbox" className="selector-lista">
             {empresas === null && <li className="selector-vacio">Cargando…</li>}
-            {empresas !== null && visibles.length === 0 && <li className="selector-vacio">Ninguna empresa.</li>}
+            {empresas !== null && visibles.length === 0 && <li className="selector-vacio">{texto ? `Ninguna empresa con «${buscar.trim()}».` : 'Todavía no tienes empresas en tu cartera.'}</li>}
             {visibles.map(e => {
               const estado = estadoDe(e)
               return (
@@ -159,25 +182,6 @@ export function SelectorEmpresa({ estudio, avisos }: { estudio: boolean; avisos?
             })}
           </ul>
 
-          {propia && (
-            <>
-              <span className="selector-subtitulo">Mi empresa</span>
-              <ul role="listbox" className="selector-lista">
-                <li role="option" aria-selected={propia.abierta}>
-                  <button type="button" className={'selector-opcion' + (propia.abierta && !estudio ? ' elegida' : '') + (candado ? ' con-candado' : '')}
-                          onClick={() => void elegir(propia)}>
-                    <span>
-                      <strong>{candado ? '🔒 ' : ''}{propia.nombre}</strong>
-                      <span className="selector-ruc">RUC {propia.ruc}{candado ? ' · se activa con 2 empresas en tu cartera' : ''}</span>
-                    </span>
-                    {propia.abierta && !estudio
-                      ? <span className="selector-marca" aria-hidden="true">✓</span>
-                      : estadoDe(propia) !== 'lista' && <span className={`estado-empresa ${estadoDe(propia)}`}>{textoEstado(propia)}</span>}
-                  </button>
-                </li>
-              </ul>
-            </>
-          )}
 
           <div className="selector-pie">
             <Link to="/empresas" onClick={() => setAbierto(false)}>Ver todas en Mi cartera</Link>
