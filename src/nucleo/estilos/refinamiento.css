@@ -1280,3 +1280,29 @@ button, input, select, textarea {
 .selector-separador-fuerte { height: 2px; background: var(--borde); margin: 8px 0; }
 .selector-lista.selector-propia { max-height: none; overflow: visible; }
 .selector-menu .selector-lista:not(.selector-propia) { max-height: 300px; overflow-y: auto; scrollbar-gutter: stable; }
+
+/* e289: más sobrio. El selector de arriba más compacto y los títulos de las
+   páginas más pequeños en toda la app (dentro del panel; el acceso y las
+   páginas públicas no cambian). */
+.cabecera .selector-boton { font-size: 13px; padding: 5px 10px; gap: 6px; }
+.cabecera .selector-boton strong { font-weight: 600; }
+.cabecera .selector-boton .selector-icono { width: 14px; height: 14px; }
+.cabecera .selector-cuantas { font-size: 11px; padding: 0 7px; }
+.selector-empresa .selector-menu { width: 330px; padding: 6px; border-radius: 10px; }
+.selector-empresa .selector-opcion { padding: 6px 8px; gap: 8px; }
+.selector-empresa .selector-estudio { padding: 7px 8px !important; }
+.selector-empresa .selector-opcion strong { font-size: 13px; font-weight: 500; line-height: 1.3; }
+.selector-empresa .selector-ruc { font-size: 11.5px; line-height: 1.35; }
+.selector-empresa .selector-subtitulo { font-size: 10px; padding: 2px 8px 3px; letter-spacing: .07em; }
+.selector-empresa .selector-separador { margin: 5px 2px; }
+.selector-empresa .selector-separador-fuerte { height: 1px; margin: 6px 0; background: var(--borde); }
+.selector-empresa .selector-buscar { height: 30px; font-size: 13px; padding: 0 9px; margin-bottom: 4px; }
+.selector-empresa .selector-opcion .estado-empresa { font-size: 11px; padding: 1px 7px; white-space: nowrap; }
+.selector-empresa .selector-pie { font-size: 12.5px; padding: 7px 8px 2px; margin-top: 4px; }
+.selector-empresa .selector-pie .secundario { font-size: 12px; }
+.selector-menu .selector-lista:not(.selector-propia) { max-height: 260px; }
+
+.contenido .titulo-pagina { font-size: 19px !important; font-weight: 650 !important; line-height: 1.3 !important; letter-spacing: -.015em !important; }
+.contenido .titulo-pagina .lst-cuenta { font-size: 12px; font-weight: 400; letter-spacing: 0; }
+.contenido .bajada-pagina { font-size: 13px; }
+@media (max-width: 640px) { .contenido .titulo-pagina { font-size: 18px !important; } }
