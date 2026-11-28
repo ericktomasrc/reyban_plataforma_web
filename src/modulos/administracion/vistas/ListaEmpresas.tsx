@@ -84,9 +84,9 @@ export function ListaEmpresas() {
   if (empresas.cargando && !empresas.datos) return <Cargando />
 
   return (
-    <>
-      <div className="encabezado-pagina">
-        <h1 className="titulo-pagina">Empresas</h1>
+    <div className="emp-pagina">
+      {/* e292: el título va en «Clientes»; el botón, arriba a la derecha. */}
+      <div className="cli-boton-alta">
         {/* e193: cada botón, solo a quien tiene su permiso (equipo de la plataforma). */}
         <Si puede={Permisos.Plataforma.EmpresasGestionar}>
           <Boton onClick={() => setCreando(true)}>Dar de alta</Boton>
@@ -98,7 +98,7 @@ export function ListaEmpresas() {
       {empresas.datos && <CertificadosPorVencer empresas={empresas.datos} filtrando={estadoE === 'certificado'}
                                                 onVer={() => { setEstadoE('certificado'); setQE(''); setDesdeE(''); setHastaE('') }} />}
 
-      <div className="filtros-lista">
+      <div className="filtros-lista cue-filtros emp-filtros">
         <label className="buscar"><span>Buscar</span>
           <input value={qE} onChange={e => setQE(e.target.value)} placeholder="Nombre, RUC, razón social o titular de la cuenta" /></label>
         <label><span>Cuenta</span>
@@ -118,7 +118,7 @@ export function ListaEmpresas() {
         <FiltroFechas desde={desdeE} hasta={hastaE} onDesde={setDesdeE} onHasta={setHastaE} />
       </div>
 
-      <div className="bloque sin-relleno">
+      <div className="bloque sin-relleno emp-tabla">
         {empresas.datos && empresas.datos.length > 0 ? (
           <table className="tabla">
             <thead>
@@ -339,7 +339,7 @@ export function ListaEmpresas() {
           }}
         />
       )}
-    </>
+    </div>
   )
 }
 

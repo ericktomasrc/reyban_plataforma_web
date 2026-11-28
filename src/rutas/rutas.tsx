@@ -12,6 +12,7 @@ import { Protegido } from '../nucleo/autorizacion/Protegido'
 import { Modulos, Permisos } from '../nucleo/autorizacion/permisos'
 import { ListaEmpresas } from '../modulos/administracion/vistas/ListaEmpresas'
 import { ListaCuentas } from '../modulos/administracion/vistas/ListaCuentas'
+import { ClientesPlataforma } from '../modulos/administracion/vistas/ClientesPlataforma'
 import { SolicitudesTraspaso } from '../modulos/administracion/vistas/SolicitudesTraspaso'
 import { ConexionSunatPagina } from '../modulos/administracion/vistas/ConexionSunat'
 import { CorreosPagina } from '../modulos/administracion/vistas/Correos'
@@ -185,7 +186,7 @@ export function Rutas() {
           path="/admin/empresas"
           element={
             <Protegido soloSuperAdmin>
-              <ListaEmpresas />
+              <ClientesPlataforma pestana="empresa"><ListaEmpresas /></ClientesPlataforma>
             </Protegido>
           }
         />
@@ -193,7 +194,7 @@ export function Rutas() {
           path="/admin/cuentas"
           element={
             <Protegido soloSuperAdmin>
-              <ListaCuentas />
+              <ClientesPlataforma pestana="cuenta"><ListaCuentas /></ClientesPlataforma>
             </Protegido>
           }
         />

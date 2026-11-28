@@ -19,7 +19,6 @@ import { planesServicio, type UsoComprobantes } from '../../planes/servicios/pla
 import { hace } from '../../cartera/servicios/carteraServicio'
 import { PlanDeEmpresa, UsoDelMes } from './ListaEmpresas'
 import type { EmpresaEnLista } from '../tipos'
-import './cuentas.css'
 
 type Banda = 'todas' | Grupo
 type Tipo = 'todas' | 'negocio' | 'profesional'
@@ -101,16 +100,6 @@ export function ListaCuentas() {
 
   return (
     <div className="cue-pagina">
-      <div className="encabezado-pagina">
-        <div>
-          <h1 className="titulo-pagina">Cuentas</h1>
-          <p className="bajada-pagina">
-            Cómo está cada cuenta hoy. Toca una tarjeta para filtrar y una fila para ver sus empresas.
-            Suspender una cuenta corta sus sesiones al instante; no borra nada.
-          </p>
-        </div>
-      </div>
-
       <div className="cue-banda" role="group" aria-label="Filtrar por estado">
         {BANDA.map(([b, titulo, sub]) => (
           <button key={b} type="button" aria-pressed={banda === b} className={banda === b ? 'elegida' : undefined}

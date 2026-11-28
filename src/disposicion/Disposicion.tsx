@@ -524,9 +524,11 @@ export function Disposicion() {
             <nav className="seccion-lateral">
               <span className="titulo-seccion">Plataforma</span>
               <NavLink to="/" end className={activo}><Icono>⌂</Icono>Inicio</NavLink>
-              <NavLink to="/admin/empresas" className={activo}><Icono>▦</Icono>Empresas</NavLink>
-              {/* 067: cada entrada, con su permiso (el dueño los tiene todos). */}
-              {puede(Permisos.Plataforma.CuentasGestionar) && <NavLink to="/admin/cuentas" className={activo}><Icono>◎</Icono>Cuentas</NavLink>}
+              {/* e292: «Clientes» = Cuentas y Empresas juntas, en dos pestañas. */}
+              <NavLink to={puede(Permisos.Plataforma.CuentasGestionar) ? '/admin/cuentas' : '/admin/empresas'}
+                       className={() => ruta.pathname.startsWith('/admin/cuentas') || ruta.pathname.startsWith('/admin/empresas') ? 'activo' : undefined}>
+                <Icono>▦</Icono>Clientes
+              </NavLink>
               {/* 089: usuario y contraseña para que Culqi (o un banco) pruebe como un cliente. */}
               {puede(Permisos.Plataforma.CuentasGestionar) && <NavLink to="/admin/revision" className={activo}><Icono>⚑</Icono>Accesos de revisión</NavLink>}
               {/* e274 (091): lo que pagan los clientes por sus planes, y sus reportes. */}
@@ -676,8 +678,8 @@ function nombreDePagina(ruta: string): string | null {
   if (ruta.startsWith('/admin/errores')) return 'Errores del sistema'
   if (ruta.startsWith('/pos/plan')) return 'Punto de venta'
   if (ruta.startsWith('/pos/ofertas')) return 'Ofertas'
-  if (ruta.startsWith('/admin/empresas')) return 'Empresas'
-  if (ruta.startsWith('/admin/cuentas')) return 'Cuentas'
+  if (ruta.startsWith('/admin/empresas')) return 'Clientes'
+  if (ruta.startsWith('/admin/cuentas')) return 'Clientes'
   if (ruta.startsWith('/admin/revision')) return 'Accesos de revisión'
   if (ruta.startsWith('/admin/equipo')) return 'Equipo de la plataforma'
   if (ruta.startsWith('/admin/traspasos')) return 'Solicitudes de traspaso'

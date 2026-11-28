@@ -86,3 +86,68 @@
 .cue-pagina .cue-subtabla td:first-child { min-width: 210px; }
 .cue-pagina .cue-subtabla td:nth-child(6) { min-width: 180px; }
 .cue-pagina .cue-subtabla { min-width: 1180px; }
+
+/* =============================================================================
+   e292 — «CLIENTES»: Cuentas y Empresas en un menú, con dos pestañas. Los
+   filtros (fechas incluidas) y la tabla de Empresas, sobrios como Cuentas.
+   ========================================================================== */
+.cli-pagina { position: relative; font-size: 13px; }
+.cli-cabecera { padding-right: 160px; }
+.cli-cabecera .titulo-pagina { margin: 0; }
+.cli-cabecera .bajada-pagina { margin: 4px 0 0; color: var(--tinta-2); font-size: 13px; max-width: 760px; }
+.cli-pestanas { display: flex; gap: 22px; margin: 12px 0 16px; border-bottom: 1px solid var(--borde); }
+.cli-pestanas a { padding: 8px 0 10px; margin-bottom: -1px; border-bottom: 2px solid transparent; font-size: 13.5px; color: var(--tinta-2); text-decoration: none; }
+.cli-pestanas a:hover { color: var(--tinta); }
+.cli-pestanas a.on { color: var(--tinta); font-weight: 600; border-bottom-color: var(--acento); }
+.cli-boton-alta { position: absolute; top: 0; right: 0; }
+.cli-boton-alta .boton { min-height: 36px; padding: 0 16px; font-size: 13px; }
+
+/* Filtros: rótulo pequeño arriba y cajas de la misma altura (fechas incluidas). */
+.cue-filtros { align-items: flex-end; }
+.cue-filtros label { display: flex; flex-direction: column; gap: 3px; margin: 0; font-size: 11px; color: var(--tinta-3); font-weight: 500; }
+.cue-filtros label > span { font-size: 11px; color: var(--tinta-3); font-weight: 500; }
+.cue-filtros input[type="date"], .cue-filtros select, .cue-filtros label input {
+  height: 34px; min-height: 34px; padding: 0 10px; font: inherit; font-size: 12.5px; color: var(--tinta);
+  border: 1px solid var(--borde); border-radius: 8px; background: var(--superficie); box-shadow: none; }
+.cue-filtros input[type="date"] { width: 140px; }
+.cue-filtros input[type="date"]::-webkit-calendar-picker-indicator { opacity: .45; cursor: pointer; }
+.cue-filtros input[type="date"]:hover::-webkit-calendar-picker-indicator { opacity: .8; }
+.cue-filtros input:focus, .cue-filtros select:focus { outline: 2px solid var(--acento); outline-offset: -1px; border-color: transparent; }
+.emp-filtros { margin: 0; }
+.emp-filtros .buscar { flex: 1 1 280px; max-width: 420px; }
+.emp-filtros .buscar input { width: 100%; }
+.emp-filtros select { min-width: 150px; }
+
+/* La tabla de Empresas */
+.emp-pagina .emp-tabla { margin-top: 0; border: 1px solid var(--borde-sutil, #e6ebef); border-radius: 0 0 12px 12px; background: var(--superficie); overflow-x: auto; box-shadow: none; }
+.emp-pagina .tabla th { font-size: 11px; letter-spacing: .04em; color: var(--tinta-3); white-space: nowrap; }
+.emp-pagina .tabla td { font-size: 12.5px; vertical-align: middle; }
+.emp-pagina .tabla .principal { font-weight: 600; font-size: 13px; }
+.emp-pagina .tabla .secundario { font-size: 11.5px; color: var(--tinta-3); }
+.emp-pagina .tabla td:first-child { min-width: 180px; }
+.emp-pagina .tabla .etiquetas { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; min-width: 220px; max-width: 280px; }
+.emp-pagina .tabla .etiquetas .etiqueta { font-size: 11px; padding: 1px 8px; border-radius: 999px; white-space: nowrap; font-weight: 500; }
+.emp-pagina .tabla .plan-chico { font-size: 10.5px; margin: 0; }
+.emp-pagina .cuenta-empresa .etiqueta { font-size: 11px; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.emp-pagina .tabla .estado { font-size: 12px; }
+.emp-pagina .tabla td.acciones { width: 200px; min-width: 200px; white-space: normal; text-align: left; line-height: 1.2; }
+.emp-pagina .tabla td.acciones .boton { min-height: 24px; height: 24px; padding: 0 6px; margin: 1px 2px 1px 0; font-size: 12px; color: var(--tinta-2); }
+.emp-pagina .tabla td.acciones .boton:hover { color: var(--acento); }
+@media (max-width: 720px) { .cli-cabecera { padding-right: 0; } .cli-boton-alta { position: static; margin: 0 0 10px; } }
+.emp-pagina .cue-filtros.filtros-lista { margin: 0; border-bottom: 0; border-radius: 12px 12px 0 0; }
+.emp-pagina .cue-filtros select, .emp-pagina .cue-filtros input { font-size: 12.5px !important; height: 34px !important; min-height: 34px !important; }
+.emp-pagina .cuenta-empresa { min-width: 190px; }
+.emp-pagina .cuenta-empresa a { white-space: nowrap; }
+.emp-pagina .tabla td.acciones, .emp-pagina .tabla th:last-child { position: sticky; right: 0; background: var(--superficie); box-shadow: -8px 0 8px -8px rgb(0 0 0 / 12%); }
+.emp-pagina .tabla th:last-child { background: #fafbfc; }
+.emp-pagina .tabla tr.apagada td.acciones { background: var(--hundido); }
+.emp-pagina .tabla th { white-space: normal; }
+.emp-pagina .tabla td:first-child { min-width: 150px; }
+.emp-pagina .cuenta-empresa { min-width: 165px; max-width: 190px; }
+.emp-pagina .tabla .etiquetas { min-width: 200px; max-width: 230px; }
+.emp-pagina .tabla td.acciones { width: 170px; min-width: 170px; }
+.emp-pagina .tabla th, .emp-pagina .tabla td { padding-left: 10px; padding-right: 10px; }
+.emp-pagina .tabla td.acciones, .emp-pagina .tabla th:last-child { position: static; box-shadow: none; }
+.emp-pagina .tabla td.acciones { width: 160px; min-width: 160px; }
+.emp-pagina .tabla td:nth-child(4) { width: 60px; }
+.emp-pagina .tabla th:last-child { background: inherit; }
