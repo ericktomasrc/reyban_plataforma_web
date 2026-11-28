@@ -47,6 +47,13 @@ export interface EmpresaEnLista {
    * Los `null` de dentro son «todavía no se preguntó»: no se pinta nada.
    */
   facturacion: MarcasFacturacion | null
+
+  /**
+   * e284: de qué cuenta es. negocio = Cuenta Negocio; cartera = cliente de un
+   * estudio (Cuenta Profesional); estudio = la empresa del propio estudio
+   * («Mi empresa»). Nulo = sin cuenta (la dio de alta el super admin).
+   */
+  cuenta?: { id: string; tipo: 'negocio' | 'profesional'; titular: string | null; empresasCuenta: number; rol: 'negocio' | 'cartera' | 'estudio' } | null
 }
 
 export interface MarcasFacturacion {

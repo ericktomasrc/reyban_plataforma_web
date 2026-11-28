@@ -1269,3 +1269,9 @@ button, input, select, textarea {
 .lateral .con-candado-lateral { color: var(--tinta-3); opacity: .8; }
 .lateral .con-candado-lateral:hover { opacity: 1; }
 .lateral .con-candado-lateral .icono-candado { width: 20px; display: inline-flex; justify-content: center; font-size: 12px; filter: grayscale(1); }
+
+/* e284: la columna «Cuenta» de Empresas (super admin). */
+.tabla .cuenta-empresa { min-width: 150px; max-width: 190px; }
+.tabla:has(.cuenta-empresa) td.acciones { min-width: 210px; }
+.tabla .cuenta-empresa .etiqueta { white-space: nowrap; }
+.tabla .cuenta-empresa .enlace { text-align: left; font-size: inherit; }

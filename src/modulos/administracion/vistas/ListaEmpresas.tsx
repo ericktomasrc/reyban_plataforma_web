@@ -51,6 +51,7 @@ export function ListaEmpresas() {
   const [facturacion, setFacturacion]   = useState<EmpresaEnLista>()
   const [qE, setQE] = useState('')
   const [estadoE, setEstadoE] = useState('todas')
+  const [cuentaE, setCuentaE] = useState('todas')   // e284: tipo de cuenta
   const [desdeE, setDesdeE] = useState('')
   const [hastaE, setHastaE] = useState('')
 
@@ -73,10 +74,11 @@ export function ListaEmpresas() {
 
   // 24 oct: buscar, estado, fechas de alta y páginas (antes del «return»).
   const filtradas = (empresas.datos ?? []).filter(e =>
-    contiene(qE, e.nombre, e.ruc, e.razonSocial) &&
+    contiene(qE, e.nombre, e.ruc, e.razonSocial, e.cuenta?.titular) &&
+    (cuentaE === 'todas' || (cuentaE === 'sin' ? !e.cuenta : e.cuenta?.rol === cuentaE)) &&
     (estadoE === 'todas' || (estadoE === 'certificado' ? certificadoUrgente(e) : estadoE === 'suspendidas' ? !!e.suspendidaEn : estadoE === 'activas' ? e.activo && !e.suspendidaEn : !e.activo)) &&
     (!desdeE || (e.creadoEn ?? '').slice(0, 10) >= desdeE) && (!hastaE || (e.creadoEn ?? '').slice(0, 10) <= hastaE))
-  const { visibles, paginacion } = usePaginaLocal(filtradas, `${qE}|${estadoE}|${desdeE}|${hastaE}`)
+  const { visibles, paginacion } = usePaginaLocal(filtradas, `${qE}|${estadoE}|${cuentaE}|${desdeE}|${hastaE}`)
 
   if (empresas.cargando && !empresas.datos) return <Cargando />
 
@@ -97,7 +99,15 @@ export function ListaEmpresas() {
 
       <div className="filtros-lista">
         <label className="buscar"><span>Buscar</span>
-          <input value={qE} onChange={e => setQE(e.target.value)} placeholder="Nombre, RUC o razón social" /></label>
+          <input value={qE} onChange={e => setQE(e.target.value)} placeholder="Nombre, RUC, razón social o titular de la cuenta" /></label>
+        <label><span>Cuenta</span>
+          <select value={cuentaE} onChange={e => setCuentaE(e.target.value)}>
+            <option value="todas">Todas</option>
+            <option value="negocio">Cuenta Negocio</option>
+            <option value="cartera">Cartera de un estudio</option>
+            <option value="estudio">Mi empresa (del estudio)</option>
+            <option value="sin">Sin cuenta</option>
+          </select></label>
         <label><span>Estado</span>
           <select value={estadoE} onChange={e => setEstadoE(e.target.value)}>
             <option value="todas">Todas</option><option value="activas">Activas</option>
@@ -113,6 +123,7 @@ export function ListaEmpresas() {
             <thead>
               <tr>
                 <th>Empresa</th>
+                <th>Cuenta</th>
                 <th>RUC</th>
                 <th className="centro">Usuarios</th>
                 <th>Comprobantes este mes</th>
@@ -137,6 +148,8 @@ export function ListaEmpresas() {
                         <div className="secundario">{e.motivoSuspension}</div>
                       )}
                     </td>
+
+                    <td className="cuenta-empresa"><CuentaDeEmpresa e={e} onFiltrar={t => { setQE(t); setCuentaE('todas') }} /></td>
 
                     <td>
                       {e.ruc
@@ -447,6 +460,27 @@ function UsoDelMes({ u }: { u?: UsoComprobantes }) {
       {(u.saldo > 0 || u.paquetes > 0) && (
         <div className="secundario">{u.paquetes} paquete{u.paquetes === 1 ? '' : 's'} · le quedan {n(u.saldo)}</div>
       )}
+    </>
+  )
+}
+
+/**
+ * e284: DE QUÉ CUENTA ES LA EMPRESA. Cuenta Negocio, cartera de un estudio
+ * (cliente de una Cuenta Profesional), «Mi empresa» del estudio o sin cuenta.
+ * Tocar el nombre del estudio filtra la lista por él.
+ */
+function CuentaDeEmpresa({ e, onFiltrar }: { e: EmpresaEnLista; onFiltrar: (texto: string) => void }) {
+  const c = e.cuenta
+  if (!c) return <><span className="etiqueta">Sin cuenta</span><div className="secundario">Alta del super admin</div></>
+  const titular = c.titular ?? 'Sin nombre'
+  if (c.rol === 'negocio') return <><span className="etiqueta">Cuenta Negocio</span><div className="secundario">{titular}</div></>
+  return (
+    <>
+      <span className={c.rol === 'estudio' ? 'etiqueta acento' : 'etiqueta'}>{c.rol === 'estudio' ? 'Mi empresa del estudio' : 'Cartera de un estudio'}</span>
+      <div className="secundario">
+        <button type="button" className="enlace" title="Ver todas las empresas de esta cuenta" onClick={() => onFiltrar(titular)}>{titular}</button>
+        <div>{c.empresasCuenta} en su cartera</div>
+      </div>
     </>
   )
 }
