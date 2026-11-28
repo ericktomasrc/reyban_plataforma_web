@@ -83,6 +83,13 @@ export function Campanita({ datos, onMarcar }: { datos?: Avisos; onMarcar: (clav
  * lado de «Mis empresas» (cuántas por vencer); en la Cuenta Negocio, una
  * bolita al lado del nombre de la empresa (verde, naranja o rojo).
  */
+/** e285: el número rojo de «Mi empresa» (su certificado), junto a su menú. */
+export function IndicadorMiEmpresa({ datos }: { datos?: Avisos }) {
+  const m = datos?.miEmpresa
+  if (!m) return null
+  return <span className={`cert-numero ${m.nivel}`} title={m.titulo}>1</span>
+}
+
 export function IndicadorCertificado({ datos, numero }: { datos?: Avisos; numero: boolean }) {
   const c = datos?.certificado
   if (!c?.nivel) return null

@@ -9,6 +9,7 @@ import { useConfirmar } from '../../../nucleo/hooks/useConfirmar'
 import { useMensaje } from '../../../nucleo/mensajes/ProveedorMensajes'
 import { NOMBRE_PLAN, diasQueFaltan, soles } from '../../../nucleo/planes/planes'
 import { useSesion } from '../../../nucleo/sesion/SesionContexto'
+import { avisosServicio } from '../../avisos/avisosServicio'
 import { carteraServicio } from '../../cartera/servicios/carteraServicio'
 import { useCambioPlan } from '../componentes/CambioPlan'
 import { etiquetaPlan, extraHoy, planesServicio, type CodigoPlan, type MiPlan } from '../servicios/planesServicio'
@@ -32,6 +33,13 @@ export function MiEmpresaEstudio() {
   const [ocupado, setOcupado] = useState<string | null>(null)
 
   const [recargar, setRecargar] = useState(0)
+  // e285: el aviso del certificado de tu empresa.
+  const [certificado, setCertificado] = useState<{ nivel: string; titulo: string; detalle: string | null } | null>(null)
+  useEffect(() => {
+    let vivo = true
+    avisosServicio.listar().then(a => { if (vivo) setCertificado(a.miEmpresa ?? null) }).catch(() => { /* sin aviso */ })
+    return () => { vivo = false }
+  }, [])
   useEffect(() => {
     let vivo = true
     planesServicio.mio()
@@ -118,6 +126,13 @@ export function MiEmpresaEstudio() {
           onClick={() => candado ? mensaje.ojo(mensajeCandado) : void entrar()}>{candado ? '🔒 Entrar a emitir' : est?.estado === 'no_emite' ? 'Entrar (solo ver)' : 'Entrar a emitir'}</Boton>}
       </div>
 
+      {/* e285: el certificado de tu empresa (el de los clientes va en Mi cartera). */}
+      {certificado && (
+        <div className={`aviso ${certificado.nivel === 'rojo' ? 'error' : 'ojo'} mie-estado`}>
+          <div><strong>{certificado.titulo}.</strong> {certificado.detalle}</div>
+          {estudio && !candado && <Boton estilo="secundario" ocupado={ocupado === 'entrar'} onClick={() => void entrar()}>Entrar a mi empresa</Boton>}
+        </div>
+      )}
       {/* 098: el estado de Mi empresa según las empresas de la cartera. */}
       {est && candado && (
         <div className="aviso ojo mie-estado">
@@ -159,7 +174,9 @@ export function MiEmpresaEstudio() {
         <section className="bloque mie-empresa">
           <h2>{estudio.nombre}{candado && <span className="mie-candado"> 🔒 con candado</span>}</h2>
           <p className="secundario">{estudio.ruc ? `RUC ${estudio.ruc}` : 'Sin RUC'}
-            {dias !== null && ` · mes gratis: ${dias} día${dias === 1 ? '' : 's'} (hoy ve todo lo del ${NOMBRE_PLAN[estudio.efectivo === 'todo' ? 'max' : estudio.efectivo]})`}</p>
+            {/* e285: con candado no se habla del mes gratis (no puede usarlo). */}
+            {candado && est ? ` · se activa con ${est.minimo} empresas en tu cartera (tienes ${est.tiene})`
+              : dias !== null && ` · mes gratis: ${dias} día${dias === 1 ? '' : 's'} (hoy ve todo lo del ${NOMBRE_PLAN[estudio.efectivo === 'todo' ? 'max' : estudio.efectivo]})`}</p>
           {estudio.planProgramado && estudio.planProgramadoDesde && (
             <p className="franja-programado"><span>El {fecha(estudio.planProgramadoDesde)} pasa a {NOMBRE_PLAN[estudio.planProgramado]}. Hasta entonces sigue en {NOMBRE_PLAN[estudio.plan]}.</span></p>
           )}

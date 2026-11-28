@@ -178,7 +178,9 @@ export function MisEmpresas() {
         {pedidos.length > 0 && <PedidosATitulares pedidos={pedidos} onCancelar={cancelarPedido} onOcultar={ocultarPedido} />}
         <section className="bloque vacio-bandeja">
           <h2>Todavía no tienes empresas</h2>
-          <p className="texto-paso">Agrega la primera y te guiamos hasta emitir.</p>
+          <p className="texto-paso">Agrega la primera y te guiamos hasta emitir.
+            {cuenta?.tipo === 'profesional' && cuenta.estudio && <> Con al menos <strong>{cuenta.estudio.minimo} empresas</strong> se activa también tu empresa
+              (<Link to="/mi-estudio/empresa">Mi empresa</Link>) en Básico gratis.</>}</p>
           {agrega && <Link to="/configurar?nueva=1" className="boton">Agregar mi primera empresa</Link>}
         </section>
       </>) : (

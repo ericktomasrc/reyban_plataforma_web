@@ -22,6 +22,8 @@ export interface Avisos {
   nivel: NivelAviso | null
   /** El certificado, para el menú: cuántas empresas por vencer (≤ 30 días), el color y los días del que vence primero. */
   certificado: { empresas: number; nivel: NivelAviso | null; dias: number | null }
+  /** e285: el certificado de «Mi empresa» (la del estudio), aparte del de la cartera. */
+  miEmpresa?: { nivel: NivelAviso; titulo: string; detalle: string | null } | null
 }
 
 export const avisosServicio = {

@@ -41,7 +41,8 @@ export function SelectorEmpresa({ estudio, avisos }: { estudio: boolean; avisos?
   const [total, setTotal] = useState<number | null>(null)
   useEffect(() => {
     let vivo = true
-    carteraServicio.empresas().then(l => { if (vivo) setTotal(l.length) }).catch(() => { /* sin número */ })
+    // e285: «Mi empresa» (la del estudio) no cuenta como empresa de la cartera.
+    carteraServicio.empresas().then(l => { if (vivo) setTotal(l.filter(e => !e.esDelEstudio).length) }).catch(() => { /* sin número */ })
     return () => { vivo = false }
   }, [])
 
@@ -49,7 +50,7 @@ export function SelectorEmpresa({ estudio, avisos }: { estudio: boolean; avisos?
     if (!abierto) return
     setBuscar('')
     carteraServicio.empresas()
-      .then(l => { setEmpresas(l); setTotal(l.length) })
+      .then(l => { setEmpresas(l); setTotal(l.filter(e => !e.esDelEstudio).length) })
       .catch(e => mensaje.error(e instanceof ErrorApi ? e.message : 'No se pudo leer tu cartera.'))
 
     // Un clic fuera o Escape lo cierran.
@@ -68,6 +69,12 @@ export function SelectorEmpresa({ estudio, avisos }: { estudio: boolean; avisos?
 
   const elegir = async (e: EmpresaCartera) => {
     setAbierto(false)
+    // e285: «Mi empresa» con candado (menos del mínimo en la cartera): se dice por qué.
+    const est = cuenta?.estudio
+    if (e.esDelEstudio && est?.estado === 'sin_activar') {
+      mensaje.ojo(`Tu empresa se activa cuando tengas al menos ${est.minimo} empresas en tu cartera. Hoy tienes ${est.tiene}. Agrégalas con «+ Agregar empresa».`)
+      return
+    }
     // Ya abierta: desde el estudio, entrar es solo ir a su inicio.
     if (e.abierta) { if (estudio) navegar('/'); return }
     try {
@@ -82,9 +89,13 @@ export function SelectorEmpresa({ estudio, avisos }: { estudio: boolean; avisos?
   }
 
   const texto = buscar.trim().toLowerCase()
+  const coincide = (e: EmpresaCartera) => !texto || e.nombre.toLowerCase().includes(texto) || (e.ruc ?? '').includes(texto)
   const visibles = (empresas ?? [])
-    .filter(e => !e.pausadaEn)
-    .filter(e => !texto || e.nombre.toLowerCase().includes(texto) || (e.ruc ?? '').includes(texto))
+    .filter(e => !e.pausadaEn && !e.esDelEstudio)
+    .filter(coincide)
+  // e285: la empresa del estudio, en su propio grupo «Mi empresa».
+  const propia = (empresas ?? []).find(e => e.esDelEstudio && !e.pausadaEn && coincide(e))
+  const candado = cuenta?.estudio?.estado === 'sin_activar'
 
   return (
     <div className="selector-empresa" ref={caja}>
@@ -148,8 +159,28 @@ export function SelectorEmpresa({ estudio, avisos }: { estudio: boolean; avisos?
             })}
           </ul>
 
+          {propia && (
+            <>
+              <span className="selector-subtitulo">Mi empresa</span>
+              <ul role="listbox" className="selector-lista">
+                <li role="option" aria-selected={propia.abierta}>
+                  <button type="button" className={'selector-opcion' + (propia.abierta && !estudio ? ' elegida' : '') + (candado ? ' con-candado' : '')}
+                          onClick={() => void elegir(propia)}>
+                    <span>
+                      <strong>{candado ? '🔒 ' : ''}{propia.nombre}</strong>
+                      <span className="selector-ruc">RUC {propia.ruc}{candado ? ' · se activa con 2 empresas en tu cartera' : ''}</span>
+                    </span>
+                    {propia.abierta && !estudio
+                      ? <span className="selector-marca" aria-hidden="true">✓</span>
+                      : estadoDe(propia) !== 'lista' && <span className={`estado-empresa ${estadoDe(propia)}`}>{textoEstado(propia)}</span>}
+                  </button>
+                </li>
+              </ul>
+            </>
+          )}
+
           <div className="selector-pie">
-            <Link to="/empresas" onClick={() => setAbierto(false)}>Ver todas en Mis empresas</Link>
+            <Link to="/empresas" onClick={() => setAbierto(false)}>Ver todas en Mi cartera</Link>
             {cuenta?.nivel !== 'colaborador' && (
               <Link to="/configurar?nueva=1" onClick={() => setAbierto(false)}>+ Agregar empresa</Link>
             )}

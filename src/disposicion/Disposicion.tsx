@@ -18,7 +18,7 @@ import { useConexionSunat } from '../nucleo/sunat/conexionSunat'
 import { REPORTES } from '../modulos/reportes/vistas/Reportes'
 import { REPORTES_CARTERA, REPORTES_PLATAFORMA } from '../modulos/reportes/vistas/ReportesPlataforma'
 import { MenuDesplegable } from './MenuDesplegable'
-import { Campanita, IndicadorCertificado } from '../modulos/avisos/Campanita'
+import { Campanita, IndicadorCertificado, IndicadorMiEmpresa } from '../modulos/avisos/Campanita'
 import { useAvisos } from '../modulos/avisos/avisosServicio'
 import { erroresServicio } from '../modulos/errores/servicios/erroresServicio'
 import { EVENTO_RECLAMOS, reclamosAdminServicio } from '../modulos/reclamos/servicios/reclamosAdminServicio'
@@ -372,7 +372,7 @@ export function Disposicion() {
           {cartera && enEstudio && cuenta?.nivel !== 'colaborador' && (
             <nav className="seccion-lateral">
               <span className="titulo-seccion">Mi empresa</span>
-              <NavLink to="/mi-estudio/empresa" className={activo}><Icono>⌂</Icono>Mi empresa</NavLink>
+              <NavLink to="/mi-estudio/empresa" className={activo}><Icono>⌂</Icono>Mi empresa<IndicadorMiEmpresa datos={avisos.datos} /></NavLink>
               {/* 098: con menos del mínimo en la cartera, sus menús van con candado. */}
               {cuenta?.estudio?.estado === 'sin_activar' && ['Comprobantes', 'Clientes', 'Productos', 'Guías de remisión', 'Reportes'].map(n => (
                 <button key={n} type="button" className="boton-lateral con-candado-lateral"
