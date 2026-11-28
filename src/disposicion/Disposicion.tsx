@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconoMenu, iconoDeSimbolo } from './IconoMenu'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { EVENTO_FICHA_INCOMPLETA } from '../nucleo/api/cliente'
 import { fecha } from '../nucleo/formato/fechas'
 import { useMensaje } from '../nucleo/mensajes/ProveedorMensajes'
@@ -165,12 +165,14 @@ export function Disposicion() {
   // e191: DOS MODOS en la Cuenta Profesional. «Mi estudio» (Mis empresas, Mi
   // equipo, reportes de la cartera, agregar empresa) o DENTRO de una empresa.
   // El menú enseña solo lo del modo; el selector de arriba cambia de uno a otro.
-  const enEstudio = cartera && (!empresa
-    || ['/empresas', '/colaboradores', '/mi-cartera', '/mi-plan', '/pagos-comprobantes', '/mi-estudio'].some(r => ruta.pathname === r || ruta.pathname.startsWith(r + '/'))
-    || (ruta.pathname === '/configurar' && new URLSearchParams(ruta.search).has('nueva')))
+  // e286: «Mi empresa» con candado no se trabaja por dentro: se queda en modo estudio.
+  const estudioCandado = cartera && !!empresa && cuenta?.estudio?.estado === 'sin_activar' && empresa.id === cuenta.estudio.empresaId
+  const rutaDeEstudio = ['/empresas', '/colaboradores', '/mi-cartera', '/mi-plan', '/pagos-comprobantes', '/mi-estudio'].some(r => ruta.pathname === r || ruta.pathname.startsWith(r + '/'))
+    || (ruta.pathname === '/configurar' && new URLSearchParams(ruta.search).has('nueva'))
+  const enEstudio = cartera && (!empresa || estudioCandado || rutaDeEstudio)
 
   const pagina = nombreDePagina(ruta.pathname)
-  const deEmpresa = !!empresa && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil', '/mi-plan', '/mi-plan/pagos', '/pagos-comprobantes', '/mi-estudio/empresa'].includes(ruta.pathname)
+  const deEmpresa = !!empresa && !enEstudio && !['/empresas', '/colaboradores', '/colaboradores/cargos', '/perfil', '/mi-plan', '/mi-plan/pagos', '/pagos-comprobantes', '/mi-estudio/empresa'].includes(ruta.pathname)
     && !ruta.pathname.startsWith('/admin')
 
   return (
@@ -594,7 +596,9 @@ export function Disposicion() {
           {/* e191: cambiar de empresa (o de sucursal) vuelve a cargar la pantalla:
               si no, se quedaban datos de la anterior (el certificado en Inicio). */}
           {/* 069: una pantalla que su plan no trae (por enlace o URL a mano). */}
-          {bloqueadaAqui
+          {estudioCandado && !rutaDeEstudio && !ruta.pathname.startsWith('/perfil')
+            ? <Navigate to="/mi-estudio/empresa" replace />
+            : bloqueadaAqui
             ? <PantallaPlan minimo={planQueLaTrae(plan, ruta.pathname) ?? 'sin'} puedeCambiar={cambiaPlan} />
             : <Outlet key={`${empresa?.id ?? 'sin-empresa'}:${alcance?.vista ?? 'todas'}`} />}
         </main>

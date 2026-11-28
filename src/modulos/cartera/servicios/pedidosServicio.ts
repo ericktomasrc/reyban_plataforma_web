@@ -22,6 +22,8 @@ export interface RevisionPedido {
   /** El correo del titular, TAPADO (j•••@dominio). */
   correo: string | null
   mensaje: string | null
+  /** e286: es «Mi empresa» (la del estudio). */
+  esMiEmpresa?: boolean
 }
 
 export type EstadoPedido = 'abierto' | 'rechazado' | 'cancelado' | 'vencido'

@@ -83,7 +83,7 @@ export function Asistente() {
       <>
         <h1 className="titulo-pagina">Configura tu empresa</h1>
         <Aviso tono="ojo">{estado.motivo ?? 'No puedes agregar una empresa ahora.'}</Aviso>
-        <Link to="/" className="boton secundario">← Volver al inicio</Link>
+        <VolverInicio boton />
       </>
     )
   }
@@ -102,7 +102,7 @@ export function Asistente() {
 
   return (
     <div className="cfg-pagina">
-      <Link to="/" className="enlace-volver">← Volver al inicio</Link>
+      <VolverInicio />
 
       {/* Diseño 16 nov: título sobrio y los pasos arriba, en una barra. */}
       <div className="encabezado-pagina cmp-encab">
@@ -198,13 +198,32 @@ function campoDe(err: unknown): string | undefined {
     ? err.codigo.slice('campo_'.length) : undefined
 }
 
+/**
+ * e286: adónde se vuelve. Agregando una empresa a la cartera (Cuenta
+ * Profesional, ?nueva), a «Mi cartera»; si no, al inicio de la empresa. Antes
+ * volvía siempre a «/» y abría la última empresa (aunque fuera «Mi empresa»).
+ */
+function useVolver() {
+  const [sp] = useSearchParams()
+  const { cuenta } = useYo()
+  return sp.has('nueva') && cuenta?.tipo === 'profesional'
+    ? { ruta: '/empresas', texto: 'Volver a Mi cartera' }
+    : { ruta: '/', texto: 'Volver al inicio' }
+}
+
+function VolverInicio({ boton }: { boton?: boolean }) {
+  const v = useVolver()
+  return <Link to={v.ruta} className={boton ? 'boton secundario' : 'enlace-volver'}>← {v.texto}</Link>
+}
+
 /** «← Atrás» y «Guardar y seguir», al pie de cada paso. */
 function Pie({ atras, children }: { atras?: () => void; children: ReactNode }) {
+  const volver = useVolver()
   return (
     <div className="pie-asistente">
       {atras
         ? <Boton estilo="secundario" onClick={atras}>← Atrás</Boton>
-        : <Link to="/" className="boton secundario">← Atrás</Link>}
+        : <Link to={volver.ruta} className="boton secundario">← Atrás</Link>}
       <div className="pie-asistente-derecha">{children}</div>
     </div>
   )
@@ -504,6 +523,10 @@ function EmpresaYaEnReyban({ ruc, revision }: { ruc: string; revision: RevisionP
           <strong>{nombre} ya está en Reyban.</strong> {revision.mensaje}
         </div>
         {revision.resultado === 'ya_pediste' && <Link to="/empresas" className="boton secundario">Ir a Mi cartera</Link>}
+        {/* e286: si ya es tuya, adónde ir. */}
+        {revision.resultado === 'ya_es_tuya' && (revision.esMiEmpresa
+          ? <Link to="/mi-estudio/empresa" className="boton secundario">Ir a Mi empresa</Link>
+          : <Link to="/empresas" className="boton secundario">Ir a Mi cartera</Link>)}
         {revision.resultado === 'convertir' && <Link to="/perfil#convertir" className="boton secundario">Ir a Mi cuenta</Link>}
         <Pie><span /></Pie>
       </>
